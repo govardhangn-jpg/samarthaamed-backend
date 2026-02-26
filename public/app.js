@@ -864,7 +864,27 @@
     document.getElementById('topbar-sub').textContent = name + ' · Active Session';
 
     const p = patientProfiles[initials];
-    if (!p) return;
+    if (!p) {
+      // New patient not yet in profiles — show name and a "no full record" message
+      const nameEl = document.querySelector('.consult-patient-name');
+      if (nameEl) nameEl.textContent = name;
+      const metaEl = document.querySelector('.consult-patient-meta');
+      if (metaEl) metaEl.textContent = 'Newly registered · No vitals recorded yet';
+      const msgs = document.getElementById('chatMessages');
+      const typing = document.getElementById('typingIndicator');
+      if (msgs && typing) {
+        const msg = document.createElement('div');
+        msg.className = 'msg ai';
+        msg.innerHTML = `<div class="msg-avatar">🧬</div><div><div class="msg-bubble" style="border-left:3px solid var(--teal);padding-left:12px">
+          <strong style="color:var(--teal)">Consultation opened → ${name}</strong><br>
+          <span style="font-size:0.78rem;color:var(--text3)">Newly registered patient — full vitals not yet recorded. How can I assist?</span>
+        </div><div class="msg-time">SamarthaaMed · Just now</div></div>`;
+        msgs.insertBefore(msg, typing);
+        msgs.scrollTop = msgs.scrollHeight;
+      }
+      showToast('🩺', 'Consultation opened', name);
+      return;
+    }
 
     // Update avatar + name in left panel
     const avatarEl = document.querySelector('.consult-patient-avatar');
@@ -2025,13 +2045,14 @@ Rules:
       document.getElementById('labPatientSelect'),
       document.getElementById('labModalPatientSelect'),
       document.getElementById('imagingPatientSelect'),
+      document.querySelector('.risk-patient-selector select'),
     ];
     selects.forEach(sel => {
       if (!sel) return;
       const prevIdx = sel.selectedIndex;
-      // Keep blank first option for imaging select
-      const blankOption = sel.id === 'imagingPatientSelect'
-        ? '<option value="">— Select patient —</option>' : '';
+      // Keep blank first option for imaging and risk selects
+      const needsBlank = sel.id === 'imagingPatientSelect' || sel.closest('.risk-patient-selector');
+      const blankOption = needsBlank ? '<option value="">— Select patient —</option>' : '';
       sel.innerHTML = blankOption + patientRegistry
         .map(p => `<option value="${p.key}">${p.name} · ${p.id}</option>`)
         .join('');
@@ -2039,9 +2060,31 @@ Rules:
     });
   }
 
+  // Add a chip for a newly registered patient to the AI Consultation page
+  function addPatientChipToConsult(key, fullName, avatarColor) {
+    const chipsRow = document.querySelector('#view-consult .patient-switcher');
+    if (!chipsRow) return;
+    const initials = patientProfiles[key]?.initials || (fullName.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase());
+    const firstName = fullName.split(' ')[0];
+    const lastName  = fullName.split(' ').slice(1).join(' ');
+    const shortName = firstName + (lastName ? ' ' + lastName[0] + '.' : '');
+    const chip = document.createElement('div');
+    chip.className = 'patient-chip';
+    chip.setAttribute('onclick', `switchConsultPatient(this,'${key}','${fullName}','new')`);
+    chip.innerHTML = `
+      <div class="patient-chip-avatar" style="background:${avatarColor}">${initials}</div>
+      <span class="patient-chip-name">${shortName}</span>
+      <span class="status-badge active" style="margin-left:4px;font-size:0.6rem">New</span>`;
+    chipsRow.appendChild(chip);
+  }
+
   function addToPatientRegistry(fname, lname, patientId, key) {
-    patientRegistry.unshift({ id: patientId, name: fname + ' ' + lname, key: key || 'NEW' });
+    // Generate a unique key from initials + timestamp to avoid collisions
+    const initials = (fname[0] || 'N') + (lname[0] || 'P');
+    const uniqueKey = initials.toUpperCase() + '_' + Date.now().toString(36).toUpperCase();
+    patientRegistry.unshift({ id: patientId, name: fname + ' ' + lname, key: uniqueKey });
     syncAllPatientDropdowns();
+    return uniqueKey;
   }
 
   // ── CONSULT FROM PATIENTS PAGE ──
@@ -2102,8 +2145,30 @@ Rules:
 
     newPatientData = { fname, lname, patientId, age, genderCode, spec, conds, complaint, bmi, today, fullName };
 
-    // ✅ Add to shared registry so ALL dropdowns get this patient
-    addToPatientRegistry(fname, lname, patientId, 'NEW');
+    // ✅ Add to shared registry (returns unique key) and ALL dropdowns
+    const newKey = addToPatientRegistry(fname, lname, patientId);
+    newPatientData.key = newKey;
+
+    // ✅ Build a full patientProfiles entry so AI Consultation, Risk, etc. have real data
+    const colors = ['#EF4444','#3B82F6','#10B981','#8B5CF6','#F59E0B','#06B6D4','#EC4899'];
+    const avatarColor = `linear-gradient(135deg,${colors[Math.floor(Math.random()*colors.length)]},${colors[Math.floor(Math.random()*colors.length)]})`;
+    patientProfiles[newKey] = {
+      name: fullName,
+      meta: `${age}${genderCode} · ID: ${patientId} · ${spec || 'General'}`,
+      initials: (fname[0]||'N').toUpperCase() + (lname[0]||'P').toUpperCase(),
+      avatarColor,
+      vitals: { hr: '—', bp: '—', spo2: '—', temp: '—' },
+      hbColor: colors[Math.floor(Math.random()*colors.length)],
+      complaints: complaint ? [complaint] : ['New registration'],
+      complaintTypes: [''],
+      history: conds ? conds.split(',').map(s => s.trim()).filter(Boolean) : ['No history recorded'],
+      historyTypes: (conds ? conds.split(',') : ['']).map(() => ''),
+      meds: 'Not yet prescribed',
+      scores: [['BMI', bmi ? `${bmi} kg/m²` : '—', ''], ['Registration', today, ''], ['Status', 'New Patient', 'teal']],
+    };
+
+    // ✅ Add chip to AI Consultation page
+    addPatientChipToConsult(newKey, fullName, avatarColor);
 
     // Show success screen
     document.getElementById('summaryContent').style.display = 'none';
@@ -2147,7 +2212,7 @@ Rules:
       <td>Today</td>
       <td><span style="color:var(--teal);font-family:var(--mono);font-weight:600">—</span></td>
       <td><span class="status-badge active">New</span></td>
-      <td><button class="action-btn" onclick="openConsultForPatient('NEW','${safeFullName}')">Consult</button></td>`;
+      <td><button class="action-btn" onclick="openConsultForPatient('${p.key}','${safeFullName}')">Consult</button></td>`;
     tbody.insertBefore(tr, tbody.firstChild);
   }
 

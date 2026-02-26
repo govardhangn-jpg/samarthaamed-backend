@@ -6796,6 +6796,12 @@ Rules:
         enhancePrescriptionView();
       }, 50);
     }
+    if (id === 'risk') {
+      setTimeout(() => {
+        addRiskPatientSelector();
+        refreshRiskPatientSelector();
+      }, 50);
+    }
   }
 
   function enhancePrescriptionView() {
@@ -7611,7 +7617,7 @@ INVESTIGATIONS:
     }
   }
 
-  // Add patient selector to Risk view
+  // Add patient selector to Risk view — builds from patientProfiles (includes newly registered)
   function addRiskPatientSelector() {
     const riskView = document.getElementById('view-risk');
     if (!riskView) return;
@@ -7624,15 +7630,25 @@ INVESTIGATIONS:
       selector.innerHTML = `
         <label style="display:block;margin-bottom:8px;font-size:0.85rem;color:var(--text2)">Select Patient:</label>
         <select onchange="updateRiskPrediction(this.value)" style="width:100%;max-width:400px;padding:10px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.85rem">
-          <option value="">Choose a patient...</option>
-          ${Object.keys(patientProfiles).map(key => {
-            const p = patientProfiles[key];
-            return `<option value="${key}">${p.name} (${key})</option>`;
-          }).join('')}
+          <option value="">— Select patient —</option>
         </select>
       `;
       riskView.insertBefore(selector, riskView.firstChild);
     }
+    // Always repopulate so newly registered patients appear
+    refreshRiskPatientSelector();
+  }
+
+  function refreshRiskPatientSelector() {
+    const sel = document.querySelector('.risk-patient-selector select');
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— Select patient —</option>' +
+      Object.keys(patientProfiles).map(key => {
+        const p = patientProfiles[key];
+        return `<option value="${key}">${p.name} · ${p.meta.split('·')[0].trim()}</option>`;
+      }).join('');
+    if (prev) sel.value = prev;
   }
 
   // 6. Language Support
