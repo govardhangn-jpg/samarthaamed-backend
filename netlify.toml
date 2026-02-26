@@ -26,6 +26,12 @@
   to     = "/.netlify/functions/config"
   status = 200
 
+# Route /api/orthanc-proxy → Orthanc proxy function (solves CORS)
+[[redirects]]
+  from   = "/api/orthanc-proxy"
+  to     = "/.netlify/functions/orthanc-proxy"
+  status = 200
+
 # All other routes → SPA index
 [[redirects]]
   from   = "/*"

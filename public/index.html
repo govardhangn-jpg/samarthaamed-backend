@@ -8807,8 +8807,12 @@ INVESTIGATIONS:
   } catch(e){}
 
   // Orthanc/PACS state — populated by _loadConfig
+  // _orthancBase is kept only to know whether Orthanc is configured.
+  // All actual requests go through /api/orthanc-proxy (Netlify function)
+  // so there are zero CORS issues regardless of ngrok / IP / port.
   let _orthancBase = '';
-  let _orthancAuth = '';
+  let _orthancAuth = '';       // unused by proxy (auth happens server-side)
+  const PROXY = '/api/orthanc-proxy';
 
   async function _loadConfig() {
     if (_configLoaded) return;
@@ -8823,13 +8827,9 @@ INVESTIGATIONS:
         if (ak) _vault.set('smak', ak);
         if (ek) _vault.set('elak', ek);
         if (ev) _vault.set('elvi', ev);
-        // Orthanc / PACS
+        // Just store whether Orthanc is configured — proxy handles credentials
         _orthancBase = (cfg.orthancUrl || '').replace(/\/$/, '');
-        if (_orthancBase && cfg.orthancUser) {
-          _orthancAuth = 'Basic ' + btoa(`${cfg.orthancUser}:${cfg.orthancPassword}`);
-        }
         _configLoaded = true;
-        // Update PACS status badge in settings
         _updatePacsBadge();
       })
       .catch(err => console.error('[SamarthaaMed] Failed to load config:', err));
@@ -8851,49 +8851,51 @@ INVESTIGATIONS:
     }
   }
 
-  // ── Orthanc REST helpers ────────────────────────────────────────────────────
+  // ── Orthanc REST helpers — all routed through Netlify proxy ────────────────
+  // Browser → /api/orthanc-proxy?path=... → Netlify function → Orthanc
+  // This avoids ALL CORS issues, regardless of ngrok/IP/port.
+
   async function orthancGet(path) {
     await _loadConfig();
     if (!_orthancBase) throw new Error('Orthanc not configured');
-    const res = await fetch(_orthancBase + path, {
-      headers: { 'Authorization': _orthancAuth, 'Accept': 'application/json' }
-    });
-    if (!res.ok) throw new Error(`Orthanc ${res.status} on ${path}`);
+    const res = await fetch(`${PROXY}?path=${encodeURIComponent(path)}`);
+    if (!res.ok) throw new Error(`Orthanc proxy ${res.status} on ${path}`);
     return res.json();
   }
 
   async function orthancPost(path, body) {
     await _loadConfig();
     if (!_orthancBase) throw new Error('Orthanc not configured');
-    const res = await fetch(_orthancBase + path, {
+    const res = await fetch(`${PROXY}?path=${encodeURIComponent(path)}`, {
       method: 'POST',
-      headers: { 'Authorization': _orthancAuth, 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify(body)
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
     });
-    if (!res.ok) throw new Error(`Orthanc ${res.status} on POST ${path}`);
+    if (!res.ok) throw new Error(`Orthanc proxy ${res.status} on POST ${path}`);
     return res.json();
   }
 
   async function orthancUploadDicom(file) {
     await _loadConfig();
     if (!_orthancBase) throw new Error('Orthanc not configured');
+    // Upload goes directly to proxy with raw binary body
     const buf = await file.arrayBuffer();
-    const res = await fetch(_orthancBase + '/instances', {
+    const res = await fetch(`${PROXY}?path=${encodeURIComponent('/instances')}&upload=1`, {
       method: 'POST',
-      headers: { 'Authorization': _orthancAuth, 'Content-Type': 'application/dicom' },
-      body: buf
+      headers: { 'Content-Type': 'application/dicom' },
+      body: buf,
     });
     if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
     return res.json();
   }
 
+  // For <img src> — proxy returns the image as base64 via the binary=1 flag
   function orthancFrameUrl(instanceId, frame = 0) {
-    const auth = _orthancAuth ? `?auth=${btoa(_orthancAuth)}` : '';
-    return `${_orthancBase}/instances/${instanceId}/frames/${frame}/rendered`;
+    return `${PROXY}?path=${encodeURIComponent(`/instances/${instanceId}/frames/${frame}/rendered`)}&binary=1`;
   }
 
   function orthancThumbUrl(instanceId) {
-    return `${_orthancBase}/instances/${instanceId}/preview`;
+    return `${PROXY}?path=${encodeURIComponent(`/instances/${instanceId}/preview`)}&binary=1`;
   }
 
   async function orthancFindStudies(query = {}) {
@@ -11652,18 +11654,15 @@ Generate a structured dental diagnosis and phased treatment plan. Return JSON on
     img.style.filter = '';
 
     if (_pacsDemoActive) {
-      // Demo: use a public DICOM sample image
+      // Demo: use public sample chest X-ray images
       const demos = [
         'https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/CXR_NIH_PA_Chest.jpg/768px-CXR_NIH_PA_Chest.jpg',
         'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Chest_Xray_PA_3-8-2010.png/768px-Chest_Xray_PA_3-8-2010.png',
       ];
       img.src = demos[_pacsFrameIdx % demos.length];
     } else {
-      const url = `${_orthancBase}/instances/${instanceId}/rendered`;
-      img.src = url + (url.includes('?') ? '&' : '?') + `_auth=${encodeURIComponent(_orthancAuth)}&_t=${Date.now()}`;
-      // Auth header can't be set via <img src>, so for real use Orthanc must have AllowedHeaders / no auth
-      // OR use the /preview endpoint which renders a JPEG
-      img.src = `${_orthancBase}/instances/${instanceId}/preview`;
+      // Route through Netlify proxy — no CORS, auth handled server-side
+      img.src = orthancThumbUrl(instanceId);
     }
 
     if (frameLabel) frameLabel.textContent = `Image ${_pacsFrameIdx + 1} / ${_pacsInstances.length}`;
