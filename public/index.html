@@ -2316,7 +2316,7 @@
                   </div>
                   <div class="patient-status"><span class="status-badge urgent">Urgent</span></div>
                 </div>
-                <div class="patient-row" onclick="openConsultForPatient('NEW','Deepak Kumar')" style="cursor:pointer;border-left:3px solid var(--red)">
+                <div class="patient-row" onclick="openConsultForPatient('DK','Deepak Kumar')" style="cursor:pointer;border-left:3px solid var(--red)">
                   <div class="patient-avatar" style="background:linear-gradient(135deg,#EF4444,#B91C1C)">DK</div>
                   <div style="flex:1">
                     <div class="patient-name">Deepak Kumar</div>
@@ -2324,7 +2324,7 @@
                   </div>
                   <div class="patient-status"><span class="status-badge urgent">Urgent</span></div>
                 </div>
-                <div class="patient-row" onclick="openConsultForPatient('NEW','Meena Iyer')" style="cursor:pointer;border-left:3px solid var(--red)">
+                <div class="patient-row" onclick="openConsultForPatient('MI','Meena Iyer')" style="cursor:pointer;border-left:3px solid var(--red)">
                   <div class="patient-avatar" style="background:linear-gradient(135deg,#DC2626,#991B1B)">MI</div>
                   <div style="flex:1">
                     <div class="patient-name">Meena Iyer</div>
@@ -2370,7 +2370,7 @@
                   </div>
                   <div class="patient-status"><span class="status-badge stable">Stable</span></div>
                 </div>
-                <div class="patient-row" onclick="openConsultForPatient('NEW','Karthik Reddy')" style="cursor:pointer;border-left:3px solid var(--green)">
+                <div class="patient-row" onclick="openConsultForPatient('KR','Karthik Reddy')" style="cursor:pointer;border-left:3px solid var(--green)">
                   <div class="patient-avatar" style="background:linear-gradient(135deg,#06B6D4,#0891B2)">KR</div>
                   <div style="flex:1">
                     <div class="patient-name">Karthik Reddy</div>
@@ -3019,7 +3019,7 @@
                   <td>22 Feb</td>
                   <td><span style="color:var(--teal);font-family:var(--mono);font-weight:600">22%</span></td>
                   <td><span class="status-badge stable">Stable</span></td>
-                  <td><button class="action-btn" onclick="openConsultForPatient('NEW','Mohan Pillai')">Consult</button></td>
+                  <td><button class="action-btn" onclick="openConsultForPatient('MP','Mohan Pillai')">Consult</button></td>
                 </tr>
                 <tr>
                   <td><div class="td-name">Nandini Bose</div><div style="font-size:0.72rem;color:var(--text3)">Hypothyroidism, PCOS</div></td>
@@ -3039,7 +3039,7 @@
                   <td>18 Feb</td>
                   <td><span style="color:var(--gold);font-family:var(--mono);font-weight:600">49%</span></td>
                   <td><span class="status-badge stable">Stable</span></td>
-                  <td><button class="action-btn" onclick="openConsultForPatient('NEW','Deepak Kumar')">Consult</button></td>
+                  <td><button class="action-btn" onclick="openConsultForPatient('DK','Deepak Kumar')">Consult</button></td>
                 </tr>
               </tbody>
             </table>
@@ -7066,160 +7066,8 @@ Rules:
     return map[spec] || 'teal';
   }
 
-  let newPatientData = null;
-
-  // ── SHARED PATIENT REGISTRY ──
-  // Single source of truth — all dropdowns sync from here
-  const patientRegistry = [
-    { id: 'MM-2024-04521', name: 'Priya Krishnamurthy', key: 'PK' },
-    { id: 'MM-2023-01892', name: 'Ramesh Singh',        key: 'RS' },
-    { id: 'MM-2025-09341', name: 'Anita Mehta',         key: 'AM' },
-    { id: 'MM-2024-07234', name: 'Vikram Nair',         key: 'VN' },
-    { id: 'MM-2025-02218', name: 'Sunita Gupta',        key: 'SG' },
-    { id: 'MM-2024-05512', name: 'Mohan Pillai',        key: 'NEW' },
-    { id: 'MM-2025-08876', name: 'Nandini Bose',        key: 'NEW' },
-    { id: 'MM-2023-03345', name: 'Deepak Kumar',        key: 'NEW' },
-  ];
-
-  function syncAllPatientDropdowns() {
-    const selects = [
-      document.getElementById('labPatientSelect'),
-      document.getElementById('labModalPatientSelect'),
-      document.getElementById('imagingPatientSelect'),
-    ];
-    selects.forEach(sel => {
-      if (!sel) return;
-      const prevIdx = sel.selectedIndex;
-      // Keep blank first option for imaging select
-      const blankOption = sel.id === 'imagingPatientSelect'
-        ? '<option value="">— Select patient —</option>' : '';
-      sel.innerHTML = blankOption + patientRegistry
-        .map(p => `<option value="${p.key}">${p.name} · ${p.id}</option>`)
-        .join('');
-      sel.selectedIndex = Math.min(prevIdx, sel.options.length - 1);
-    });
-  }
-
-  function addToPatientRegistry(fname, lname, patientId, key) {
-    patientRegistry.unshift({ id: patientId, name: fname + ' ' + lname, key: key || 'NEW' });
-    syncAllPatientDropdowns();
-  }
-
-  // ── CONSULT FROM PATIENTS PAGE ──
-  function openConsultForPatient(key, name) {
-    // Switch view first, then manipulate DOM after it's visible
-    showView('consult');
-    setTimeout(() => {
-      const chips = document.querySelectorAll('.patient-chip');
-      let matched = false;
-      chips.forEach(chip => {
-        const oc = chip.getAttribute('onclick') || '';
-        if (oc.includes(`'${key}'`)) {
-          // Call switchConsultPatient directly instead of chip.click()
-          // to avoid re-triggering showView
-          const match = oc.match(/switchConsultPatient\(this,'(\w+)','([^']+)','([^']+)'\)/);
-          if (match) {
-            chips.forEach(c => c.classList.remove('active'));
-            chip.classList.add('active');
-            switchConsultPatient(chip, match[1], match[2], match[3]);
-            matched = true;
-          }
-        }
-      });
-      if (!matched) {
-        document.getElementById('topbar-sub').textContent = name + ' · Active Session';
-        const msgs = document.getElementById('chatMessages');
-        const typing = document.getElementById('typingIndicator');
-        if (msgs && typing) {
-          const msg = document.createElement('div');
-          msg.className = 'msg ai';
-          msg.style.animation = 'fadeIn .3s ease';
-          msg.innerHTML = `<div class="msg-avatar">🧬</div><div><div class="msg-bubble" style="border-left:3px solid var(--teal);padding-left:12px">
-            <strong style="color:var(--teal)">Consultation opened → ${name}</strong><br>
-            <span style="font-size:0.78rem;color:var(--text3)">Patient record loaded. Type your clinical query below.</span>
-          </div><div class="msg-time">SamarthaaMed · Just now</div></div>`;
-          msgs.insertBefore(msg, typing);
-          msgs.scrollTop = msgs.scrollHeight;
-        }
-        showToast('🩺', 'Consultation opened', name);
-      }
-    }, 50);
-  }
-
-  function registerPatient() {
-    const fname = document.getElementById('f_fname').value.trim();
-    const lname = document.getElementById('f_lname').value.trim();
-    const dob = document.getElementById('f_dob').value;
-    const spec = document.getElementById('f_spec').value;
-    const complaint = document.getElementById('f_complaint').value.trim();
-    const gender = radioValues['f_gender'] || 'Male';
-    const genderCode = getGenderCode();
-    const age = calcAge(dob);
-    const patientId = generatePatientId();
-    const today = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
-    const conds = tagData.conditions.join(', ') || complaint.substring(0, 40);
-    const bmi = calcBMI(document.getElementById('f_weight').value, document.getElementById('f_height').value);
-    const fullName = fname + ' ' + lname;
-
-    newPatientData = { fname, lname, patientId, age, genderCode, spec, conds, complaint, bmi, today, fullName };
-
-    // ✅ Add to shared registry so ALL dropdowns get this patient
-    addToPatientRegistry(fname, lname, patientId, 'NEW');
-
-    // Show success screen
-    document.getElementById('summaryContent').style.display = 'none';
-    document.getElementById('modalFooter').style.display = 'none';
-    document.getElementById('successId').textContent = patientId;
-    document.getElementById('successOverlay').classList.add('show');
-    document.getElementById('step-panel-4').style.display = 'block';
-
-    addPatientToTable(newPatientData);
-    updatePatientCount();
-    showToast('✅', 'Patient Registered!', `${fullName} · ID: ${patientId}`);
-  }
-
-  function addPatientToTable(p) {
-    const tbody = document.querySelector('.data-table tbody');
-    const specColor = getSpecColor(p.spec);
-    const pillStyle = specColor === 'teal'
-      ? 'class="pill teal"'
-      : `style="background:rgba(96,165,250,0.1);color:${specColor};border:1px solid rgba(96,165,250,0.2)"`;
-    const initials = (p.fname[0] || '') + (p.lname[0] || '');
-    const colors = ['#EF4444','#3B82F6','#10B981','#8B5CF6','#F59E0B','#06B6D4','#EC4899'];
-    const color = colors[Math.floor(Math.random() * colors.length)];
-    const fullName = p.fullName || (p.fname + ' ' + p.lname);
-    const safeFullName = fullName.replace(/'/g, "\\'");
-
-    const tr = document.createElement('tr');
-    tr.style.animation = 'fadeIn .4s ease';
-    tr.innerHTML = `
-      <td>
-        <div style="display:flex;align-items:center;gap:10px">
-          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,${color},${color}cc);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
-          <div>
-            <div class="td-name">${fullName}</div>
-            <div style="font-size:0.72rem;color:var(--text3)">${p.conds || p.complaint.substring(0,40)}</div>
-          </div>
-        </div>
-      </td>
-      <td class="td-id">${p.patientId}</td>
-      <td>${p.age}${p.genderCode}</td>
-      <td><span ${pillStyle}>${p.spec || 'General'}</span></td>
-      <td>Today</td>
-      <td><span style="color:var(--teal);font-family:var(--mono);font-weight:600">—</span></td>
-      <td><span class="status-badge active">New</span></td>
-      <td><button class="action-btn" onclick="openConsultForPatient('NEW','${safeFullName}')">Consult</button></td>`;
-    tbody.insertBefore(tr, tbody.firstChild);
-  }
-
-  function updatePatientCount() {
-    const subEl = document.getElementById('topbar-sub');
-    const countEl = document.querySelector('#view-patients .section-sub');
-    if (countEl) {
-      const rows = document.querySelectorAll('.data-table tbody tr').length;
-      countEl.textContent = `${482 + rows - 8} total patients · Updated just now`;
-    }
-  }
+  // ── All patient registration functions are defined in app.js (single source of truth) ──
+  // This block intentionally left as a thin shim — DO NOT redeclare these functions here.
 
   function goToNewConsult() {
     closeModal();

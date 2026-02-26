@@ -855,6 +855,30 @@
       meds: 'Levothyroxine 75mcg OD (morning, empty stomach)\nMetformin 500mg BD\nVitamin D3 60,000 IU weekly',
       scores: [['TSH','5.8 mIU/L — Suboptimal','gold'],['Free T4','0.9 ng/dL — Low-normal','gold'],['HbA1c','5.8% — Prediabetes','gold']],
     },
+    MP: {
+      name: 'Mohan Pillai', meta: '55M · ID: MM-2024-05512 · Gastroenterology',
+      initials: 'MP', avatarColor: 'linear-gradient(135deg,#34D399,#059669)',
+      vitals: { hr:'78 bpm', bp:'130/82', spo2:'97%', temp:'37.0°C' },
+      hbColor: '#34D399',
+      complaints: ['Abdominal pain (epigastric)','Nausea post meals','Heartburn','Bloating'],
+      complaintTypes: ['gold','','gold',''],
+      history: ['GERD (3 yrs)','H. pylori positive (2022, treated)','No surgical history'],
+      historyTypes: ['','gold',''],
+      meds: 'Pantoprazole 40mg OD\nDomperidone 10mg TDS',
+      scores: [['Endoscopy','Mild esophagitis Grade A','gold'],['H. pylori','Negative (post-treatment)',''],['BMI','26.8 kg/m² (Overweight)','gold']],
+    },
+    KR: {
+      name: 'Karthik Reddy', meta: '41M · ID: MM-2025-11203 · Cardiology',
+      initials: 'KR', avatarColor: 'linear-gradient(135deg,#10B981,#065F46)',
+      vitals: { hr:'88 bpm', bp:'136/86', spo2:'98%', temp:'37.1°C' },
+      hbColor: '#10B981',
+      complaints: ['Intermittent chest tightness','Exertional dyspnea','Mild ankle swelling'],
+      complaintTypes: ['gold','gold',''],
+      history: ['Hypertension (2 yrs)','Family history: Father — MI at 48','Non-smoker'],
+      historyTypes: ['','red',''],
+      meds: 'Amlodipine 5mg OD\nTelmisartan 40mg OD',
+      scores: [['BP Stage','Stage 1 Hypertension','gold'],['Framingham 10-yr','22%','gold'],['Echo','Pending','']],
+    },
   };
 
   function switchConsultPatient(el, initials, name, status) {
@@ -2035,9 +2059,11 @@ Rules:
     { id: 'MM-2025-09341', name: 'Anita Mehta',         key: 'AM' },
     { id: 'MM-2024-07234', name: 'Vikram Nair',         key: 'VN' },
     { id: 'MM-2025-02218', name: 'Sunita Gupta',        key: 'SG' },
-    { id: 'MM-2024-05512', name: 'Mohan Pillai',        key: 'NEW' },
-    { id: 'MM-2025-08876', name: 'Nandini Bose',        key: 'NEW' },
-    { id: 'MM-2023-03345', name: 'Deepak Kumar',        key: 'NEW' },
+    { id: 'MM-2026-08876', name: 'Nandini Bose',        key: 'NB' },
+    { id: 'MM-2026-03345', name: 'Deepak Kumar',        key: 'DK' },
+    { id: 'MM-2026-02218', name: 'Meena Iyer',          key: 'MI' },
+    { id: 'MM-2024-05512', name: 'Mohan Pillai',        key: 'MP' },
+    { id: 'MM-2025-11203', name: 'Karthik Reddy',       key: 'KR' },
   ];
 
   function syncAllPatientDropdowns() {
