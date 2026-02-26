@@ -5218,18 +5218,22 @@ Guidelines:
     const audio   = new Audio(url);
     window._elCurrentAudio = audio;
 
-    audio.onended = () => {
-      URL.revokeObjectURL(url);
-      window._elCurrentAudio = null;
-      _onSpeakEnd();
-    };
-    audio.onerror = (e) => {
-      URL.revokeObjectURL(url);
-      window._elCurrentAudio = null;
-      _onSpeakEnd();
-    };
-
-    await audio.play();
+    // Return a promise that resolves when audio FINISHES (not just when it starts)
+    return new Promise((resolve, reject) => {
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        window._elCurrentAudio = null;
+        _onSpeakEnd();
+        resolve();
+      };
+      audio.onerror = (e) => {
+        URL.revokeObjectURL(url);
+        window._elCurrentAudio = null;
+        _onSpeakEnd();
+        reject(new Error('Audio playback error'));
+      };
+      audio.play().catch(reject);
+    });
   }
 
   function _speakBrowser(text) {
