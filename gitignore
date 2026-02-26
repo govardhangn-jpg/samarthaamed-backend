@@ -1,0 +1,12 @@
+# Local environment variables — NEVER commit this file
+.env
+.env.local
+.env.*
+
+# Netlify local dev cache
+.netlify/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp

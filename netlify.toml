@@ -1,0 +1,33 @@
+[build]
+  command = ""
+  publish = "public"
+  functions = "netlify/functions"
+
+[build.processing]
+  skip_processing = true
+
+[build.processing.css]
+  bundle = false
+  minify = false
+
+[build.processing.js]
+  bundle = false
+  minify = false
+
+[build.processing.html]
+  pretty_urls = false
+
+[build.processing.images]
+  compress = false
+
+# Route /api/config → the config serverless function
+[[redirects]]
+  from   = "/api/config"
+  to     = "/.netlify/functions/config"
+  status = 200
+
+# All other routes → SPA index
+[[redirects]]
+  from   = "/*"
+  to     = "/index.html"
+  status = 200
