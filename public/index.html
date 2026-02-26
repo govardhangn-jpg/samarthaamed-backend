@@ -11798,16 +11798,186 @@ Generate a structured dental diagnosis and phased treatment plan. Return JSON on
   }
 
   // ── AI analyze from PACS ───────────────────────────────────────────────────
-  function pacsAiAnalyze() {
-    if (!_pacsCurrentStudy) return;
-    const t = _pacsCurrentStudy.MainDicomTags || {};
+  async function pacsAiAnalyze() {
+    if (!_pacsCurrentStudy) { showToast('⚠️','No study selected','Select a study first'); return; }
+
+    const t          = _pacsCurrentStudy.MainDicomTags || {};
+    const patientName = (t.PatientName||'Unknown').replace(/\^/g,' ');
+    const studyDesc  = t.StudyDescription || 'Medical Image';
+    const studyDate  = (t.StudyDate||'').replace(/(\d{4})(\d{2})(\d{2})/,'$3/$2/$1');
+    const modality   = (_pacsCurrentStudy.Modalities||[]).join(', ') || 'Unknown';
+
+    // Get current instance ID
+    const instanceId = _pacsInstances[_pacsFrameIdx];
+    if (!instanceId && !_pacsDemoActive) {
+      showToast('⚠️','No image loaded','Select a series first'); return;
+    }
+
+    // Show analyzing state in the viewer area
+    const metaPanel = document.getElementById('pacsMetaPanel');
+    const prevMeta  = metaPanel ? metaPanel.innerHTML : '';
+    if (metaPanel) {
+      metaPanel.style.display = 'block';
+      metaPanel.innerHTML = `
+        <div style="display:flex;align-items:center;gap:14px;padding:8px 0">
+          <div class="pulse-ring" style="width:20px;height:20px;flex-shrink:0"></div>
+          <div>
+            <div style="font-size:0.88rem;font-weight:700;color:var(--teal)">🤖 AI Analyzing Image…</div>
+            <div style="font-size:0.75rem;color:var(--text3);margin-top:2px">Fetching DICOM → sending to Claude AI</div>
+          </div>
+        </div>`;
+    }
+
+    try {
+      // ── Step 1: fetch the image as base64 via proxy ──
+      let b64data, mimeType = 'image/jpeg';
+
+      if (_pacsDemoActive) {
+        // Demo: fetch a public chest X-ray and convert to base64
+        const demoUrl = 'https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/CXR_NIH_PA_Chest.jpg/600px-CXR_NIH_PA_Chest.jpg';
+        const r = await fetch(demoUrl);
+        const buf = await r.arrayBuffer();
+        b64data = btoa(String.fromCharCode(...new Uint8Array(buf)));
+        mimeType = 'image/jpeg';
+      } else {
+        // Real Orthanc: fetch preview via proxy (returns base64 encoded binary)
+        const proxyUrl = `${PROXY}?path=${encodeURIComponent(`/instances/${instanceId}/preview`)}&binary=1`;
+        const r = await fetch(proxyUrl);
+        if (!r.ok) throw new Error(`Image fetch failed: ${r.status}`);
+        const blob = await r.blob();
+        mimeType = blob.type || 'image/jpeg';
+        b64data = await new Promise((res, rej) => {
+          const reader = new FileReader();
+          reader.onload  = () => res(reader.result.split(',')[1]);
+          reader.onerror = rej;
+          reader.readAsDataURL(blob);
+        });
+      }
+
+      // ── Step 2: build Claude API prompt ──
+      await _loadConfig();
+      const apiKey = getApiKey();
+      if (!apiKey) throw new Error('AI not ready — check API key');
+
+      const systemPrompt = `You are SamarthaaMed AI, a senior radiologist and clinical decision-support assistant for Indian doctors.
+Patient: ${patientName}
+Study: ${studyDesc} | Modality: ${modality} | Date: ${studyDate}
+Follow ICMR 2024, AERB, and WHO SEARO imaging guidelines.`;
+
+      const userContent = [
+        { type: 'image', source: { type: 'base64', media_type: mimeType, data: b64data } },
+        { type: 'text', text: `Analyse this ${modality} image for ${patientName}.
+
+Return a JSON object ONLY (no markdown, no text outside JSON):
+{
+  "modality": "${modality}",
+  "urgency": "routine|urgent|critical",
+  "quality": "Adequate|Limited|Non-diagnostic",
+  "findings": [
+    { "label": "Finding name", "detail": "Description", "level": "high|med|low" }
+  ],
+  "impression": "One-sentence radiological impression",
+  "recommendation": "Clinical action recommended",
+  "guidelines": "Relevant guideline referenced"
+}` }
+      ];
+
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+          'anthropic-dangerous-direct-browser-access': 'true',
+        },
+        body: JSON.stringify({
+          model: 'claude-opus-4-5',
+          max_tokens: 1024,
+          system: systemPrompt,
+          messages: [{ role: 'user', content: userContent }],
+        }),
+      });
+
+      if (!response.ok) throw new Error(`Claude API ${response.status}`);
+      const result = await response.json();
+      const raw    = result.content?.[0]?.text || '';
+      const clean  = raw.replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'').trim();
+      const data   = JSON.parse(clean);
+
+      // ── Step 3: render results in the meta panel ──
+      const urgColor = data.urgency === 'critical' ? 'var(--red)' : data.urgency === 'urgent' ? 'var(--gold)' : 'var(--teal)';
+      const urgIcon  = data.urgency === 'critical' ? '🚨' : data.urgency === 'urgent' ? '⚠️' : '✅';
+      const levelMap = { high:'#EF4444', med:'#F59E0B', low:'#10B981' };
+
+      if (metaPanel) {
+        metaPanel.innerHTML = `
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;flex-wrap:wrap;gap:8px">
+            <div>
+              <div style="font-size:0.78rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px">🤖 AI Radiology Analysis</div>
+              <div style="font-size:0.75rem;color:var(--text3);margin-top:2px">${patientName} · ${studyDesc} · ${studyDate}</div>
+            </div>
+            <div style="display:flex;gap:8px">
+              <span style="background:var(--navy3);border:1px solid ${urgColor};color:${urgColor};font-size:0.72rem;padding:3px 10px;border-radius:20px;font-weight:600">${urgIcon} ${(data.urgency||'routine').toUpperCase()}</span>
+              <button class="btn btn-ghost btn-sm" onclick="pacsAddToConsult()">📋 Add to Consult</button>
+            </div>
+          </div>
+
+          <div style="background:var(--navy3);border-left:3px solid ${urgColor};border-radius:8px;padding:10px 14px;margin-bottom:12px">
+            <div style="font-size:0.78rem;font-weight:700;color:var(--text2);margin-bottom:4px">Impression</div>
+            <div style="font-size:0.85rem;color:var(--text1)">${data.impression||'—'}</div>
+          </div>
+
+          <div style="font-size:0.75rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:8px">Findings</div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">
+            ${(data.findings||[]).map(f => `
+              <div style="display:flex;align-items:flex-start;gap:10px;background:var(--navy3);border-radius:8px;padding:8px 10px">
+                <span style="width:8px;height:8px;border-radius:50%;background:${levelMap[f.level]||'#10B981'};flex-shrink:0;margin-top:5px"></span>
+                <div>
+                  <div style="font-size:0.8rem;font-weight:600;color:var(--text1)">${f.label||''}</div>
+                  <div style="font-size:0.75rem;color:var(--text2);margin-top:2px">${f.detail||''}</div>
+                </div>
+              </div>`).join('')}
+          </div>
+
+          <div style="background:var(--teal-dim);border:1px solid rgba(0,212,180,0.2);border-radius:8px;padding:10px 14px;margin-bottom:10px">
+            <div style="font-size:0.75rem;font-weight:700;color:var(--teal);margin-bottom:4px">Recommendation</div>
+            <div style="font-size:0.82rem;color:var(--text1)">${data.recommendation||'—'}</div>
+          </div>
+
+          ${data.guidelines ? `<div style="font-size:0.72rem;color:var(--text3)">📋 ${data.guidelines}</div>` : ''}
+
+          <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap">
+            <button class="btn btn-primary btn-sm" onclick="pacsSendAnalysisToChat(${JSON.stringify(data).replace(/"/g,'&quot;')})">💬 Discuss in Chat</button>
+            <button class="btn btn-ghost btn-sm" onclick="pacsOpenOhifStudy()">🖥 OHIF Viewer</button>
+          </div>`;
+      }
+
+      showToast('✅','Analysis Complete', data.urgency === 'critical' ? '🚨 Critical finding!' : data.impression?.slice(0,50)||'Done');
+
+    } catch(e) {
+      console.error('[pacsAiAnalyze]', e);
+      if (metaPanel) metaPanel.innerHTML = prevMeta;
+      showToast('❌','Analysis failed', e.message);
+    }
+  }
+
+  function pacsSendAnalysisToChat(data) {
+    const t = _pacsCurrentStudy?.MainDicomTags || {};
+    const name = (t.PatientName||'Patient').replace(/\^/g,' ');
+    const text = `Imaging AI Result for ${name} — ${t.StudyDescription||'Study'}:
+
+Impression: ${data.impression||'—'}
+Urgency: ${data.urgency||'routine'}
+Recommendation: ${data.recommendation||'—'}
+
+Findings:
+${(data.findings||[]).map(f=>`• ${f.label}: ${f.detail}`).join('\n')}
+
+Please provide clinical guidance on management.`;
     showView('consult');
     setTimeout(() => {
       const input = document.getElementById('chatInput');
-      if (input) {
-        input.value = `Analyze this imaging study for ${t.PatientName?.replace(/\^/g,' ')||'the patient'}: ${t.StudyDescription||'Imaging'} performed on ${(t.StudyDate||'').replace(/(\d{4})(\d{2})(\d{2})/,'$3/$2/$1')}. What should I look for and what are the clinical implications?`;
-        input.focus();
-      }
+      if (input) { input.value = text; input.focus(); }
     }, 200);
   }
 
