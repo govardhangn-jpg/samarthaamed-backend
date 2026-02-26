@@ -4188,7 +4188,13 @@
             <div class="settings-row"><div><div class="settings-row-label">ABDM / ABHA Health ID</div><div class="settings-row-sub">Connected · HIP-HIU registered</div></div><span class="pill teal">● Active</span></div>
             <div class="settings-row"><div><div class="settings-row-label">Hospital HIS (Meditech)</div><div class="settings-row-sub">Bi-directional patient sync</div></div><span class="pill teal">● Connected</span></div>
             <div class="settings-row"><div><div class="settings-row-label">WhatsApp Business API</div><div class="settings-row-sub">Prescription sharing & patient reminders</div></div><span class="pill teal">● Active</span></div>
-            <div class="settings-row"><div><div class="settings-row-label">PACS / Radiology (Orthanc)</div><div class="settings-row-sub">DICOM imaging integration</div></div><button class="btn btn-ghost btn-sm" onclick="showToast('🔗','Connecting to Orthanc PACS…','Enter credentials in the dialog that appears')">Connect</button></div>
+            <div class="settings-row">
+              <div><div class="settings-row-label">PACS / Radiology (Orthanc)</div><div class="settings-row-sub">DICOM imaging integration — set ORTHANC_URL in Netlify env vars</div></div>
+              <div style="display:flex;align-items:center;gap:10px">
+                <span id="pacsBadge" style="background:var(--navy3);color:var(--text3);font-size:0.72rem;padding:3px 10px;border-radius:20px;font-weight:600">○ Not configured</span>
+                <button id="pacsConnectBtn" class="btn btn-ghost btn-sm" onclick="orthancTestConnection()">🔗 Test Connection</button>
+              </div>
+            </div>
           </div>
           <div class="settings-section" id="elevenlabsSettingsSection">
             <div class="settings-section-header">
@@ -4290,136 +4296,149 @@
         </div>
       </div>
 
-      <div class="view" id="view-radiology">
-        <div style="max-width:1400px;margin:0 auto;padding:24px;padding-bottom:80px">
-          
-          <!-- Header -->
-          <div style="margin-bottom:24px">
-            <div class="section-title">🩻 Radiology & Imaging Intelligence</div>
-            <div class="section-sub">Upload radiology reports, get AI-powered analysis, and receive clinical guidance based on ICMR imaging guidelines</div>
-          </div>
+      <div class="view" id="view-radiology" style="overflow-y:auto;height:100%">
+        <div style="max-width:1400px;margin:0 auto;padding:24px 24px 80px">
 
-          <!-- Upload Section -->
-          <div class="card" style="margin-bottom:20px">
-            <div class="card-header">
-              <span class="card-title">📤 Upload Radiology Report</span>
-              <span class="card-action" onclick="document.getElementById('radiologyFileInput').click()">+ Upload File</span>
+          <!-- ── Header ── -->
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+              <div class="section-title">🩻 PACS / DICOM Viewer</div>
+              <div class="section-sub" id="pacsSubtitle">Connecting to Orthanc PACS…</div>
             </div>
-            <div class="card-body">
-              <input type="file" id="radiologyFileInput" accept=".pdf,.jpg,.jpeg,.png,.dcm" multiple style="display:none" onchange="handleRadiologyUpload(event)">
-              
-              <div id="radiologyUploadArea" style="border:2px dashed var(--border2);border-radius:12px;padding:40px;text-align:center;cursor:pointer;transition:all 0.2s" onclick="document.getElementById('radiologyFileInput').click()" onmouseover="this.style.borderColor='var(--teal)';this.style.background='var(--teal-dim)'" onmouseout="this.style.borderColor='var(--border2)';this.style.background=''">
-                <div style="font-size:3rem;margin-bottom:12px">📋</div>
-                <div style="font-size:0.95rem;font-weight:600;color:var(--text1);margin-bottom:8px">Click to upload or drag & drop</div>
-                <div style="font-size:0.78rem;color:var(--text3)">Supports: X-Ray, CT, MRI, Ultrasound, PET reports (PDF, JPEG, PNG, DICOM)</div>
-                <div style="font-size:0.72rem;color:var(--text3);margin-top:8px">Multiple files supported • Max 10MB per file</div>
-              </div>
-
-              <!-- Uploaded Files List -->
-              <div id="radiologyFilesList" style="margin-top:20px;display:none">
-                <div style="font-size:0.85rem;font-weight:600;color:var(--text2);margin-bottom:12px">📁 Uploaded Reports</div>
-                <div id="radiologyFilesContainer"></div>
-              </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <button class="btn btn-ghost btn-sm" onclick="orthancRefreshStudies()">🔄 Refresh</button>
+              <button class="btn btn-ghost btn-sm" onclick="document.getElementById('pacsUploadInput').click()">📤 Upload DICOM</button>
+              <input type="file" id="pacsUploadInput" accept=".dcm,application/dicom" multiple style="display:none" onchange="pacsUploadFiles(event)">
+              <button class="btn btn-primary btn-sm" id="pacsOhifBtn" style="display:none" onclick="pacsOpenOhif()">🖥 Full Viewer (OHIF)</button>
             </div>
           </div>
 
-          <!-- Analysis Results -->
-          <div class="grid-2" style="display:none" id="radiologyAnalysisSection">
-            
-            <!-- Left: Report Details -->
-            <div class="card">
-              <div class="card-header">
-                <span class="card-title">📋 Report Analysis</span>
-                <button class="btn btn-ghost btn-sm" onclick="copyRadiologyAnalysis()">📋 Copy</button>
+          <!-- ── Not Connected Banner ── -->
+          <div id="pacsNotConnected" style="display:none">
+            <div style="background:var(--navy3);border:1px solid var(--border2);border-radius:14px;padding:40px;text-align:center">
+              <div style="font-size:3rem;margin-bottom:16px">🔌</div>
+              <div style="font-size:1.1rem;font-weight:700;color:var(--text1);margin-bottom:8px">Orthanc PACS Not Connected</div>
+              <div style="font-size:0.85rem;color:var(--text3);max-width:480px;margin:0 auto 20px">
+                Add your Orthanc server credentials as Netlify environment variables to enable live DICOM imaging.
               </div>
-              <div class="card-body" id="radiologyAnalysisContent">
-                <div style="color:var(--text3);text-align:center;padding:40px">
-                  Upload a report to see AI analysis
+              <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:left;max-width:480px;margin:0 auto;font-family:var(--mono);font-size:0.78rem;color:var(--teal);line-height:2">
+                ORTHANC_URL&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= https://pacs.yourhospital.com<br>
+                ORTHANC_USER&nbsp;&nbsp;&nbsp;&nbsp;= your-username<br>
+                ORTHANC_PASSWORD = your-password
+              </div>
+              <div style="margin-top:20px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+                <button class="btn btn-primary" onclick="showView('settings')">⚙️ Go to Settings</button>
+                <button class="btn btn-ghost" onclick="pacsDemoMode()">🎭 Demo Mode</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- ── Upload Progress ── -->
+          <div id="pacsUploadProgress" style="display:none;margin-bottom:16px">
+            <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;align-items:center;gap:14px">
+              <div class="pulse-ring" style="width:20px;height:20px;flex-shrink:0"></div>
+              <div style="flex:1">
+                <div style="font-size:0.85rem;font-weight:600;color:var(--text1)" id="pacsUploadMsg">Uploading DICOM files…</div>
+                <div style="height:4px;background:var(--border2);border-radius:2px;margin-top:8px;overflow:hidden">
+                  <div id="pacsUploadBar" style="height:100%;background:var(--teal);border-radius:2px;transition:width 0.3s;width:0%"></div>
                 </div>
               </div>
             </div>
+          </div>
 
-            <!-- Right: AI Guidance -->
-            <div class="card">
-              <div class="card-header">
-                <span class="card-title">🧬 Clinical Guidance</span>
-                <button class="btn btn-ghost btn-sm" onclick="regenerateGuidance()">🔄 Regenerate</button>
-              </div>
-              <div class="card-body" id="radiologyGuidanceContent">
-                <div style="color:var(--text3);text-align:center;padding:40px">
-                  AI will provide clinical recommendations here
+          <!-- ── Main PACS Layout ── -->
+          <div id="pacsMain" style="display:none">
+            <div style="display:grid;grid-template-columns:320px 1fr;gap:16px;align-items:start">
+
+              <!-- ── Left: Patient/Study List ── -->
+              <div>
+                <!-- Search -->
+                <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px;margin-bottom:12px">
+                  <div style="font-size:0.78rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Search PACS</div>
+                  <input class="form-input" id="pacsSearchInput" placeholder="Patient name, ID, or study…" style="margin-bottom:8px" oninput="pacsSearch(this.value)">
+                  <div style="display:flex;gap:6px">
+                    <select class="form-select" id="pacsModalityFilter" onchange="pacsSearch(document.getElementById('pacsSearchInput').value)" style="font-size:0.78rem">
+                      <option value="">All modalities</option>
+                      <option value="CR">X-Ray (CR)</option>
+                      <option value="CT">CT</option>
+                      <option value="MR">MRI</option>
+                      <option value="US">Ultrasound</option>
+                      <option value="DX">Digital X-Ray</option>
+                      <option value="PT">PET</option>
+                      <option value="NM">Nuclear Med</option>
+                      <option value="MG">Mammography</option>
+                    </select>
+                    <button class="btn btn-ghost btn-sm" onclick="pacsSearch('')">All</button>
+                  </div>
+                </div>
+
+                <!-- Study list -->
+                <div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+                  <div style="padding:12px 14px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+                    <div style="font-size:0.78rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px">Studies</div>
+                    <span id="pacsStudyCount" style="font-size:0.72rem;color:var(--text3)">—</span>
+                  </div>
+                  <div id="pacsStudyList" style="max-height:520px;overflow-y:auto"></div>
                 </div>
               </div>
-            </div>
 
-          </div>
+              <!-- ── Right: Viewer ── -->
+              <div>
+                <!-- Series/instance selector -->
+                <div id="pacsSeriesBar" style="display:none;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:12px;margin-bottom:12px">
+                  <div style="font-size:0.78rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px;margin-bottom:10px">Series</div>
+                  <div id="pacsSeriesList" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+                </div>
 
-          <!-- Quick Actions -->
-          <div class="card" style="margin-top:20px;display:none" id="radiologyActionsCard">
-            <div class="card-header">
-              <span class="card-title">⚡ Quick Actions</span>
-            </div>
-            <div class="card-body">
-              <div style="display:flex;gap:12px;flex-wrap:wrap">
-                <button class="btn btn-primary" onclick="addRadiologyToConsult()">📋 Add to Consultation</button>
-                <button class="btn btn-ghost" onclick="generateRadiologySOAP()">📝 Generate SOAP Note</button>
-                <button class="btn btn-ghost" onclick="printRadiologyReport()">🖨 Print Report</button>
-                <button class="btn btn-ghost" onclick="compareWithPrevious()">📊 Compare with Previous</button>
-                <button class="btn btn-ghost" onclick="orderFollowUp()">📅 Order Follow-up</button>
-              </div>
-            </div>
-          </div>
+                <!-- Image viewer -->
+                <div id="pacsDicomViewer" style="background:var(--navy3);border:1px solid var(--border);border-radius:12px;overflow:hidden;position:relative;min-height:500px;display:flex;align-items:center;justify-content:center">
+                  <div id="pacsViewerPlaceholder" style="text-align:center;padding:40px;color:var(--text3)">
+                    <div style="font-size:3rem;margin-bottom:12px">🩻</div>
+                    <div style="font-size:0.95rem;font-weight:600;color:var(--text2)">Select a study to view</div>
+                    <div style="font-size:0.78rem;margin-top:6px">Click any study in the list on the left</div>
+                  </div>
 
-          <!-- Sample Reports (for demo) -->
-          <div class="card" style="margin-top:20px">
-            <div class="card-header">
-              <span class="card-title">🎯 Try Sample Reports</span>
-            </div>
-            <div class="card-body">
-              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px">
-                <button class="btn btn-ghost" onclick="loadSampleRadiology('chest-xray')" style="justify-content:flex-start">
-                  <span style="margin-right:8px">🫁</span>
-                  <div style="text-align:left">
-                    <div style="font-weight:600;font-size:0.85rem">Chest X-Ray</div>
-                    <div style="font-size:0.7rem;color:var(--text3)">Cardiomegaly findings</div>
+                  <!-- Viewer toolbar (hidden until image loads) -->
+                  <div id="pacsToolbar" style="display:none;position:absolute;top:12px;right:12px;display:flex;flex-direction:column;gap:6px">
+                    <button onclick="pacsZoom(1.2)" title="Zoom in"  style="width:32px;height:32px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;cursor:pointer;font-size:0.85rem">+</button>
+                    <button onclick="pacsZoom(0.8)" title="Zoom out" style="width:32px;height:32px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;cursor:pointer;font-size:0.85rem">−</button>
+                    <button onclick="pacsResetView()"   title="Reset"   style="width:32px;height:32px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;cursor:pointer;font-size:0.85rem">⟳</button>
+                    <button onclick="pacsInvert()"      title="Invert"  style="width:32px;height:32px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;cursor:pointer;font-size:0.85rem">⬛</button>
+                    <button onclick="pacsDownload()"    title="Download" style="width:32px;height:32px;background:rgba(0,0,0,0.6);border:1px solid rgba(255,255,255,0.15);border-radius:6px;color:#fff;cursor:pointer;font-size:0.85rem">⬇</button>
                   </div>
-                </button>
-                <button class="btn btn-ghost" onclick="loadSampleRadiology('ct-brain')" style="justify-content:flex-start">
-                  <span style="margin-right:8px">🧠</span>
-                  <div style="text-align:left">
-                    <div style="font-weight:600;font-size:0.85rem">CT Brain</div>
-                    <div style="font-size:0.7rem;color:var(--text3)">Ischemic stroke</div>
+
+                  <!-- The actual image -->
+                  <img id="pacsDicomImg" style="display:none;max-width:100%;max-height:600px;object-fit:contain;cursor:grab;transition:transform 0.2s" src="" alt="DICOM image"
+                    onload="pacsImgLoaded(this)"
+                    onerror="pacsImgError(this)">
+
+                  <!-- Frame navigator -->
+                  <div id="pacsFrameNav" style="display:none;position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);border-radius:8px;padding:6px 14px;display:flex;align-items:center;gap:10px">
+                    <button onclick="pacsFrame(-1)" style="background:none;border:none;color:#fff;cursor:pointer;font-size:1rem">◀</button>
+                    <span id="pacsFrameLabel" style="font-size:0.78rem;color:#ccc;font-family:var(--mono)">Frame 1 / 1</span>
+                    <button onclick="pacsFrame(+1)" style="background:none;border:none;color:#fff;cursor:pointer;font-size:1rem">▶</button>
                   </div>
-                </button>
-                <button class="btn btn-ghost" onclick="loadSampleRadiology('mri-spine')" style="justify-content:flex-start">
-                  <span style="margin-right:8px">🦴</span>
-                  <div style="text-align:left">
-                    <div style="font-weight:600;font-size:0.85rem">MRI Spine</div>
-                    <div style="font-size:0.7rem;color:var(--text3)">Disc herniation</div>
+                </div>
+
+                <!-- Study metadata panel -->
+                <div id="pacsMetaPanel" style="display:none;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px;margin-top:12px">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+                    <div style="font-size:0.78rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:0.8px">Study Details</div>
+                    <div style="display:flex;gap:8px">
+                      <button class="btn btn-ghost btn-sm" onclick="pacsAiAnalyze()">🤖 AI Analyze</button>
+                      <button class="btn btn-ghost btn-sm" onclick="pacsAddToConsult()">📋 Add to Consult</button>
+                      <button class="btn btn-primary btn-sm" onclick="pacsOpenOhifStudy()">🖥 OHIF Viewer</button>
+                    </div>
                   </div>
-                </button>
-                <button class="btn btn-ghost" onclick="loadSampleRadiology('ultrasound-abdomen')" style="justify-content:flex-start">
-                  <span style="margin-right:8px">🔊</span>
-                  <div style="text-align:left">
-                    <div style="font-weight:600;font-size:0.85rem">USG Abdomen</div>
-                    <div style="font-size:0.7rem;color:var(--text3)">Hepatomegaly</div>
-                  </div>
-                </button>
+                  <div id="pacsMetaContent" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;font-size:0.8rem"></div>
+                </div>
               </div>
             </div>
           </div>
 
         </div>
       </div>
-
-    </div><!-- end: view-prescription -->
-
-
-
-<!-- end: view-settings -->
-
-      <!-- ══ RADIOLOGY VIEW ══ -->
-<!-- end: view-radiology -->
+      <!-- end: view-radiology -->
 
     </div><!-- end: .content -->
   </div><!-- end: .main -->
@@ -7066,8 +7085,220 @@ Rules:
     return map[spec] || 'teal';
   }
 
-  // ── All patient registration functions are defined in app.js (single source of truth) ──
-  // This block intentionally left as a thin shim — DO NOT redeclare these functions here.
+  // ── PATIENT REGISTRY — single source of truth ──────────────────────────────
+  let newPatientData = null;
+
+  const patientRegistry = [
+    { id: 'MM-2024-04521', name: 'Priya Krishnamurthy', key: 'PK' },
+    { id: 'MM-2023-01892', name: 'Ramesh Singh',        key: 'RS' },
+    { id: 'MM-2025-09341', name: 'Anita Mehta',         key: 'AM' },
+    { id: 'MM-2024-07234', name: 'Vikram Nair',         key: 'VN' },
+    { id: 'MM-2025-02218', name: 'Sunita Gupta',        key: 'SG' },
+    { id: 'MM-2025-08876', name: 'Nandini Bose',        key: 'NB' },
+    { id: 'MM-2026-03345', name: 'Deepak Kumar',        key: 'DK' },
+    { id: 'MM-2026-08876', name: 'Meena Iyer',          key: 'MI' },
+    { id: 'MM-2024-05512', name: 'Mohan Pillai',        key: 'MP' },
+    { id: 'MM-2025-11203', name: 'Karthik Reddy',       key: 'KR' },
+  ];
+
+  function syncAllPatientDropdowns() {
+    const selects = [
+      document.getElementById('labPatientSelect'),
+      document.getElementById('labModalPatientSelect'),
+      document.getElementById('imagingPatientSelect'),
+      document.querySelector('.risk-patient-selector select'),
+    ];
+    selects.forEach(sel => {
+      if (!sel) return;
+      const prevIdx = sel.selectedIndex;
+      const needsBlank = sel.id === 'imagingPatientSelect' || sel.closest('.risk-patient-selector');
+      const blankOption = needsBlank ? '<option value="">— Select patient —</option>' : '';
+      sel.innerHTML = blankOption + patientRegistry
+        .map(p => `<option value="${p.key}">${p.name} · ${p.id}</option>`)
+        .join('');
+      sel.selectedIndex = Math.min(prevIdx, sel.options.length - 1);
+    });
+  }
+
+  function addToPatientRegistry(fname, lname, patientId) {
+    const initials = (fname[0] || 'N') + (lname[0] || 'P');
+    const uniqueKey = initials.toUpperCase() + '_' + Date.now().toString(36).toUpperCase();
+    patientRegistry.unshift({ id: patientId, name: fname + ' ' + lname, key: uniqueKey });
+    syncAllPatientDropdowns();
+    refreshRiskPatientSelector();
+    return uniqueKey;
+  }
+
+  function openConsultForPatient(key, name) {
+    showView('consult');
+    setTimeout(() => {
+      const chips = document.querySelectorAll('.patient-chip');
+      let matched = false;
+      chips.forEach(chip => {
+        const oc = chip.getAttribute('onclick') || '';
+        if (oc.includes(`'${key}'`)) {
+          const match = oc.match(/switchConsultPatient\(this,'([\w]+)','([^']+)','([^']+)'\)/);
+          if (match) {
+            chips.forEach(c => c.classList.remove('active'));
+            chip.classList.add('active');
+            switchConsultPatient(chip, match[1], match[2], match[3]);
+            matched = true;
+          }
+        }
+      });
+      if (!matched) {
+        // No chip found — load from patientProfiles if available
+        const p = typeof patientProfiles !== 'undefined' ? patientProfiles[key] : null;
+        document.getElementById('topbar-sub').textContent = name + ' · Active Session';
+        const nameEl = document.querySelector('.consult-patient-name');
+        if (nameEl) nameEl.textContent = p ? p.name : name;
+        const metaEl = document.querySelector('.consult-patient-meta');
+        if (metaEl) metaEl.textContent = p ? p.meta : 'Patient record loaded';
+        const avatarEl = document.querySelector('.consult-patient-avatar');
+        if (avatarEl && p) { avatarEl.textContent = p.initials; avatarEl.style.background = p.avatarColor; }
+        if (p) {
+          const vitMinis = document.querySelectorAll('.vital-mini .vval');
+          if (vitMinis.length >= 4) {
+            vitMinis[0].textContent = p.vitals.hr;
+            vitMinis[1].textContent = p.vitals.bp;
+            vitMinis[2].textContent = p.vitals.spo2;
+            vitMinis[3].textContent = p.vitals.temp;
+          }
+        }
+        const msgs = document.getElementById('chatMessages');
+        const typing = document.getElementById('typingIndicator');
+        if (msgs && typing) {
+          const msg = document.createElement('div');
+          msg.className = 'msg ai';
+          msg.style.animation = 'fadeIn .3s ease';
+          msg.innerHTML = `<div class="msg-avatar">🧬</div><div><div class="msg-bubble" style="border-left:3px solid var(--teal);padding-left:12px">
+            <strong style="color:var(--teal)">Consultation opened → ${p ? p.name : name}</strong><br>
+            <span style="font-size:0.78rem;color:var(--text3)">${p ? p.meta : 'Patient record loaded. Type your clinical query below.'}</span>
+            ${p ? `<br><br>Vitals: HR ${p.vitals.hr} · BP ${p.vitals.bp} · SpO₂ ${p.vitals.spo2}<br>How can I assist?` : ''}
+          </div><div class="msg-time">SamarthaaMed · Just now</div></div>`;
+          msgs.insertBefore(msg, typing);
+          msgs.scrollTop = msgs.scrollHeight;
+        }
+        showToast('🩺', 'Consultation opened', p ? p.name : name);
+      }
+    }, 50);
+  }
+
+  function registerPatient() {
+    const fname = document.getElementById('f_fname').value.trim();
+    const lname = document.getElementById('f_lname').value.trim();
+    const dob   = document.getElementById('f_dob').value;
+    const spec  = document.getElementById('f_spec').value;
+    const complaint = document.getElementById('f_complaint').value.trim();
+    const genderCode = getGenderCode();
+    const age = calcAge(dob);
+    const patientId = generatePatientId();
+    const today = new Date().toLocaleDateString('en-IN', { day:'numeric', month:'short', year:'numeric' });
+    const conds = tagData.conditions.join(', ') || complaint.substring(0, 40);
+    const bmi = calcBMI(document.getElementById('f_weight').value, document.getElementById('f_height').value);
+    const fullName = fname + ' ' + lname;
+
+    // Generate unique key and add to registry + all dropdowns
+    const newKey = addToPatientRegistry(fname, lname, patientId);
+    newPatientData = { fname, lname, patientId, age, genderCode, spec, conds, complaint, bmi, today, fullName, key: newKey };
+
+    // Build a full patientProfiles entry so AI Consultation, Risk, Labs etc. have real data
+    if (typeof patientProfiles !== 'undefined') {
+      const colors = ['#EF4444','#3B82F6','#10B981','#8B5CF6','#F59E0B','#06B6D4','#EC4899'];
+      const c1 = colors[Math.floor(Math.random() * colors.length)];
+      const c2 = colors[Math.floor(Math.random() * colors.length)];
+      const avatarColor = `linear-gradient(135deg,${c1},${c2})`;
+      patientProfiles[newKey] = {
+        name: fullName,
+        meta: `${age}${genderCode} · ID: ${patientId} · ${spec || 'General'}`,
+        initials: (fname[0]||'N').toUpperCase() + (lname[0]||'P').toUpperCase(),
+        avatarColor,
+        vitals: { hr: '—', bp: '—', spo2: '—', temp: '—' },
+        hbColor: c1,
+        complaints: complaint ? [complaint] : ['New registration'],
+        complaintTypes: [''],
+        history: conds ? conds.split(',').map(s => s.trim()).filter(Boolean) : ['No history recorded'],
+        historyTypes: (conds ? conds.split(',') : ['']).map(() => ''),
+        meds: 'Not yet prescribed',
+        scores: [
+          ['BMI',          bmi ? `${bmi} kg/m²` : '—', ''],
+          ['Registered',   today,                        ''],
+          ['Status',       'New Patient',                'teal'],
+        ],
+      };
+      // Add chip to AI Consultation switcher bar
+      addPatientChipToConsult(newKey, fullName, avatarColor);
+    }
+
+    // Show success screen
+    document.getElementById('summaryContent').style.display = 'none';
+    document.getElementById('modalFooter').style.display = 'none';
+    document.getElementById('successId').textContent = patientId;
+    document.getElementById('successOverlay').classList.add('show');
+    document.getElementById('step-panel-4').style.display = 'block';
+
+    addPatientToTable(newPatientData);
+    updatePatientCount();
+    showToast('✅', 'Patient Registered!', `${fullName} · ID: ${patientId}`);
+  }
+
+  function addPatientChipToConsult(key, fullName, avatarColor) {
+    const switcher = document.querySelector('#view-consult .patient-switcher');
+    if (!switcher) return;
+    const p = (typeof patientProfiles !== 'undefined') ? patientProfiles[key] : null;
+    const initials = p ? p.initials : (fullName.split(' ').map(w => w[0]).join('').slice(0,2).toUpperCase());
+    const parts = fullName.split(' ');
+    const shortName = parts[0] + (parts[1] ? ' ' + parts[1][0] + '.' : '');
+    const chip = document.createElement('div');
+    chip.className = 'patient-chip';
+    chip.setAttribute('onclick', `switchConsultPatient(this,'${key}','${fullName}','new')`);
+    chip.innerHTML = `<div class="patient-chip-avatar" style="background:${avatarColor}">${initials}</div>
+      <span class="patient-chip-name">${shortName}</span>
+      <span class="status-badge active" style="margin-left:4px;font-size:0.6rem">New</span>`;
+    switcher.appendChild(chip);
+  }
+
+  function addPatientToTable(p) {
+    const tbody = document.querySelector('.data-table tbody');
+    if (!tbody) return;
+    const specColor = getSpecColor(p.spec);
+    const pillStyle = specColor === 'teal'
+      ? 'class="pill teal"'
+      : `style="background:rgba(96,165,250,0.1);color:${specColor};border:1px solid rgba(96,165,250,0.2)"`;
+    const initials  = (p.fname[0] || '') + (p.lname[0] || '');
+    const colors    = ['#EF4444','#3B82F6','#10B981','#8B5CF6','#F59E0B','#06B6D4','#EC4899'];
+    const color     = colors[Math.floor(Math.random() * colors.length)];
+    const fullName  = p.fullName || (p.fname + ' ' + p.lname);
+    const safeFullName = fullName.replace(/'/g, "\\'");
+    const tr = document.createElement('tr');
+    tr.style.animation = 'fadeIn .4s ease';
+    tr.innerHTML = `
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,${color},${color}cc);display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:#fff;flex-shrink:0">${initials}</div>
+          <div>
+            <div class="td-name">${fullName}</div>
+            <div style="font-size:0.72rem;color:var(--text3)">${p.conds || (p.complaint||'').substring(0,40)}</div>
+          </div>
+        </div>
+      </td>
+      <td class="td-id">${p.patientId}</td>
+      <td>${p.age}${p.genderCode}</td>
+      <td><span ${pillStyle}>${p.spec || 'General'}</span></td>
+      <td>Today</td>
+      <td><span style="color:var(--teal);font-family:var(--mono);font-weight:600">—</span></td>
+      <td><span class="status-badge active">New</span></td>
+      <td><button class="action-btn" onclick="openConsultForPatient('${p.key}','${safeFullName}')">Consult</button></td>`;
+    tbody.insertBefore(tr, tbody.firstChild);
+  }
+
+  function updatePatientCount() {
+    const countEl = document.querySelector('#view-patients .section-sub');
+    if (countEl) {
+      const rows = document.querySelectorAll('.data-table tbody tr').length;
+      countEl.textContent = `${482 + rows - 8} total patients · Updated just now`;
+    }
+  }
 
   function goToNewConsult() {
     closeModal();
@@ -8575,6 +8806,10 @@ INVESTIGATIONS:
     });
   } catch(e){}
 
+  // Orthanc/PACS state — populated by _loadConfig
+  let _orthancBase = '';
+  let _orthancAuth = '';
+
   async function _loadConfig() {
     if (_configLoaded) return;
     if (_configLoadPromise) return _configLoadPromise;
@@ -8588,10 +8823,97 @@ INVESTIGATIONS:
         if (ak) _vault.set('smak', ak);
         if (ek) _vault.set('elak', ek);
         if (ev) _vault.set('elvi', ev);
+        // Orthanc / PACS
+        _orthancBase = (cfg.orthancUrl || '').replace(/\/$/, '');
+        if (_orthancBase && cfg.orthancUser) {
+          _orthancAuth = 'Basic ' + btoa(`${cfg.orthancUser}:${cfg.orthancPassword}`);
+        }
         _configLoaded = true;
+        // Update PACS status badge in settings
+        _updatePacsBadge();
       })
       .catch(err => console.error('[SamarthaaMed] Failed to load config:', err));
     return _configLoadPromise;
+  }
+
+  function _updatePacsBadge() {
+    const badge = document.getElementById('pacsBadge');
+    const btn   = document.getElementById('pacsConnectBtn');
+    if (!badge || !btn) return;
+    if (_orthancBase) {
+      badge.textContent = '● Connected';
+      badge.style.cssText = 'background:var(--teal-dim);color:var(--teal);font-size:0.72rem;padding:3px 10px;border-radius:20px;font-weight:600';
+      btn.textContent = '🔗 View PACS';
+      btn.onclick = () => showView('radiology');
+    } else {
+      badge.textContent = '○ Not configured';
+      badge.style.cssText = 'background:var(--navy3);color:var(--text3);font-size:0.72rem;padding:3px 10px;border-radius:20px;font-weight:600';
+    }
+  }
+
+  // ── Orthanc REST helpers ────────────────────────────────────────────────────
+  async function orthancGet(path) {
+    await _loadConfig();
+    if (!_orthancBase) throw new Error('Orthanc not configured');
+    const res = await fetch(_orthancBase + path, {
+      headers: { 'Authorization': _orthancAuth, 'Accept': 'application/json' }
+    });
+    if (!res.ok) throw new Error(`Orthanc ${res.status} on ${path}`);
+    return res.json();
+  }
+
+  async function orthancPost(path, body) {
+    await _loadConfig();
+    if (!_orthancBase) throw new Error('Orthanc not configured');
+    const res = await fetch(_orthancBase + path, {
+      method: 'POST',
+      headers: { 'Authorization': _orthancAuth, 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) throw new Error(`Orthanc ${res.status} on POST ${path}`);
+    return res.json();
+  }
+
+  async function orthancUploadDicom(file) {
+    await _loadConfig();
+    if (!_orthancBase) throw new Error('Orthanc not configured');
+    const buf = await file.arrayBuffer();
+    const res = await fetch(_orthancBase + '/instances', {
+      method: 'POST',
+      headers: { 'Authorization': _orthancAuth, 'Content-Type': 'application/dicom' },
+      body: buf
+    });
+    if (!res.ok) throw new Error(`Upload failed: ${res.status}`);
+    return res.json();
+  }
+
+  function orthancFrameUrl(instanceId, frame = 0) {
+    const auth = _orthancAuth ? `?auth=${btoa(_orthancAuth)}` : '';
+    return `${_orthancBase}/instances/${instanceId}/frames/${frame}/rendered`;
+  }
+
+  function orthancThumbUrl(instanceId) {
+    return `${_orthancBase}/instances/${instanceId}/preview`;
+  }
+
+  async function orthancFindStudies(query = {}) {
+    return orthancPost('/tools/find', { Level: 'Study', Limit: 50, Query: query });
+  }
+
+  async function orthancGetStudy(studyId) {
+    return orthancGet(`/studies/${studyId}`);
+  }
+
+  async function orthancGetSeries(seriesId) {
+    return orthancGet(`/series/${seriesId}`);
+  }
+
+  async function orthancGetInstance(instanceId) {
+    return orthancGet(`/instances/${instanceId}`);
+  }
+
+  async function orthancSystemInfo() {
+    return orthancGet('/system');
   }
 
   // Kick off immediately
@@ -11071,8 +11393,439 @@ Generate a structured dental diagnosis and phased treatment plan. Return JSON on
   if (_elOrigOnVC) {
     window.onViewChange = onViewChange = function(id) {
       _elOrigOnVC(id);
-      if (id === 'settings') setTimeout(elLoadSettings, 50);
+      if (id === 'settings')   setTimeout(elLoadSettings, 50);
+      if (id === 'radiology')  setTimeout(pacsInit, 80);
     };
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  //  PACS / DICOM VIEWER  (Orthanc integration)
+  // ══════════════════════════════════════════════════════════════════════════
+
+  // ── state ──────────────────────────────────────────────────────────────────
+  let _pacsStudies       = [];   // full study list from Orthanc
+  let _pacsCurrentStudy  = null; // selected study object
+  let _pacsCurrentSeries = null; // selected series object
+  let _pacsInstances     = [];   // instances of current series
+  let _pacsFrameIdx      = 0;    // current frame index
+  let _pacsFrameTotal    = 1;
+  let _pacsZoom          = 1;
+  let _pacsInverted      = false;
+  let _pacsDemoActive    = false;
+
+  // ── DEMO data (shown when no Orthanc configured) ───────────────────────────
+  const PACS_DEMO_STUDIES = [
+    { ID:'demo-1', MainDicomTags:{ PatientName:'Priya Krishnamurthy', PatientID:'MM-2024-04521', StudyDate:'20240215', StudyDescription:'Chest X-Ray PA', StudyInstanceUID:'1.2.3.4.1' }, Series:['demo-s1'], Modalities:['CR'] },
+    { ID:'demo-2', MainDicomTags:{ PatientName:'Ramesh Singh',        PatientID:'MM-2023-01892', StudyDate:'20240110', StudyDescription:'CT Head Plain',  StudyInstanceUID:'1.2.3.4.2' }, Series:['demo-s2'], Modalities:['CT'] },
+    { ID:'demo-3', MainDicomTags:{ PatientName:'Anita Mehta',         PatientID:'MM-2025-09341', StudyDate:'20250118', StudyDescription:'MRI Knee Left',   StudyInstanceUID:'1.2.3.4.3' }, Series:['demo-s3'], Modalities:['MR'] },
+    { ID:'demo-4', MainDicomTags:{ PatientName:'Vikram Nair',         PatientID:'MM-2024-07234', StudyDate:'20240322', StudyDescription:'USG Abdomen',     StudyInstanceUID:'1.2.3.4.4' }, Series:['demo-s4'], Modalities:['US'] },
+    { ID:'demo-5', MainDicomTags:{ PatientName:'Nandini Bose',        PatientID:'MM-2025-08876', StudyDate:'20250201', StudyDescription:'Thyroid USG',     StudyInstanceUID:'1.2.3.4.5' }, Series:['demo-s5'], Modalities:['US'] },
+  ];
+
+  // ── init ───────────────────────────────────────────────────────────────────
+  async function pacsInit() {
+    await _loadConfig();
+    if (_orthancBase) {
+      pacsConnect();
+    } else {
+      pacsShowNotConnected();
+    }
+    _updatePacsBadge();
+  }
+
+  async function pacsConnect() {
+    const sub = document.getElementById('pacsSubtitle');
+    const notConn = document.getElementById('pacsNotConnected');
+    const main    = document.getElementById('pacsMain');
+    if (sub) sub.textContent = 'Connecting to Orthanc…';
+    try {
+      const sys = await orthancSystemInfo();
+      if (sub) sub.textContent = `Connected · Orthanc ${sys.Version} · ${sys.Name || 'PACS'}`;
+      if (notConn) notConn.style.display = 'none';
+      if (main)    main.style.display    = 'block';
+      const ohifBtn = document.getElementById('pacsOhifBtn');
+      if (ohifBtn) ohifBtn.style.display = 'inline-flex';
+      _pacsDemoActive = false;
+      await orthancRefreshStudies();
+    } catch(e) {
+      if (sub) sub.textContent = 'Could not reach Orthanc — check URL / CORS';
+      pacsShowNotConnected();
+    }
+  }
+
+  function pacsShowNotConnected() {
+    const el = document.getElementById('pacsNotConnected');
+    const main = document.getElementById('pacsMain');
+    const sub  = document.getElementById('pacsSubtitle');
+    if (el)   el.style.display   = 'block';
+    if (main) main.style.display = 'none';
+    if (sub && !_orthancBase) sub.textContent = 'Not connected — configure Orthanc credentials';
+  }
+
+  async function orthancTestConnection() {
+    showToast('🔌','Testing connection…','Reaching out to Orthanc');
+    await _loadConfig();
+    if (!_orthancBase) {
+      showToast('⚠️','Not configured','Add ORTHANC_URL to Netlify environment variables');
+      return;
+    }
+    try {
+      const sys = await orthancSystemInfo();
+      showToast('✅','Connected!',`Orthanc ${sys.Version} · ${sys.Name}`);
+      _updatePacsBadge();
+    } catch(e) {
+      showToast('❌','Connection failed', e.message || 'Check URL and credentials');
+    }
+  }
+
+  // ── study list ─────────────────────────────────────────────────────────────
+  async function orthancRefreshStudies() {
+    pacsSetStudyListLoading(true);
+    try {
+      // fetch all study IDs then bulk-expand
+      const ids = await orthancGet('/studies');
+      const studies = await Promise.all(
+        ids.slice(0, 100).map(id => orthancGet(`/studies/${id}`))
+      );
+      _pacsStudies = studies;
+      pacsRenderStudyList(studies);
+    } catch(e) {
+      pacsSetStudyListLoading(false);
+      showToast('❌','PACS Error', e.message);
+    }
+  }
+
+  function pacsSetStudyListLoading(on) {
+    const el = document.getElementById('pacsStudyList');
+    const ct = document.getElementById('pacsStudyCount');
+    if (!el) return;
+    if (on) {
+      el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:0.8rem">Loading studies…</div>';
+      if (ct) ct.textContent = '…';
+    }
+  }
+
+  function pacsRenderStudyList(studies) {
+    const el = document.getElementById('pacsStudyList');
+    const ct = document.getElementById('pacsStudyCount');
+    if (!el) return;
+    if (ct) ct.textContent = `${studies.length} studies`;
+    if (!studies.length) {
+      el.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text3);font-size:0.8rem">No studies found</div>';
+      return;
+    }
+    const modIcon = { CR:'🫁', DX:'🫁', CT:'🧠', MR:'🧲', US:'🔊', PT:'☢️', NM:'☢️', MG:'🩺', OT:'📋' };
+    el.innerHTML = studies.map(s => {
+      const t = s.MainDicomTags || {};
+      const name = (t.PatientName || 'Unknown Patient').replace(/\^/g,' ');
+      const desc = t.StudyDescription || t.StudyInstanceUID?.slice(-8) || '—';
+      const date = t.StudyDate ? t.StudyDate.replace(/(\d{4})(\d{2})(\d{2})/, '$3/$2/$1') : '—';
+      const mods = (s.Modalities || [s.RequestedProcedureDescription]).filter(Boolean);
+      const icon = modIcon[mods[0]] || '🩻';
+      const serCount = (s.Series || []).length;
+      return `<div class="pacs-study-row" onclick="pacsSelectStudy('${s.ID}')" style="padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background 0.15s" onmouseover="this.style.background='var(--teal-dim)'" onmouseout="this.style.background=''">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="font-size:1.4rem;flex-shrink:0;margin-top:2px">${icon}</div>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:0.82rem;font-weight:700;color:var(--text1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${name}</div>
+            <div style="font-size:0.75rem;color:var(--teal);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${desc}</div>
+            <div style="display:flex;gap:6px;margin-top:4px;align-items:center;flex-wrap:wrap">
+              <span style="font-size:0.68rem;color:var(--text3)">${date}</span>
+              ${mods.map(m=>`<span style="font-size:0.65rem;background:var(--navy3);color:var(--text2);padding:1px 6px;border-radius:3px;border:1px solid var(--border2)">${m}</span>`).join('')}
+              <span style="font-size:0.68rem;color:var(--text3)">${serCount} series</span>
+            </div>
+          </div>
+        </div>
+      </div>`;
+    }).join('');
+  }
+
+  async function pacsSearch(query) {
+    const modality = document.getElementById('pacsModalityFilter')?.value || '';
+    let filtered = _pacsStudies;
+    if (query) {
+      const q = query.toLowerCase();
+      filtered = filtered.filter(s => {
+        const t = s.MainDicomTags || {};
+        return (t.PatientName||'').toLowerCase().includes(q) ||
+               (t.PatientID||'').toLowerCase().includes(q) ||
+               (t.StudyDescription||'').toLowerCase().includes(q);
+      });
+    }
+    if (modality) {
+      filtered = filtered.filter(s => (s.Modalities||[]).includes(modality));
+    }
+    pacsRenderStudyList(filtered);
+  }
+
+  // ── select study → load series ─────────────────────────────────────────────
+  async function pacsSelectStudy(studyId) {
+    // Highlight selected row
+    document.querySelectorAll('.pacs-study-row').forEach(r => r.style.background = '');
+    const rows = document.querySelectorAll('.pacs-study-row');
+    rows.forEach(r => { if ((r.getAttribute('onclick')||'').includes(studyId)) r.style.background = 'var(--teal-dim)'; });
+
+    const viewer = document.getElementById('pacsDicomViewer');
+    const placeholder = document.getElementById('pacsViewerPlaceholder');
+    if (placeholder) {
+      placeholder.innerHTML = '<div style="font-size:0.85rem;color:var(--text3)">Loading series…</div>';
+      placeholder.style.display = 'flex';
+    }
+
+    try {
+      const study = _pacsDemoActive
+        ? PACS_DEMO_STUDIES.find(s => s.ID === studyId)
+        : await orthancGetStudy(studyId);
+
+      _pacsCurrentStudy = study;
+      pacsRenderMeta(study);
+
+      // Load series bar
+      const seriesBar  = document.getElementById('pacsSeriesBar');
+      const seriesList = document.getElementById('pacsSeriesList');
+      if (seriesBar) seriesBar.style.display = 'block';
+      if (seriesList) seriesList.innerHTML = '<span style="font-size:0.78rem;color:var(--text3)">Loading…</span>';
+
+      const seriesIds = study.Series || [];
+      const seriesObjs = _pacsDemoActive
+        ? seriesIds.map(id => ({ ID: id, MainDicomTags: { SeriesDescription: 'Demo Series', Modality: 'CR' }, Instances: ['demo-inst-1'] }))
+        : await Promise.all(seriesIds.map(id => orthancGetSeries(id)));
+
+      if (seriesList) {
+        const modIcon = { CR:'🫁', DX:'🫁', CT:'🧠', MR:'🧲', US:'🔊', PT:'☢️', NM:'☢️', MG:'🩺', OT:'📋' };
+        seriesList.innerHTML = seriesObjs.map((s, i) => {
+          const desc = s.MainDicomTags?.SeriesDescription || s.MainDicomTags?.Modality || `Series ${i+1}`;
+          const mod  = s.MainDicomTags?.Modality || '';
+          const icon = modIcon[mod] || '🩻';
+          return `<button onclick="pacsSelectSeries('${s.ID}')" style="background:var(--navy3);border:1px solid var(--border2);border-radius:8px;padding:6px 12px;color:var(--text1);cursor:pointer;font-size:0.75rem;display:flex;align-items:center;gap:6px;transition:all 0.15s" onmouseover="this.style.background='var(--teal-dim)';this.style.borderColor='var(--teal)'" onmouseout="this.style.background='var(--navy3)';this.style.borderColor='var(--border2)'">${icon} ${desc}<span style="color:var(--text3);font-size:0.68rem">${(s.Instances||[]).length} img</span></button>`;
+        }).join('');
+      }
+
+      // Auto-select first series
+      if (seriesObjs.length) pacsSelectSeries(seriesObjs[0].ID, seriesObjs[0]);
+    } catch(e) {
+      showToast('❌', 'Load error', e.message);
+    }
+  }
+
+  async function pacsSelectSeries(seriesId, seriesObj) {
+    try {
+      const series = seriesObj || (_pacsDemoActive
+        ? { ID: seriesId, MainDicomTags: { Modality: 'CR' }, Instances: ['demo-inst-1'] }
+        : await orthancGetSeries(seriesId));
+
+      _pacsCurrentSeries = series;
+      _pacsInstances = series.Instances || [];
+      _pacsFrameIdx  = 0;
+      _pacsFrameTotal = _pacsInstances.length;
+      pacsLoadFrame(0);
+
+      // Highlight selected series button
+      document.querySelectorAll('#pacsSeriesList button').forEach(b => {
+        const active = (b.getAttribute('onclick')||'').includes(seriesId);
+        b.style.background   = active ? 'var(--teal-dim)' : 'var(--navy3)';
+        b.style.borderColor  = active ? 'var(--teal)'     : 'var(--border2)';
+        b.style.color        = active ? 'var(--teal)'     : 'var(--text1)';
+      });
+    } catch(e) {
+      showToast('❌', 'Series error', e.message);
+    }
+  }
+
+  function pacsLoadFrame(frameIdx) {
+    const img        = document.getElementById('pacsDicomImg');
+    const placeholder = document.getElementById('pacsViewerPlaceholder');
+    const frameLabel  = document.getElementById('pacsFrameLabel');
+    const frameNav    = document.getElementById('pacsFrameNav');
+    const toolbar     = document.getElementById('pacsToolbar');
+
+    if (!img) return;
+    _pacsFrameIdx = Math.max(0, Math.min(frameIdx, _pacsInstances.length - 1));
+    const instanceId = _pacsInstances[_pacsFrameIdx];
+    if (!instanceId) return;
+
+    if (placeholder) placeholder.style.display = 'none';
+    img.style.display = 'block';
+    img.style.transform = `scale(1)`;
+    _pacsZoom = 1;
+    _pacsInverted = false;
+    img.style.filter = '';
+
+    if (_pacsDemoActive) {
+      // Demo: use a public DICOM sample image
+      const demos = [
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/9/96/CXR_NIH_PA_Chest.jpg/768px-CXR_NIH_PA_Chest.jpg',
+        'https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/Chest_Xray_PA_3-8-2010.png/768px-Chest_Xray_PA_3-8-2010.png',
+      ];
+      img.src = demos[_pacsFrameIdx % demos.length];
+    } else {
+      const url = `${_orthancBase}/instances/${instanceId}/rendered`;
+      img.src = url + (url.includes('?') ? '&' : '?') + `_auth=${encodeURIComponent(_orthancAuth)}&_t=${Date.now()}`;
+      // Auth header can't be set via <img src>, so for real use Orthanc must have AllowedHeaders / no auth
+      // OR use the /preview endpoint which renders a JPEG
+      img.src = `${_orthancBase}/instances/${instanceId}/preview`;
+    }
+
+    if (frameLabel) frameLabel.textContent = `Image ${_pacsFrameIdx + 1} / ${_pacsInstances.length}`;
+    if (frameNav)  frameNav.style.display   = _pacsInstances.length > 1 ? 'flex' : 'none';
+    if (toolbar)   toolbar.style.display    = 'flex';
+  }
+
+  function pacsImgLoaded(img) { img.style.opacity = 1; }
+  function pacsImgError(img) {
+    img.style.display = 'none';
+    const p = document.getElementById('pacsViewerPlaceholder');
+    if (p) {
+      p.style.display = 'flex';
+      p.innerHTML = `<div style="text-align:center;padding:20px"><div style="font-size:2rem;margin-bottom:10px">⚠️</div><div style="font-size:0.85rem;color:var(--gold)">Could not load image</div><div style="font-size:0.75rem;color:var(--text3);margin-top:6px">Orthanc may require basic-auth on the /instances endpoint.<br>Consider using OHIF Viewer for authenticated access.</div><button class="btn btn-primary btn-sm" onclick="pacsOpenOhifStudy()" style="margin-top:12px">🖥 Open in OHIF Viewer</button></div>`;
+    }
+  }
+
+  function pacsFrame(delta) {
+    pacsLoadFrame(_pacsFrameIdx + delta);
+  }
+
+  // ── viewer controls ────────────────────────────────────────────────────────
+  function pacsZoom(factor) {
+    _pacsZoom = Math.max(0.2, Math.min(6, _pacsZoom * factor));
+    const img = document.getElementById('pacsDicomImg');
+    if (img) img.style.transform = `scale(${_pacsZoom})`;
+  }
+
+  function pacsResetView() {
+    _pacsZoom = 1;
+    _pacsInverted = false;
+    const img = document.getElementById('pacsDicomImg');
+    if (img) { img.style.transform = 'scale(1)'; img.style.filter = ''; }
+  }
+
+  function pacsInvert() {
+    _pacsInverted = !_pacsInverted;
+    const img = document.getElementById('pacsDicomImg');
+    if (img) img.style.filter = _pacsInverted ? 'invert(1)' : '';
+  }
+
+  function pacsDownload() {
+    const img = document.getElementById('pacsDicomImg');
+    if (!img || !img.src) return;
+    const a = document.createElement('a');
+    a.href = img.src;
+    a.download = `dicom-${Date.now()}.jpg`;
+    a.click();
+  }
+
+  // ── metadata panel ─────────────────────────────────────────────────────────
+  function pacsRenderMeta(study) {
+    const panel = document.getElementById('pacsMetaPanel');
+    const content = document.getElementById('pacsMetaContent');
+    if (!panel || !content) return;
+    panel.style.display = 'block';
+    const t = study.MainDicomTags || {};
+    const fields = [
+      ['Patient',      (t.PatientName||'—').replace(/\^/g,' ')],
+      ['Patient ID',   t.PatientID||'—'],
+      ['Date of Birth',t.PatientBirthDate||'—'],
+      ['Study Date',   (t.StudyDate||'—').replace(/(\d{4})(\d{2})(\d{2})/,'$3/$2/$1')],
+      ['Study',        t.StudyDescription||'—'],
+      ['Study ID',     t.StudyID||t.StudyInstanceUID?.slice(-12)||'—'],
+      ['Modality',     (study.Modalities||[]).join(', ')||'—'],
+      ['# Series',     (study.Series||[]).length],
+      ['Accession',    t.AccessionNumber||'—'],
+      ['Referring Dr', t.ReferringPhysicianName||'—'],
+      ['Institution',  t.InstitutionName||'—'],
+      ['Description',  t.StudyDescription||'—'],
+    ];
+    content.innerHTML = fields.map(([k,v]) => `
+      <div style="background:var(--navy3);border-radius:8px;padding:8px 10px">
+        <div style="font-size:0.65rem;color:var(--text3);text-transform:uppercase;letter-spacing:0.6px;margin-bottom:2px">${k}</div>
+        <div style="font-size:0.8rem;color:var(--text1);font-weight:600;word-break:break-all">${v}</div>
+      </div>`).join('');
+  }
+
+  // ── OHIF viewer ────────────────────────────────────────────────────────────
+  function pacsOpenOhif() {
+    if (!_orthancBase) { showToast('⚠️','Not connected','Configure Orthanc first'); return; }
+    const url = `${_orthancBase}/app/explorer.html`;
+    window.open(url, '_blank');
+  }
+
+  function pacsOpenOhifStudy() {
+    if (!_pacsCurrentStudy) { showToast('⚠️','No study selected','Select a study first'); return; }
+    if (_pacsDemoActive) { showToast('ℹ️','Demo mode','OHIF opens with real Orthanc connection'); return; }
+    const url = `${_orthancBase}/app/explorer.html#study?uuid=${_pacsCurrentStudy.ID}`;
+    window.open(url, '_blank');
+  }
+
+  // ── upload ─────────────────────────────────────────────────────────────────
+  async function pacsUploadFiles(event) {
+    const files = Array.from(event.target.files);
+    if (!files.length) return;
+    if (!_orthancBase) { showToast('⚠️','Not connected','Configure Orthanc to upload'); return; }
+
+    const prog    = document.getElementById('pacsUploadProgress');
+    const bar     = document.getElementById('pacsUploadBar');
+    const msg     = document.getElementById('pacsUploadMsg');
+    if (prog) prog.style.display = 'block';
+
+    let done = 0;
+    for (const file of files) {
+      if (msg) msg.textContent = `Uploading ${file.name} (${done+1}/${files.length})…`;
+      try {
+        await orthancUploadDicom(file);
+        done++;
+        if (bar) bar.style.width = `${(done/files.length)*100}%`;
+      } catch(e) {
+        showToast('❌', `Upload failed: ${file.name}`, e.message);
+      }
+    }
+
+    setTimeout(() => { if (prog) prog.style.display = 'none'; if (bar) bar.style.width = '0%'; }, 1500);
+    showToast('✅', `${done}/${files.length} files uploaded`, 'Refreshing study list…');
+    event.target.value = '';
+    await orthancRefreshStudies();
+  }
+
+  // ── add to consult ─────────────────────────────────────────────────────────
+  function pacsAddToConsult() {
+    if (!_pacsCurrentStudy) return;
+    const t = _pacsCurrentStudy.MainDicomTags || {};
+    const summary = `📷 Imaging: ${t.StudyDescription||'Study'} · ${t.PatientName?.replace(/\^/g,' ')||''} · ${(t.StudyDate||'').replace(/(\d{4})(\d{2})(\d{2})/,'$3/$2/$1')}`;
+    showView('consult');
+    setTimeout(() => {
+      const input = document.getElementById('chatInput');
+      if (input) { input.value = `Please review this imaging study: ${summary}`; input.focus(); }
+    }, 200);
+    showToast('📋','Added to Consultation', t.StudyDescription||'Imaging study');
+  }
+
+  // ── AI analyze from PACS ───────────────────────────────────────────────────
+  function pacsAiAnalyze() {
+    if (!_pacsCurrentStudy) return;
+    const t = _pacsCurrentStudy.MainDicomTags || {};
+    showView('consult');
+    setTimeout(() => {
+      const input = document.getElementById('chatInput');
+      if (input) {
+        input.value = `Analyze this imaging study for ${t.PatientName?.replace(/\^/g,' ')||'the patient'}: ${t.StudyDescription||'Imaging'} performed on ${(t.StudyDate||'').replace(/(\d{4})(\d{2})(\d{2})/,'$3/$2/$1')}. What should I look for and what are the clinical implications?`;
+        input.focus();
+      }
+    }, 200);
+  }
+
+  // ── demo mode ──────────────────────────────────────────────────────────────
+  function pacsDemoMode() {
+    _pacsDemoActive = true;
+    const sub = document.getElementById('pacsSubtitle');
+    if (sub) sub.textContent = '🎭 Demo mode — sample studies (no real PACS connected)';
+    const notConn = document.getElementById('pacsNotConnected');
+    const main    = document.getElementById('pacsMain');
+    if (notConn) notConn.style.display = 'none';
+    if (main)    main.style.display    = 'block';
+    _pacsStudies = PACS_DEMO_STUDIES;
+    pacsRenderStudyList(PACS_DEMO_STUDIES);
+    const ct = document.getElementById('pacsStudyCount');
+    if (ct) ct.textContent = `${PACS_DEMO_STUDIES.length} studies (demo)`;
+    showToast('🎭','Demo mode active','Showing sample studies — connect Orthanc for real DICOM');
   }
 
 </script>
