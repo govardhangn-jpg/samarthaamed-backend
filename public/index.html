@@ -2796,7 +2796,7 @@
             <!-- Input -->
             <div class="chat-input-area">
               <div class="chat-input-row">
-                <textarea id="chatInput" placeholder="Ask SamarthaaMed — type in English, Hindi, or any Indian language…" rows="1"
+                <textarea id="chatInput" placeholder="Ask Samarthaa — type in English, Hindi, or any Indian language…" rows="1"
                   onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
                   oninput="this.style.height='auto';this.style.height=this.scrollHeight+'px'"></textarea>
                 <button class="send-btn" onclick="sendMessage()">➤</button>
@@ -5436,7 +5436,7 @@
     }
 
     const patientCtx = getActivePatientContext();
-    const systemPrompt = `You are SamarthaaMed AI, a senior clinical decision-support assistant for Indian doctors.
+    const systemPrompt = `You are Samarthaa, a senior AI clinical decision-support assistant for Indian doctors.
 ${patientCtx}
 
 Guidelines:
@@ -5458,7 +5458,7 @@ Guidelines:
         } catch(e) { /* plain text response */ }
         const aiMsg = document.createElement('div');
         aiMsg.className = 'msg ai';
-        aiMsg.innerHTML = `<div class="msg-avatar">🧬</div><div><div class="msg-bubble">${displayText.replace(/\n/g,'<br>')}</div><div class="msg-time">SamarthaaMed · Just now</div></div>`;
+        aiMsg.innerHTML = `<div class="msg-avatar">🧬</div><div><div class="msg-bubble">${displayText.replace(/\n/g,'<br>')}</div><div class="msg-time">Samarthaa · Just now</div></div>`;
         msgs.insertBefore(aiMsg, typing);
         msgs.scrollTop = msgs.scrollHeight;
         // Speak if ElevenLabs / TTS enabled
@@ -5471,7 +5471,7 @@ Guidelines:
         typing.style.display = 'none';
         const aiMsg = document.createElement('div');
         aiMsg.className = 'msg ai';
-        aiMsg.innerHTML = `<div class="msg-avatar">🧬</div><div><div class="msg-bubble" style="color:var(--red)">⚠️ ${err.message}</div><div class="msg-time">SamarthaaMed · Just now</div></div>`;
+        aiMsg.innerHTML = `<div class="msg-avatar">🧬</div><div><div class="msg-bubble" style="color:var(--red)">⚠️ ${err.message}</div><div class="msg-time">Samarthaa · Just now</div></div>`;
         msgs.insertBefore(aiMsg, typing);
         msgs.scrollTop = msgs.scrollHeight;
       });
@@ -5522,7 +5522,7 @@ Guidelines:
       }
       const aiMsg = document.createElement('div');
       aiMsg.className = 'msg ai';
-      aiMsg.innerHTML = `<div class="msg-avatar">🧬</div><div><div class="msg-bubble">${aiReply}</div><div class="msg-time">SamarthaaMed · Just now</div></div>`;
+      aiMsg.innerHTML = `<div class="msg-avatar">🧬</div><div><div class="msg-bubble">${aiReply}</div><div class="msg-time">Samarthaa · Just now</div></div>`;
       msgs.insertBefore(aiMsg, typing);
       msgs.scrollTop = msgs.scrollHeight;
     }, 1400);
@@ -5700,7 +5700,7 @@ Guidelines:
       // Reset input placeholder
       const chatInput = document.getElementById('chatInput');
       if (chatInput) {
-        chatInput.placeholder = 'Ask SamarthaaMed — type in English, Hindi, or any Indian language…';
+        chatInput.placeholder = 'Ask Samarthaa — type in English, Hindi, or any Indian language…';
         chatInput.style.borderColor = '';
       }
       
@@ -5728,7 +5728,7 @@ Guidelines:
       // Reset input
       const chatInput = document.getElementById('chatInput');
       if (chatInput) {
-        chatInput.placeholder = 'Ask SamarthaaMed — type in English, Hindi, or any Indian language…';
+        chatInput.placeholder = 'Ask Samarthaa — type in English, Hindi, or any Indian language…';
         chatInput.style.borderColor = '';
       }
       
@@ -6010,7 +6010,7 @@ Guidelines:
         <span style="font-size:0.78rem;color:var(--text3)">${p.meta}</span><br><br>
         Vitals: HR ${p.vitals.hr} · BP ${p.vitals.bp} · SpO₂ ${p.vitals.spo2}<br>
         How can I assist with this patient's consultation?
-      </div><div class="msg-time">SamarthaaMed · Just now</div></div>`;
+      </div><div class="msg-time">Samarthaa · Just now</div></div>`;
       msgs.insertBefore(welcomeMsg, typing);
       msgs.scrollTop = msgs.scrollHeight;
     }
@@ -7175,7 +7175,7 @@ Rules:
             <strong style="color:var(--teal)">Consultation opened → ${p ? p.name : name}</strong><br>
             <span style="font-size:0.78rem;color:var(--text3)">${p ? p.meta : 'Patient record loaded. Type your clinical query below.'}</span>
             ${p ? `<br><br>Vitals: HR ${p.vitals.hr} · BP ${p.vitals.bp} · SpO₂ ${p.vitals.spo2}<br>How can I assist?` : ''}
-          </div><div class="msg-time">SamarthaaMed · Just now</div></div>`;
+          </div><div class="msg-time">Samarthaa · Just now</div></div>`;
           msgs.insertBefore(msg, typing);
           msgs.scrollTop = msgs.scrollHeight;
         }
@@ -7913,7 +7913,7 @@ INVESTIGATIONS:
     chatPanel.style.cssText = 'position:fixed;bottom:90px;right:24px;width:400px;height:600px;background:var(--panel);border:1px solid var(--border);border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.3);display:none;flex-direction:column;z-index:999;';
     chatPanel.innerHTML = `
       <div style="padding:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:var(--navy2);border-radius:12px 12px 0 0">
-        <span style="font-weight:700;color:var(--teal)">🧬 SamarthaaMed AI Assistant</span>
+        <span style="font-weight:700;color:var(--teal)">🧬 Samarthaa AI</span>
         <button onclick="toggleAIAssistant()" style="background:none;border:none;color:var(--text2);font-size:1.5rem;cursor:pointer;padding:0;width:32px;height:32px">×</button>
       </div>
       <div id="aiChatHistory" style="flex:1;overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:12px"></div>
@@ -7925,7 +7925,7 @@ INVESTIGATIONS:
     document.body.appendChild(chatPanel);
     
     // Add welcome message
-    addAIMessage('ai', 'Hello! I\'m your SamarthaaMed AI Assistant. I can help you with:\n\n• Opening patient consultations\n• Generating SOAP notes\n• Searching for patients, drugs, or conditions\n• Opening lab results or prescriptions\n• Showing analytics\n\nJust ask me anything!');
+    addAIMessage('ai', 'Hello! I\'m Samarthaa, your AI clinical assistant. I can help you with:\n\n• Opening patient consultations\n• Generating SOAP notes\n• Searching for patients, drugs, or conditions\n• Opening lab results or prescriptions\n• Showing analytics\n\nJust ask me anything!');
   }
 
   function toggleAIAssistant() {
@@ -10381,7 +10381,7 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
       } else { msgs.push(m); }
     }
     const patientCtx = getActivePatientContext();
-    const systemPrompt = `You are SamarthaaMed Voice AI — a clinical decision-support assistant speaking aloud to an Indian doctor during a patient consultation. ${patientCtx}
+    const systemPrompt = `You are Samarthaa, an AI clinical decision-support assistant speaking aloud to an Indian doctor during a patient consultation. ${patientCtx}
 Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empathetic. Cite ICMR 2024 or NHP guidelines when relevant. Match the language the doctor speaks (English/Hindi/Kannada etc.). No bullet points — this is spoken.`;
     try {
       const raw = await callClaudeAI(msgs, systemPrompt);
@@ -11310,7 +11310,7 @@ Generate a structured dental diagnosis and phased treatment plan. Return JSON on
     showToast('🎙️', 'Testing Voice', 'Connecting to ElevenLabs…');
     try {
       await _speakElevenLabs(
-        'Hello! This is your custom ElevenLabs voice speaking through SamarthaaMed. The voice clone integration is working correctly.',
+        'Hello! This is Samarthaa. Your ElevenLabs voice clone is working perfectly.',
         key, voiceId
       );
       showToast('✅', 'Voice Test Successful', 'Your ElevenLabs voice is working perfectly');
@@ -11859,7 +11859,7 @@ Generate a structured dental diagnosis and phased treatment plan. Return JSON on
       const apiKey = getApiKey();
       if (!apiKey) throw new Error('AI not ready — check API key');
 
-      const systemPrompt = `You are SamarthaaMed AI, a senior radiologist and clinical decision-support assistant for Indian doctors.
+      const systemPrompt = `You are Samarthaa, a senior AI radiologist and clinical decision-support assistant for Indian doctors.
 Patient: ${patientName}
 Study: ${studyDesc} | Modality: ${modality} | Date: ${studyDate}
 Follow ICMR 2024, AERB, and WHO SEARO imaging guidelines.`;
