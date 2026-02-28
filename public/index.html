@@ -3931,23 +3931,26 @@
           </div>
           <div class="settings-section">
             <div class="settings-section-header"><span style="font-size:1.1rem">🔑</span><div class="settings-section-title">AI Integration — Anthropic API Key</div></div>
-            <div class="settings-row" style="align-items:center;gap:14px;padding:16px 18px">
+            <div class="settings-row" style="align-items:flex-start;gap:14px;padding:16px 18px">
               <div class="settings-label">
                 <div class="settings-label-main">Anthropic API Key</div>
                 <div class="settings-label-sub">Powers all Claude AI features — AI Consultation, Radiology AI, Dental AI and more</div>
               </div>
-              <div style="display:flex;align-items:center;gap:10px;flex:1;max-width:460px">
-                <div style="display:flex;align-items:center;gap:8px;background:var(--navy3);border:1px solid var(--teal);border-radius:8px;padding:10px 16px;flex:1">
-                  <span style="font-size:1rem">🔒</span>
-                  <span style="font-family:var(--mono);font-size:0.8rem;color:var(--teal);letter-spacing:0.04em">sk-ant-•••••••••••••••••••••••••••</span>
+              <div style="display:flex;flex-direction:column;gap:8px;flex:1;max-width:460px">
+                <div style="display:flex;align-items:center;gap:8px">
+                  <input type="password" id="anthropicKeyInput"
+                    placeholder="sk-ant-api03-..."
+                    style="flex:1;padding:9px 12px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-family:var(--mono);font-size:0.82rem;outline:none;transition:border-color .2s"
+                    oninput="this.style.borderColor='var(--teal)'"
+                    onfocus="this.style.borderColor='var(--teal)'"
+                    onblur="this.style.borderColor='var(--border2)'"
+                  />
+                  <button onclick="saveAnthropicKeyManual()" class="btn btn-primary btn-sm">Save</button>
+                  <span id="anthropicKeyStatus" style="font-size:0.72rem;padding:4px 10px;border-radius:20px;font-weight:600;background:var(--navy3);color:var(--text3);white-space:nowrap">○ Not set</span>
                 </div>
-                <span id="anthropicKeyStatus" style="font-size:0.72rem;padding:4px 10px;border-radius:20px;font-weight:600;background:var(--teal-dim);color:var(--teal);white-space:nowrap">● System Configured</span>
-              </div>
-            </div>
-            <div class="settings-row" style="margin-top:0;padding:8px 18px 14px">
-              <div class="settings-label"></div>
-              <div style="font-size:0.71rem;color:var(--text3);flex:1;max-width:460px">
-                🛡️ This key is hardcoded and managed by an administrator. It cannot be changed from the UI.
+                <div style="font-size:0.71rem;color:var(--text3)">
+                  Get your key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--teal)">console.anthropic.com</a>. Stored locally in your browser only.
+                </div>
               </div>
             </div>
           </div>
@@ -8587,8 +8590,18 @@ INVESTIGATIONS:
     if (_configLoaded) return;
     if (_configLoadPromise) return _configLoadPromise;
     _configLoadPromise = fetch('/api/config')
-      .then(r => r.json())
+      .then(r => {
+        // If we get HTML back (no serverless function deployed), treat as no config
+        const ct = r.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          _configLoaded = true;
+          _updatePacsBadge();
+          return; // no backend config — user can set key in Settings
+        }
+        return r.json();
+      })
       .then(cfg => {
+        if (!cfg) return; // no config available (static deploy)
         const ak = cfg.anthropicKey       || '';
         const ek = cfg.elevenLabsKey      || '';
         const ev = cfg.elevenLabsVoiceId  || '';
@@ -8601,7 +8614,11 @@ INVESTIGATIONS:
         _configLoaded = true;
         _updatePacsBadge();
       })
-      .catch(err => console.error('[SamarthaaMed] Failed to load config:', err));
+      .catch(() => {
+        // /api/config not available — static deploy mode, silently continue
+        _configLoaded = true;
+        _updatePacsBadge();
+      });
     return _configLoadPromise;
   }
 
@@ -8688,7 +8705,14 @@ INVESTIGATIONS:
   }
 
   // Kick off immediately
-  _loadConfig();
+  _loadConfig().then(() => {
+    // After config loads, update the key input status in Settings
+    const status = document.getElementById('anthropicKeyStatus');
+    if (status && _anthropicApiKey) {
+      status.textContent = '✅ Active';
+      status.style.cssText = 'font-size:0.72rem;padding:4px 10px;border-radius:20px;font-weight:600;background:var(--teal-dim);color:var(--teal);white-space:nowrap';
+    }
+  });
 
   function getApiKey() {
     if (_anthropicApiKey) return _anthropicApiKey;
@@ -8700,8 +8724,31 @@ INVESTIGATIONS:
   }
 
   // LOCKED — key is system-configured; UI cannot change it
-  function saveAnthropicKey()         { /* no-op: key is system-configured */ }
-  function toggleAnthropicKeyVisibility() { /* no-op: key is system-configured */ }
+  function saveAnthropicKeyManual() {
+    const input = document.getElementById('anthropicKeyInput');
+    const status = document.getElementById('anthropicKeyStatus');
+    if (!input) return;
+    const key = input.value.trim();
+    if (!key || !key.startsWith('sk-ant-')) {
+      if (status) {
+        status.textContent = '✗ Invalid key';
+        status.style.cssText = 'font-size:0.72rem;padding:4px 10px;border-radius:20px;font-weight:600;background:var(--red-dim);color:var(--red);white-space:nowrap';
+      }
+      return;
+    }
+    _anthropicApiKey = key;
+    _vault.set('smak', key);
+    _configLoaded = true;
+    input.value = '';
+    input.placeholder = 'sk-ant-•••••••• (saved)';
+    if (status) {
+      status.textContent = '✅ Saved';
+      status.style.cssText = 'font-size:0.72rem;padding:4px 10px;border-radius:20px;font-weight:600;background:var(--teal-dim);color:var(--teal);white-space:nowrap';
+    }
+    showToast('✅', 'API Key Saved', 'Claude AI features are now active');
+  }
+  function saveAnthropicKey() { saveAnthropicKeyManual(); }
+  function toggleAnthropicKeyVisibility() { /* no-op */ }
   function restoreAnthropicKey()      {
     const stored = _vault.get('smak');
     if (stored) _anthropicApiKey = stored;
