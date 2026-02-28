@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: samarthaamed-backend
+    runtime: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ANTHROPIC_API_KEY
+        sync: false        # set manually in Render dashboard
+      - key: ELEVENLABS_API_KEY
+        sync: false
+      - key: ELEVENLABS_VOICE_ID
+        sync: false
+      - key: ORTHANC_URL
+        sync: false
+      - key: ORTHANC_USERNAME
+        sync: false
+      - key: ORTHANC_PASSWORD
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
