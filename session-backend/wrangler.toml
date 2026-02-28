@@ -1,0 +1,16 @@
+name = "samarthaa-session"
+main = "src/worker.js"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# KV namespace binding — create this in Cloudflare dashboard first
+# then paste the ID below (see SETUP.md for instructions)
+[[kv_namespaces]]
+binding = "SESSIONS"
+id      = "305a87a5398d4a788e233025058da34c"
+
+# Optional: preview namespace for local dev (wrangler dev)
+# preview_id = "REPLACE_WITH_YOUR_PREVIEW_KV_NAMESPACE_ID"
+
+[placement]
+mode = "smart"   # Cloudflare picks the closest datacenter to the user

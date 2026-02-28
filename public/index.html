@@ -8300,33 +8300,25 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
   function checkExistingSession() {
     const sessionToken = localStorage.getItem('samarthaamed_session');
     const sessionExpiry = localStorage.getItem('samarthaamed_session_expiry');
-    
+
     if (sessionToken && sessionExpiry) {
       const expiryDate = new Date(sessionExpiry);
       const now = new Date();
-      
+
       if (now < expiryDate) {
-        // Valid session exists
         const loginScreen = document.getElementById('loginScreen');
-        const mainApp = document.getElementById('mainApp');
-        
-        // Hide login screen
+        const mainApp     = document.getElementById('mainApp');
         if (loginScreen) loginScreen.style.display = 'none';
-        
-        // Show main app - CSS handles the layout
         if (mainApp) {
           mainApp.style.display = 'grid';
           mainApp.style.opacity = '1';
-          
-          // Initialize app
-          setTimeout(() => {
-            initializeApp();
-          }, 100);
+          setTimeout(() => { initializeApp(); }, 100);
         }
-        
+        // Start backend watcher — first poll happens immediately and will
+        // kick this session if another device has since logged in.
+        _startSessionWatcher();
         return true;
       } else {
-        // Session expired
         clearSession();
         return false;
       }
@@ -8393,35 +8385,204 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
       }
 
       // Authentication successful
-      authenticateUser(invitationCode, email, invitation, rememberMe);
+      await authenticateUser(invitationCode, email, invitation, rememberMe);
 
     }, 1500); // Simulate network delay
   }
 
-  function authenticateUser(invitationCode, email, invitation, rememberMe) {
-    // Generate session token
+  // ── Backend session enforcement ─────────────────────────────────
+  // All session state lives in a Cloudflare Worker KV store.
+  // Every device, browser, and tab hits the same backend — true
+  // cross-device single-session enforcement.
+  //
+  // ⚠️  SETUP REQUIRED: Deploy the Cloudflare Worker from session-backend/
+  // then replace the URL below with your worker's URL.
+  const SESSION_BACKEND_URL = 'https://samarthaa-session.govardhangn.workers.dev';
+
+  // Device fingerprint sent to backend so the session status page
+  // shows which device each user is logged in from.
+  const _deviceInfo = (() => {
+    const ua  = navigator.userAgent;
+    const mob = /iPhone|iPad|iPod/i.test(ua) ? 'iOS' :
+                /Android/i.test(ua)          ? 'Android' :
+                /Mac/i.test(ua)              ? 'Mac' :
+                /Windows/i.test(ua)          ? 'Windows' : 'Unknown';
+    const br  = /Chrome/i.test(ua) && !/Edge/i.test(ua) ? 'Chrome' :
+                /Safari/i.test(ua) && !/Chrome/i.test(ua) ? 'Safari' :
+                /Firefox/i.test(ua) ? 'Firefox' :
+                /Edge/i.test(ua)    ? 'Edge' : 'Browser';
+    return `${mob} / ${br}`;
+  })();
+
+  let _sessionPollTimer     = null;
+  let _sessionPollFails     = 0;   // consecutive network failures
+  const _MAX_POLL_FAILS     = 3;   // tolerate 3 failures before kicking (handles brief offline)
+  let _storageListenerAdded = false;
+
+  // ── Backend API calls ─────────────────────────────────────────
+  async function _backendRegisterSession(invitationCode, token, expiryDays) {
+    const res = await fetch(`${SESSION_BACKEND_URL}/session/register`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ invitationCode, token, device: _deviceInfo, expiryDays }),
+    });
+    if (!res.ok) throw new Error(`Register failed: ${res.status}`);
+    return res.json();
+  }
+
+  async function _backendValidateSession(invitationCode, token) {
+    const res = await fetch(`${SESSION_BACKEND_URL}/session/validate`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ invitationCode, token }),
+    });
+    if (!res.ok) throw new Error(`Validate failed: ${res.status}`);
+    return res.json();
+  }
+
+  async function _backendLogoutSession(invitationCode, token) {
+    await fetch(`${SESSION_BACKEND_URL}/session/logout`, {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ invitationCode, token }),
+    }).catch(() => {});  // best-effort — don't block UI on network failure
+  }
+
+  // ── Session watcher ───────────────────────────────────────────
+  // Polls backend every 20s. If the backend says the token is no
+  // longer valid, immediately shows the kick overlay.
+  // Also listens to localStorage storage event for instant kick
+  // within the same browser (sub-second, no polling delay).
+  function _startSessionWatcher() {
+    // Layer 1: storage event — instant kick in same browser
+    if (!_storageListenerAdded) {
+      window.addEventListener('storage', (e) => {
+        if (e.key === 'samarthaamed_session' && !e.newValue) {
+          // Another tab in this browser cleared the session
+          _handleSessionKick('signed_out_elsewhere');
+        }
+      });
+      _storageListenerAdded = true;
+    }
+
+    // Layer 2: backend poll — catches cross-device / cross-browser logins
+    if (_sessionPollTimer) clearInterval(_sessionPollTimer);
+    _sessionPollFails = 0;
+
+    // Validate once immediately on start, then every 20s
+    _pollBackend();
+    _sessionPollTimer = setInterval(_pollBackend, 20000);
+  }
+
+  async function _pollBackend() {
+    const code  = localStorage.getItem('samarthaamed_invitation_code');
+    const token = localStorage.getItem('samarthaamed_session');
+    if (!code || !token) return;
+
+    try {
+      const result = await _backendValidateSession(code, token);
+      _sessionPollFails = 0;  // reset on success
+      if (!result.valid) {
+        _handleSessionKick(result.reason || 'invalid');
+      }
+    } catch (err) {
+      // Network error — be tolerant, don't kick on brief connectivity loss
+      _sessionPollFails++;
+      console.warn(`Session poll failed (${_sessionPollFails}/${_MAX_POLL_FAILS}):`, err.message);
+      if (_sessionPollFails >= _MAX_POLL_FAILS) {
+        // Prolonged network failure — fall back to local expiry check only
+        const expiry = localStorage.getItem('samarthaamed_session_expiry');
+        if (expiry && new Date() > new Date(expiry)) {
+          _handleSessionKick('session_expired');
+        }
+      }
+    }
+  }
+
+  function _stopSessionWatcher() {
+    if (_sessionPollTimer) { clearInterval(_sessionPollTimer); _sessionPollTimer = null; }
+  }
+
+  function _handleSessionKick(reason) {
+    // Guard: don't show twice
+    if (document.getElementById('sessionKickOverlay')) return;
+    _stopSessionWatcher();
+
+    // Clear local session — but do NOT call backend logout here;
+    // this session was already displaced server-side.
+    localStorage.removeItem('samarthaamed_session');
+    localStorage.removeItem('samarthaamed_session_expiry');
+    localStorage.removeItem('samarthaamed_user_name');
+    localStorage.removeItem('samarthaamed_user_email');
+    localStorage.removeItem('samarthaamed_user_org');
+    localStorage.removeItem('samarthaamed_user_role');
+    localStorage.removeItem('samarthaamed_invitation_code');
+    sessionStorage.clear();
+
+    const isExpired  = reason === 'session_expired';
+    const isDisplace = reason === 'session_displaced' || reason === 'no_session';
+
+    const icon    = isExpired ? '⏰' : '🔐';
+    const title   = isExpired ? 'Session Expired' : 'Session Ended';
+    const message = isExpired
+      ? 'Your session has expired. Please sign in again to continue.'
+      : 'Your account was signed in from another device or browser. This session has been ended to protect your account.';
+    const sub     = isExpired
+      ? ''
+      : '<p style="color:#64748b;font-size:0.8rem;margin:0 0 28px;">Only one active session is allowed per user.</p>';
+
+    const overlay = document.createElement('div');
+    overlay.id = 'sessionKickOverlay';
+    overlay.style.cssText = [
+      'position:fixed','top:0','left:0','right:0','bottom:0',
+      'background:rgba(10,14,26,0.97)','z-index:99999',
+      'display:flex','flex-direction:column',
+      'align-items:center','justify-content:center',
+      'font-family:var(--syne,sans-serif)','padding:32px','text-align:center'
+    ].join(';');
+    overlay.innerHTML = `
+      <div style="font-size:3rem;margin-bottom:20px;">${icon}</div>
+      <h2 style="color:#e2e8f0;margin:0 0 12px;font-size:1.4rem;">${title}</h2>
+      <p style="color:#94a3b8;margin:0 0 8px;font-size:0.95rem;max-width:380px;line-height:1.6;">${message}</p>
+      ${sub}
+      <button onclick="location.reload()" style="
+        padding:14px 32px;background:#0d9488;color:#fff;border:none;
+        border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;
+        font-family:inherit;letter-spacing:0.02em;">
+        Sign In Again
+      </button>
+    `;
+    document.body.appendChild(overlay);
+  }
+
+  async function authenticateUser(invitationCode, email, invitation, rememberMe) {
     const sessionToken = generateSessionToken();
-    
-    // Set session expiry
-    const expiryDays = rememberMe ? 30 : 1;
-    const expiryDate = new Date();
+    const expiryDays   = rememberMe ? 30 : 1;
+    const expiryDate   = new Date();
     expiryDate.setDate(expiryDate.getDate() + expiryDays);
-    
-    // Store session with doctor name
-    localStorage.setItem('samarthaamed_session', sessionToken);
-    localStorage.setItem('samarthaamed_session_expiry', expiryDate.toISOString());
-    localStorage.setItem('samarthaamed_user_name', invitation.name);
-    localStorage.setItem('samarthaamed_user_email', email);
-    localStorage.setItem('samarthaamed_user_org', invitation.org);
-    localStorage.setItem('samarthaamed_user_role', invitation.role);
+
+    // Save locally first so the app works even if backend is unreachable
+    localStorage.setItem('samarthaamed_session',         sessionToken);
+    localStorage.setItem('samarthaamed_session_expiry',  expiryDate.toISOString());
+    localStorage.setItem('samarthaamed_user_name',       invitation.name);
+    localStorage.setItem('samarthaamed_user_email',      email);
+    localStorage.setItem('samarthaamed_user_org',        invitation.org);
+    localStorage.setItem('samarthaamed_user_role',       invitation.role);
     localStorage.setItem('samarthaamed_invitation_code', invitationCode);
-    
-    // Show success and redirect
+
+    // Register with backend — this atomically invalidates any other active
+    // session for this user on any device/browser worldwide.
+    try {
+      await _backendRegisterSession(invitationCode, sessionToken, expiryDays);
+    } catch (err) {
+      // Backend unreachable — still allow login, session watcher will
+      // enforce once connectivity is restored.
+      console.warn('Session backend unreachable on login:', err.message);
+      showToast('⚠️', 'Offline Mode', 'Logged in locally. Cross-device session enforcement will resume when online.');
+    }
+
     showToast('✅', 'Login Successful', `Welcome, ${invitation.name}!`);
-    
-    setTimeout(() => {
-      showMainApp();
-    }, 800);
+    setTimeout(() => { showMainApp(); }, 800);
   }
 
   function generateSessionToken() {
@@ -8466,6 +8627,8 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
         
         // Initialize any required components
         initializeApp();
+        // Start single-session watcher — kicks this tab if user logs in elsewhere
+        _startSessionWatcher();
         // Restore registered patients into table
         setTimeout(restoreRegisteredPatients, 600);
       }, 50);
@@ -8546,6 +8709,12 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
   }
 
   function clearSession() {
+    _stopSessionWatcher();
+    const code  = localStorage.getItem('samarthaamed_invitation_code');
+    const token = localStorage.getItem('samarthaamed_session');
+    // Tell backend this session is voluntarily ending — frees up the slot
+    // so the same user can log in on another device without the kick overlay
+    if (code && token) _backendLogoutSession(code, token);
     localStorage.removeItem('samarthaamed_session');
     localStorage.removeItem('samarthaamed_session_expiry');
     localStorage.removeItem('samarthaamed_user_name');
@@ -10421,7 +10590,7 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
     active: false,
     recognition: null,
     synthesis: window.speechSynthesis,
-    currentLanguage: 'en-US',
+    currentLanguage: 'en-IN',
     conversationHistory: [],
     isListening: false,
     isSpeaking: false,
@@ -10625,6 +10794,7 @@ CRITICAL RULES FOR EMERGENCY MODE:
 
             <!-- Language Selector -->
             <select id="voiceLangSelect" onchange="changeVoiceLanguage(this.value)" style="padding:10px 16px;border-radius:8px;border:1px solid var(--border2);background:var(--panel);color:var(--text1);font-size:0.9rem;cursor:pointer;">
+              <option value="en-IN" selected>🇮🇳 English (India)</option>
               <option value="en-US">🇺🇸 English (US)</option>
               <option value="en-GB">🇬🇧 English (UK)</option>
               <option value="hi-IN">🇮🇳 Hindi</option>
@@ -10710,67 +10880,98 @@ CRITICAL RULES FOR EMERGENCY MODE:
   let   _sttErrorCount    = 0;      // consecutive errors — bail after 3
   let   _sttMicGranted    = false;  // microphone permission already granted
 
+  // Medical vocab hint list for SpeechGrammarList injection
+  const _medTerms = [
+    'hypertension','hypotension','tachycardia','bradycardia','dyspnea','dyspnoea',
+    'myocardial','infarction','angina','palpitations','arrhythmia','fibrillation',
+    'diabetes','hyperglycemia','hypoglycemia','insulin','metformin','HbA1c',
+    'creatinine','eGFR','proteinuria','nephropathy','dialysis',
+    'pneumonia','bronchitis','wheezing','crepitations','rhonchi','spirometry',
+    'hemoglobin','platelet','leukocyte','CBC','ESR','CRP',
+    'echocardiography','electrocardiogram','ECG','troponin','BNP',
+    'statin','amlodipine','atenolol','ramipril','losartan','aspirin','clopidogrel',
+    'ICMR','comorbidity','polypharmacy','contraindicated','auscultation',
+    'systolic','diastolic','SpO2','saturation','respiratory rate',
+  ];
+
+  // Accumulate rapid consecutive finals before sending to AI (fixes Android fragmentation)
+  let _sttAccumulator = '';
+  let _sttAccumTimer  = null;
+
   // Build a fresh SpeechRecognition instance (required after errors on mobile)
   function _createRecognition() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return null;
 
     const r = new SR();
-    // iOS Safari crashes with continuous=true → use false and auto-restart in onend
     r.continuous      = _isIOS ? false : true;
     r.interimResults  = true;
+    r.maxAlternatives = _isMobile ? 3 : 1;
     r.lang            = voiceConsultation.currentLanguage;
-    r.maxAlternatives = 1;   // higher values cause issues on some Android builds
+
+    // Inject medical grammar hint (improves clinical term accuracy on Chrome Android)
+    try {
+      const SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
+      if (SGL) {
+        const gl = new SGL();
+        gl.addFromString('#JSGF V1.0; grammar med; public <term> = ' + _medTerms.join(' | ') + ';', 1);
+        r.grammars = gl;
+      }
+    } catch(e) {}
 
     r.onstart = () => {
       _sttErrorCount = 0;
       voiceConsultation.isListening = true;
-      updateVoiceStatus('Listening…', 'Speak now');
+      updateVoiceStatus('Listening...', 'Speak now');
       animateWaveform(true);
       const btn = document.getElementById('voiceMicBtn');
       if (btn) { btn.style.background = 'var(--red)'; btn.style.transform = 'scale(1.1)'; }
     };
 
     r.onresult = (event) => {
-      let interim = '', final = '';
+      let interim = '';
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const t = event.results[i][0].transcript;
-        if (event.results[i].isFinal) final   += t;
-        else                          interim += t;
+        const result = event.results[i];
+        if (result.isFinal) {
+          const best = _pickBestAlternative(result);
+          // Skip very low confidence results (background noise on mobile)
+          if (best.confidence > 0 && best.confidence < 0.25) continue;
+          if (best.transcript.trim().length < 2) continue;
+          // Accumulate finals and wait for a natural pause before sending to AI.
+          // Fixes Android fragmenting one sentence into multiple rapid isFinal events.
+          _sttAccumulator += best.transcript.trim() + ' ';
+          if (_sttAccumTimer) clearTimeout(_sttAccumTimer);
+          _sttAccumTimer = setTimeout(() => {
+            const combined = _sttAccumulator.trim();
+            _sttAccumulator = '';
+            _sttAccumTimer  = null;
+            if (combined.length > 2) {
+              addToVoiceTranscript('user', combined);
+              processVoiceInput(combined);
+            }
+          }, _isMobile ? 1200 : 600);
+        } else {
+          interim += result[0].transcript;
+        }
       }
-      if (interim) updateVoiceStatus('Listening…', interim);
-      if (final)   { addToVoiceTranscript('user', final); processVoiceInput(final); }
+      if (interim) updateVoiceStatus('Listening...', interim);
     };
 
     r.onerror = (event) => {
       const err = event.error;
       console.warn('STT error:', err);
-
       if (err === 'not-allowed' || err === 'service-not-allowed') {
         _sttMicGranted = false;
-        showToast('🎤', 'Microphone Blocked', 'Allow microphone access in your browser settings, then try again.');
+        showToast('⚠️', 'Microphone Blocked', 'Allow microphone access in your browser settings, then try again.');
         voiceConsultation.isListening = false;
         voiceConsultation.autoListen  = false;
         _setMicBtnIdle();
         return;
       }
-
-      if (err === 'no-speech') {
-        // Normal on mobile — just restart quietly
-        updateVoiceStatus('Tap mic to speak', 'No speech detected');
-        return;
-      }
-
-      if (err === 'network') {
-        updateVoiceStatus('Network error', 'Check connection & retry');
-        _sttErrorCount++;
-      } else if (err === 'aborted') {
-        // Intentional stop — ignore
-        return;
-      } else {
-        _sttErrorCount++;
-      }
-
+      if (err === 'no-speech') { updateVoiceStatus('Tap mic to speak', 'No speech detected'); return; }
+      if (err === 'aborted')   { return; }
+      if (err === 'network')   { updateVoiceStatus('Network error', 'Check connection & retry'); }
+      _sttErrorCount++;
       if (_sttErrorCount >= 3) {
         updateVoiceStatus('Mic unavailable', 'Tap mic to retry');
         voiceConsultation.isListening = false;
@@ -10782,13 +10983,10 @@ CRITICAL RULES FOR EMERGENCY MODE:
     r.onend = () => {
       voiceConsultation.isListening = false;
       _setMicBtnIdle();
-
-      // Auto-restart: recreate instance (required on iOS) and restart after delay
       if (voiceConsultation.autoListen && !voiceConsultation.isSpeaking && voiceConsultation.active) {
         if (_sttRestartTimer) clearTimeout(_sttRestartTimer);
         _sttRestartTimer = setTimeout(() => {
           if (!voiceConsultation.isSpeaking && voiceConsultation.active && voiceConsultation.autoListen) {
-            // Always create a fresh instance on iOS to avoid "recognition already started" errors
             if (_isIOS) voiceConsultation.recognition = _createRecognition();
             _startRecognition();
           }
@@ -10801,6 +10999,23 @@ CRITICAL RULES FOR EMERGENCY MODE:
     return r;
   }
 
+  // Pick the recognition alternative with best combined score.
+  // Boosts alternatives that contain known medical terms even if slightly
+  // lower raw confidence -- fixes "dyspnea" losing to "this new" on mobile.
+  function _pickBestAlternative(result) {
+    const medSet = new Set(_medTerms.map(function(t){ return t.toLowerCase(); }));
+    function score(alt) {
+      var words = alt.transcript.toLowerCase().split(/\s+/);
+      var hits  = words.filter(function(w){ return medSet.has(w); }).length;
+      return (alt.confidence || 0.5) * (1 + hits * 0.3);
+    }
+    var best = result[0], bestScore = score(result[0]);
+    for (var j = 1; j < result.length; j++) {
+      var s = score(result[j]);
+      if (s > bestScore) { bestScore = s; best = result[j]; }
+    }
+    return best;
+  }
   function _setMicBtnIdle() {
     animateWaveform(false);
     const btn = document.getElementById('voiceMicBtn');

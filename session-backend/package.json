@@ -1,0 +1,14 @@
+{
+  "name": "samarthaa-session",
+  "version": "1.0.0",
+  "description": "Session management backend for Samarthaa apps",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "tail": "wrangler tail"
+  },
+  "devDependencies": {
+    "wrangler": "^4.69.0"
+  }
+}
