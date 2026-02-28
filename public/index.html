@@ -1962,6 +1962,9 @@
           <span class="nav-icon">💬</span> AI Consultation
           <span class="nav-badge green">3</span>
         </div>
+        <div class="nav-item" onclick="startEmergencyVoice()" style="background:rgba(220,38,38,0.1);color:var(--red);font-weight:700;border:1px solid rgba(220,38,38,0.2);margin:2px 0;">
+          <span class="nav-icon">🚨</span> Emergency Voice AI
+        </div>
         <div class="nav-item" onclick="showView('patients')">
           <span class="nav-icon">👥</span> Patients
         </div>
@@ -2454,6 +2457,9 @@
               </div>
 
               <div class="divider"></div>
+              <button class="btn" onclick="startEmergencyVoice()" style="width:100%;justify-content:center;margin-top:4px;margin-bottom:6px;background:rgba(220,38,38,0.1);color:var(--red);border:1px solid rgba(220,38,38,0.3);font-weight:700;">
+                🚨 Emergency Voice AI
+              </button>
               <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px" onclick="showView('consult')">
                 🔬 Start AI Consultation
               </button>
@@ -6860,18 +6866,48 @@ Rules:
   // ── PATIENT REGISTRY — single source of truth ──────────────────────────────
   let newPatientData = null;
 
-  const patientRegistry = [
-    { id: 'MM-2024-04521', name: 'Priya Krishnamurthy', key: 'PK' },
-    { id: 'MM-2023-01892', name: 'Ramesh Singh',        key: 'RS' },
-    { id: 'MM-2025-09341', name: 'Anita Mehta',         key: 'AM' },
-    { id: 'MM-2024-07234', name: 'Vikram Nair',         key: 'VN' },
-    { id: 'MM-2025-02218', name: 'Sunita Gupta',        key: 'SG' },
-    { id: 'MM-2025-08876', name: 'Nandini Bose',        key: 'NB' },
-    { id: 'MM-2026-03345', name: 'Deepak Kumar',        key: 'DK' },
-    { id: 'MM-2026-08876', name: 'Meena Iyer',          key: 'MI' },
-    { id: 'MM-2024-05512', name: 'Mohan Pillai',        key: 'MP' },
-    { id: 'MM-2025-11203', name: 'Karthik Reddy',       key: 'KR' },
+  // ── Patient persistence ──────────────────────────────────────────
+  const _DEMO_PATIENTS = [
+    { id: 'MM-2024-04521', name: 'Priya Krishnamurthy', key: 'PK', demo: true },
+    { id: 'MM-2023-01892', name: 'Ramesh Singh',        key: 'RS', demo: true },
+    { id: 'MM-2025-09341', name: 'Anita Mehta',         key: 'AM', demo: true },
+    { id: 'MM-2024-07234', name: 'Vikram Nair',         key: 'VN', demo: true },
+    { id: 'MM-2025-02218', name: 'Sunita Gupta',        key: 'SG', demo: true },
+    { id: 'MM-2025-08876', name: 'Nandini Bose',        key: 'NB', demo: true },
+    { id: 'MM-2026-03345', name: 'Deepak Kumar',        key: 'DK', demo: true },
+    { id: 'MM-2026-08876', name: 'Meena Iyer',          key: 'MI', demo: true },
+    { id: 'MM-2024-05512', name: 'Mohan Pillai',        key: 'MP', demo: true },
+    { id: 'MM-2025-11203', name: 'Karthik Reddy',       key: 'KR', demo: true },
   ];
+  const _LS_PATIENTS  = 'sm_patients_v1';   // registry entries
+  const _LS_PROFILES  = 'sm_profiles_v1';   // full patientProfiles data
+  const _LS_ROWS      = 'sm_rows_v1';       // table row data for restoration
+
+  function _lsGet(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch(e) { return null; } }
+  function _lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} }
+
+  // Live registry = registered patients (on top) + demo patients
+  const _savedPatients = _lsGet(_LS_PATIENTS) || [];
+  const patientRegistry = [..._savedPatients, ..._DEMO_PATIENTS];
+
+  // After patientProfiles is defined, merge in any saved profiles
+  function _restoreProfiles() {
+    const saved = _lsGet(_LS_PROFILES) || {};
+    Object.assign(patientProfiles, saved);
+  }
+
+  // Restore registered patients into the table + consultation chips
+  function restoreRegisteredPatients() {
+    const rows = _lsGet(_LS_ROWS) || [];
+    if (!rows.length) return;
+    rows.forEach(p => {
+      addPatientToTable(p);
+      const prof = patientProfiles[p.key];
+      if (prof) addPatientChipToConsult(p.key, p.fullName, prof.avatarColor);
+    });
+    updatePatientCount();
+    showToast('📂', 'Patients Restored', rows.length + ' registered patient' + (rows.length > 1 ? 's' : '') + ' reloaded');
+  }
 
   function syncAllPatientDropdowns() {
     const selects = [
@@ -6895,7 +6931,12 @@ Rules:
   function addToPatientRegistry(fname, lname, patientId) {
     const initials = (fname[0] || 'N') + (lname[0] || 'P');
     const uniqueKey = initials.toUpperCase() + '_' + Date.now().toString(36).toUpperCase();
-    patientRegistry.unshift({ id: patientId, name: fname + ' ' + lname, key: uniqueKey });
+    const entry = { id: patientId, name: fname + ' ' + lname, key: uniqueKey };
+    patientRegistry.unshift(entry);
+    // Persist registry entry
+    const saved = _lsGet(_LS_PATIENTS) || [];
+    saved.unshift(entry);
+    _lsSet(_LS_PATIENTS, saved);
     syncAllPatientDropdowns();
     refreshRiskPatientSelector();
     return uniqueKey;
@@ -7000,6 +7041,11 @@ Rules:
       };
       // Add chip to AI Consultation switcher bar
       addPatientChipToConsult(newKey, fullName, avatarColor);
+
+      // Persist profile to localStorage
+      const savedProfiles = _lsGet(_LS_PROFILES) || {};
+      savedProfiles[newKey] = patientProfiles[newKey];
+      _lsSet(_LS_PROFILES, savedProfiles);
     }
 
     // Show success screen
@@ -7010,6 +7056,10 @@ Rules:
     document.getElementById('step-panel-4').style.display = 'block';
 
     addPatientToTable(newPatientData);
+    // Persist row data for table restoration on next session
+    const savedRows = _lsGet(_LS_ROWS) || [];
+    savedRows.unshift(newPatientData);
+    _lsSet(_LS_ROWS, savedRows);
     updatePatientCount();
     showToast('✅', 'Patient Registered!', `${fullName} · ID: ${patientId}`);
   }
@@ -8047,6 +8097,8 @@ INVESTIGATIONS:
         
         // Initialize any required components
         initializeApp();
+        // Restore registered patients into table
+        setTimeout(restoreRegisteredPatients, 600);
       }, 50);
     }, 500);
   }
@@ -8481,10 +8533,14 @@ INVESTIGATIONS:
 
   // Check session on page load
   document.addEventListener('DOMContentLoaded', function() {
+    // Always merge saved profiles into patientProfiles on load
+    _restoreProfiles();
     if (!checkExistingSession()) {
-      // No valid session, show login screen
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('mainApp').style.display = 'none';
+    } else {
+      // Valid session — restore registered patients to table after UI renders
+      setTimeout(restoreRegisteredPatients, 500);
     }
   });
 
@@ -9969,22 +10025,157 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
   };
 
   // Start voice consultation
-  function startVoiceConsultation() {
+  // ══════════════════════════════════════════════════════════════
+  // EMERGENCY VOICE AI — no patient registration required
+  // ══════════════════════════════════════════════════════════════
+  let _emergencyMode = false;
+  let _emergencyContext = {};
+
+  function startEmergencyVoice() {
+    // Show quick triage form before launching voice
+    const overlay = document.createElement('div');
+    overlay.id = 'emergencyTriageOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:10001;padding:20px;';
+    overlay.innerHTML = `
+      <div style="background:var(--panel);border-radius:18px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 24px 80px rgba(220,38,38,0.3);border:2px solid rgba(220,38,38,0.4);">
+        <!-- Red header -->
+        <div style="background:linear-gradient(135deg,var(--red),#991b1b);padding:20px 24px;display:flex;align-items:center;gap:12px;">
+          <span style="font-size:2rem;animation:pulse 1s infinite;">🚨</span>
+          <div>
+            <div style="font-family:var(--syne);font-size:1.25rem;font-weight:800;color:#fff;">Emergency Voice AI</div>
+            <div style="font-size:0.78rem;color:rgba(255,255,255,0.8);margin-top:2px;">Rapid AI consultation — no patient registration needed</div>
+          </div>
+        </div>
+        <!-- Quick triage inputs -->
+        <div style="padding:22px 24px 16px;">
+          <p style="font-size:0.82rem;color:var(--text3);margin:0 0 16px;">Enter what you know. All fields optional — speak the rest aloud once the session starts.</p>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+            <div>
+              <label style="font-size:0.72rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px;">Age</label>
+              <input id="emAge" type="number" placeholder="e.g. 55" min="0" max="120"
+                style="width:100%;padding:9px 12px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.9rem;outline:none;box-sizing:border-box;"
+                onfocus="this.style.borderColor='var(--red)'" onblur="this.style.borderColor='var(--border2)'">
+            </div>
+            <div>
+              <label style="font-size:0.72rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px;">Sex</label>
+              <select id="emSex"
+                style="width:100%;padding:9px 12px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.9rem;outline:none;box-sizing:border-box;cursor:pointer;"
+                onfocus="this.style.borderColor='var(--red)'" onblur="this.style.borderColor='var(--border2)'">
+                <option value="">Unknown</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+              </select>
+            </div>
+          </div>
+          <div style="margin-bottom:12px;">
+            <label style="font-size:0.72rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px;">Chief Complaint / Presenting Problem</label>
+            <input id="emComplaint" type="text" placeholder="e.g. Chest pain with radiation to left arm, 30 mins"
+              style="width:100%;padding:9px 12px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.9rem;outline:none;box-sizing:border-box;"
+              onfocus="this.style.borderColor='var(--red)'" onblur="this.style.borderColor='var(--border2)'"
+              onkeydown="if(event.key==='Enter') _launchEmergencyVoice()">
+          </div>
+          <div style="margin-bottom:16px;">
+            <label style="font-size:0.72rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px;">Known Vitals / Allergies (optional)</label>
+            <input id="emVitals" type="text" placeholder="e.g. BP 180/110, HR 115, Penicillin allergy"
+              style="width:100%;padding:9px 12px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.9rem;outline:none;box-sizing:border-box;"
+              onfocus="this.style.borderColor='var(--red)'" onblur="this.style.borderColor='var(--border2)'">
+          </div>
+          <div style="display:flex;gap:10px;">
+            <button onclick="document.getElementById('emergencyTriageOverlay').remove()" 
+              style="flex:1;padding:12px;background:var(--navy3);color:var(--text2);border:1px solid var(--border2);border-radius:8px;cursor:pointer;font-weight:600;font-size:0.9rem;">
+              Cancel
+            </button>
+            <button onclick="_launchEmergencyVoice()"
+              style="flex:2;padding:12px;background:var(--red);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.95rem;box-shadow:0 4px 16px rgba(220,38,38,0.4);">
+              🎤 Start Emergency Session
+            </button>
+          </div>
+        </div>
+      </div>`;
+    document.body.appendChild(overlay);
+    // Focus chief complaint
+    setTimeout(() => document.getElementById('emComplaint')?.focus(), 200);
+  }
+
+  function _launchEmergencyVoice() {
+    const age       = document.getElementById('emAge')?.value?.trim() || '';
+    const sex       = document.getElementById('emSex')?.value || '';
+    const complaint = document.getElementById('emComplaint')?.value?.trim() || '';
+    const vitals    = document.getElementById('emVitals')?.value?.trim() || '';
+    document.getElementById('emergencyTriageOverlay')?.remove();
+
+    _emergencyMode = true;
+    _emergencyContext = { age, sex, complaint, vitals };
+
+    // Launch the standard voice modal but in emergency mode
+    startVoiceConsultation(true);
+  }
+
+  function _buildEmergencySystemPrompt(ctx) {
+    const who = [ctx.age && (ctx.age + ' yr'), ctx.sex].filter(Boolean).join(' ') || 'Unknown age/sex';
+    const complaint = ctx.complaint || 'not yet stated';
+    const vitals = ctx.vitals || 'not yet measured';
+    return `You are Samarthaa, an emergency AI clinical decision-support assistant helping an Indian doctor in a time-critical situation.
+
+EMERGENCY PATIENT (UNREGISTERED):
+Patient: ${who}
+Presenting: ${complaint}
+Vitals known: ${vitals}
+
+CRITICAL RULES FOR EMERGENCY MODE:
+1. This is a real emergency — be fast, decisive, and direct.
+2. Lead with the most critical action first (ABCDE approach, STEMI protocol, sepsis bundle etc.).
+3. Replies must be 1–3 short spoken sentences MAXIMUM. No preamble.
+4. Cite ICMR 2024, NHP, or WHO emergency protocols when applicable.
+5. If patient details are unknown, make clinically safe assumptions and state them.
+6. Flag red-flag symptoms immediately (STEMI, stroke, anaphylaxis, sepsis).
+7. Match the language the doctor speaks (English/Hindi/Kannada etc.).
+8. Never refuse to answer due to missing information — work with what you have.`;
+  }
+
+  function _getEmergencyContext() {
+    const ctx = _emergencyContext;
+    const who = [ctx.age && (ctx.age + ' yr'), ctx.sex].filter(Boolean).join(' ') || 'Unknown';
+    return `EMERGENCY — UNREGISTERED PATIENT: ${who} | Presenting: ${ctx.complaint || 'not yet stated'} | Vitals: ${ctx.vitals || 'not yet measured'}`;
+  }
+
+  function _clearEmergencyMode() {
+    _emergencyMode = false;
+    _emergencyContext = {};
+  }
+
+  function startVoiceConsultation(emergencyMode) {
     // Show voice consultation modal
     const modal = document.createElement('div');
     modal.id = 'voiceConsultModal';
     modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:10000;padding:20px;';
     
-    const patientName = document.querySelector('.consult-patient-name')?.textContent || 'Patient';
-    const patientMeta = document.querySelector('.consult-patient-meta')?.textContent || '';
+    // Determine display info (emergency vs normal)
+    const isEmergency = emergencyMode === true || _emergencyMode;
+    let patientName, patientMeta, headerBg, headerIcon, headerTitle;
+    if (isEmergency) {
+      const ctx = _emergencyContext;
+      const who = [ctx.age && (ctx.age + ' yr'), ctx.sex].filter(Boolean).join(' ') || 'Unknown patient';
+      patientName = '🚨 EMERGENCY — ' + who;
+      patientMeta = ctx.complaint ? ctx.complaint : 'Speak symptoms aloud to begin';
+      headerBg = 'linear-gradient(135deg,rgba(220,38,38,0.15),var(--panel))';
+      headerIcon = '🚨';
+      headerTitle = 'Emergency Voice AI';
+    } else {
+      patientName = document.querySelector('.consult-patient-name')?.textContent || 'Patient';
+      patientMeta = document.querySelector('.consult-patient-meta')?.textContent || '';
+      headerBg = 'linear-gradient(135deg,var(--teal-dim),var(--panel))';
+      headerIcon = '🎤';
+      headerTitle = 'Voice Consultation';
+    }
     
     modal.innerHTML = `
       <div style="background:var(--panel);border-radius:16px;max-width:900px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
         <!-- Header -->
-        <div style="padding:24px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--teal-dim),var(--panel));">
+        <div style="padding:24px;border-bottom:1px solid var(--border);background:${headerBg};">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <h2 style="margin:0;color:var(--text1);font-size:1.5rem;font-family:var(--syne);">🎤 Voice Consultation</h2>
+              <h2 style="margin:0;color:var(--text1);font-size:1.5rem;font-family:var(--syne);">${headerIcon} ${headerTitle}</h2>
               <p style="margin:4px 0 0 0;color:var(--text3);font-size:0.85rem;">${patientName} • ${patientMeta}</p>
             </div>
             <button onclick="endVoiceConsultation()" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;">
@@ -10196,9 +10387,15 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
         msgs[msgs.length-1].content += ' ' + m.content;
       } else { msgs.push(m); }
     }
-    const patientCtx = getActivePatientContext();
-    const systemPrompt = `You are Samarthaa, an AI clinical decision-support assistant speaking aloud to an Indian doctor during a patient consultation. ${patientCtx}
+    // Use emergency system prompt if in emergency mode, otherwise standard
+    let systemPrompt;
+    if (_emergencyMode) {
+      systemPrompt = _buildEmergencySystemPrompt(_emergencyContext);
+    } else {
+      const patientCtx = getActivePatientContext();
+      systemPrompt = `You are Samarthaa, an AI clinical decision-support assistant speaking aloud to an Indian doctor during a patient consultation. ${patientCtx}
 Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empathetic. Cite ICMR 2024 or NHP guidelines when relevant. Match the language the doctor speaks (English/Hindi/Kannada etc.). No bullet points — this is spoken.`;
+    }
     try {
       const raw = await callClaudeAI(msgs, systemPrompt);
       const aiResponse = raw.replace(/<[^>]+>/g, '').trim();
@@ -10521,6 +10718,7 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
   // End voice consultation
   function endVoiceConsultation() {
+    _clearEmergencyMode();
     if (confirm('End voice consultation session?')) {
       voiceConsultation.active = false;
       
