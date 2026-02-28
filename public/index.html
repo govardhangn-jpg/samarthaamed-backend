@@ -735,7 +735,7 @@
   .chart-card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
   .chart-card-body { padding: 14px 18px; }
   .chart-card-header { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-  .chart-card-
+  .chart-card-title  { font-size:0.88rem; font-weight:600; color:var(--text1); }
   .bar-chart { display:flex; align-items:flex-end; gap:3px; height:130px; overflow:hidden; padding:4px 0; }
   .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; }
   .bar { width:100%; border-radius:4px 4px 0 0; min-height:4px; cursor:pointer; transition:filter .15s; }
@@ -10435,7 +10435,7 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
       window._elCurrentAudio.pause();
       window._elCurrentAudio = null;
     }
-
+    if (window._elAudioCtx) { window._elAudioCtx.close().catch(()=>{}); window._elAudioCtx = null; }
     voiceConsultation.isSpeaking = true;
     updateVoiceStatus('AI Speaking…', text.substring(0, 100) + '…');
     animateWaveform(true);
@@ -10493,16 +10493,30 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     const blob    = await response.blob();
     const url     = URL.createObjectURL(blob);
     const audio   = new Audio(url);
+    audio.volume  = 1.0;
     window._elCurrentAudio = audio;
+
+    // Amplify to 1.5× using Web Audio API GainNode (goes beyond browser's 1.0 vol cap)
+    try {
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      const src  = actx.createMediaElementSource(audio);
+      const gain = actx.createGain();
+      gain.gain.value = 1.5;
+      src.connect(gain);
+      gain.connect(actx.destination);
+      window._elAudioCtx = actx;
+    } catch(e) { /* fallback: native volume */ }
 
     audio.onended = () => {
       URL.revokeObjectURL(url);
       window._elCurrentAudio = null;
+      if (window._elAudioCtx) { window._elAudioCtx.close().catch(()=>{}); window._elAudioCtx = null; }
       _onSpeakEnd();
     };
     audio.onerror = (e) => {
       URL.revokeObjectURL(url);
       window._elCurrentAudio = null;
+      if (window._elAudioCtx) { window._elAudioCtx.close().catch(()=>{}); window._elAudioCtx = null; }
       _onSpeakEnd();
     };
 
@@ -10511,10 +10525,10 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
   function _speakBrowser(text) {
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang  = voiceConsultation.currentLanguage;
-    utterance.rate  = 0.95;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
+    utterance.lang   = voiceConsultation.currentLanguage;
+    utterance.rate   = 0.95;
+    utterance.pitch  = 1.0;
+    utterance.volume = 1.0;  // Web Speech API max is 1.0; gain node not available for utterances
     const voices = voiceConsultation.synthesis.getVoices();
     const best   = voices.find(v =>
       v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]) &&
