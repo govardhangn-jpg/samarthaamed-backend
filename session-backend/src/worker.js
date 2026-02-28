@@ -36,10 +36,6 @@ const MED_VALID_CODES = new Set([
 // Add each authorised email (lowercase) when you add a user in the
 // backend database.  Emails never expire — remove to revoke.
 const LEGAL_VALID_EMAILS = new Set([
-  // *** ADD AUTHORISED LEGAL-APP EMAILS BELOW ***
-  // e.g. 'govardhan@example.com',
-  //      'rekha@example.com',
-  // Leave empty to block all registrations until you add users.
   'govardhangn@samarthaa.legal',
   'rekhajayaram20@samarthaa.legal',
   'bopanna@samarthaa.legal',
