@@ -1172,10 +1172,9 @@
     gap: 16px;
   }
 
-  /* Mobile responsive for login */
-
   /* ══════════════════════════════════════════════════════
-     MOBILE HAMBURGER + BOTTOM NAV (hidden on desktop)
+     MOBILE HAMBURGER + OVERLAY + BOTTOM NAV
+     Hidden on desktop, shown on ≤ 900px
   ══════════════════════════════════════════════════════ */
   .mobile-menu-btn {
     display: none;
@@ -1185,35 +1184,109 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     color: var(--text1);
-    font-size: 1.2rem;
+    font-size: 1.25rem;
     cursor: pointer;
-    padding: 5px 9px;
+    padding: 6px 10px;
     flex-shrink: 0;
     transition: all .2s;
     line-height: 1;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
   }
   .mobile-menu-btn:hover { border-color: var(--teal); color: var(--teal); }
 
-  .mobile-bottom-nav  { display: none; }
-  .mobile-overlay     { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 999; backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px); }
+  /* Bottom nav — hidden on desktop */
+  .mobile-bottom-nav { display: none; }
+
+  /* Dimming overlay when sidebar is open on mobile */
+  .mobile-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+  }
   .mobile-overlay.show { display: block; }
 
   /* ══════════════════════════════════════════════════════
-     TABLET  ≤ 1024px
+     LAPTOP  ≤ 1280px  (tight screens, small 13" laptops)
   ══════════════════════════════════════════════════════ */
-  @media screen and (max-width: 1024px) {
-    .grid-2 { grid-template-columns: 1fr; }
-    .grid-3 { grid-template-columns: repeat(2, 1fr); }
-    .grid-4 { grid-template-columns: repeat(2, 1fr); }
-    .app    { grid-template-columns: 200px 1fr; }
+  @media screen and (max-width: 1280px) {
+    .stat-grid           { grid-template-columns: repeat(4, 1fr); gap: 12px; }
+    .spec-grid           { grid-template-columns: repeat(4, 1fr); }
+    .kpi-strip           { grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .analytics-grid-3    { grid-template-columns: repeat(2, 1fr); }
+    .consult-layout      { grid-template-columns: 260px 1fr 250px; }
   }
 
   /* ══════════════════════════════════════════════════════
-     MOBILE  ≤ 768px
+     TABLET  ≤ 1024px  (iPad landscape, small laptops)
   ══════════════════════════════════════════════════════ */
-  @media screen and (max-width: 768px) {
+  @media screen and (max-width: 1024px) {
+    /* App shell — narrow sidebar */
+    .app                 { grid-template-columns: 200px 1fr; }
+    .sidebar             { width: 200px; min-width: 200px; }
 
-    /* ── Core app shell ── */
+    /* Core grids */
+    .grid-2              { grid-template-columns: 1fr; }
+    .grid-3              { grid-template-columns: repeat(2, 1fr); }
+    .grid-4              { grid-template-columns: repeat(2, 1fr); }
+
+    /* Stats */
+    .stat-grid           { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+
+    /* Consultation — collapse right panel to tabs */
+    .consult-layout      { grid-template-columns: 240px 1fr; }
+    .consult-right       {
+      display: none;
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: 280px;
+      z-index: 800;
+      background: var(--panel);
+      border-left: 1px solid var(--border2);
+      box-shadow: -4px 0 24px rgba(0,0,0,0.15);
+    }
+    .consult-right.tablet-open { display: flex; }
+    .consult-right-toggle {
+      display: inline-flex !important;
+    }
+
+    /* Specializations */
+    .spec-grid           { grid-template-columns: repeat(4, 1fr); }
+
+    /* Lab cards */
+    .lab-cards-grid      { grid-template-columns: repeat(3, 1fr); }
+
+    /* Imaging */
+    .imaging-grid        { grid-template-columns: 1fr; }
+    .imaging-result-panel{ width: 100%; max-width: 100%; }
+
+    /* Risk */
+    .risk-grid           { grid-template-columns: repeat(2, 1fr); }
+
+    /* Analytics */
+    .kpi-strip           { grid-template-columns: repeat(3, 1fr); }
+    .analytics-grid      { grid-template-columns: 1fr; }
+    .analytics-grid-3    { grid-template-columns: repeat(2, 1fr); }
+
+    /* Topbar search narrow */
+    .search-bar          { width: 180px; }
+
+    /* Settings */
+    .settings-view       { max-width: 100%; padding: 18px; }
+
+    /* Dashboard padding */
+    .dashboard           { padding: 18px; }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     TABLET PORTRAIT  ≤ 900px  (iPad portrait, large phones)
+  ══════════════════════════════════════════════════════ */
+  @media screen and (max-width: 900px) {
+    /* ── Shell switches to full-width ── */
     html, body { height: 100%; overflow: hidden; }
 
     .app {
@@ -1224,21 +1297,23 @@
       overflow: hidden;
     }
 
+    /* ── Sidebar: off-canvas drawer ── */
     .sidebar {
       position: fixed;
-      left: -270px;
-      top: 0;
-      bottom: 0;
-      width: 260px;
+      left: -280px;
+      top: 0; bottom: 0;
+      width: 270px;
       z-index: 1000;
-      transition: left 0.28s cubic-bezier(.4,0,.2,1);
+      transition: left 0.28s cubic-bezier(.4, 0, .2, 1);
       overflow-y: auto;
+      box-shadow: none;
     }
     .sidebar.mobile-open {
       left: 0;
-      box-shadow: 8px 0 32px rgba(0,0,0,0.35);
+      box-shadow: 8px 0 40px rgba(0, 0, 0, 0.25);
     }
 
+    /* ── Main fills full column ── */
     .main {
       grid-column: 1;
       grid-row: 2;
@@ -1249,42 +1324,36 @@
       min-height: 0;
     }
 
-    /* Topbar on mobile */
-    .topbar {
-      height: 56px;
-      padding: 0 12px;
-      gap: 10px;
-      flex-shrink: 0;
-    }
-    .mobile-menu-btn   { display: flex; }
-    .desktop-search    { display: none !important; }
-    .topbar-subtitle   { display: none; }
-    .topbar-title      { font-size: 0.92rem; }
+    /* ── Topbar ── */
+    .topbar          { height: 56px; padding: 0 14px; gap: 10px; flex-shrink: 0; }
+    .mobile-menu-btn { display: flex; }
+    .desktop-search  { display: none !important; }
+    .topbar-subtitle { display: none; }
+    .topbar-title    { font-size: 0.95rem; }
+    .icon-btn        { width: 38px; height: 38px; }
 
-    /* Scrollable content area */
+    /* ── Scrollable content ── */
     .content {
       flex: 1;
       min-height: 0;
       overflow-y: auto;
       overflow-x: hidden;
-      padding: 12px 12px 80px 12px; /* 80px for bottom nav */
+      padding: 16px 16px 76px;
       -webkit-overflow-scrolling: touch;
       overscroll-behavior-y: contain;
     }
 
-    /* ── Bottom navigation bar ── */
+    /* ── Bottom navigation ── */
     .mobile-bottom-nav {
       display: flex;
       position: fixed;
-      bottom: 0;
-      left: 0;
-      right: 0;
-      height: 58px;
+      bottom: 0; left: 0; right: 0;
+      height: 60px;
       background: var(--panel);
-      border-top: 2px solid var(--border);
+      border-top: 1.5px solid var(--border);
       z-index: 500;
-      box-shadow: 0 -2px 16px rgba(0,0,0,0.08);
-      padding-bottom: env(safe-area-inset-bottom);
+      box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.08);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
     }
     .mobile-nav-item {
       flex: 1;
@@ -1292,7 +1361,7 @@
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 2px;
+      gap: 3px;
       background: none;
       border: none;
       cursor: pointer;
@@ -1301,93 +1370,148 @@
       padding: 6px 2px;
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
+      position: relative;
     }
-    .mobile-nav-item.active  { color: var(--teal); }
-    .mobile-nav-item:active  { opacity: 0.6; }
-    .mobile-nav-icon  { font-size: 1.15rem; line-height: 1; }
+    .mobile-nav-item.active { color: var(--teal); }
+    .mobile-nav-item.active::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 28px; height: 2px;
+      background: var(--teal);
+      border-radius: 0 0 2px 2px;
+    }
+    .mobile-nav-item:active { opacity: 0.55; }
+    .mobile-nav-icon  { font-size: 1.2rem; line-height: 1; }
     .mobile-nav-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
 
     /* ── Toast above bottom nav ── */
     .toast {
-      bottom: 70px !important;
-      left: 10px !important;
-      right: 10px !important;
+      bottom: 72px !important;
+      left: 12px !important;
+      right: 12px !important;
       width: auto !important;
       max-width: none !important;
     }
 
-    /* ── Login page ── */
-    .login-container  { padding: 16px; align-items: flex-start; padding-top: 40px; }
-    .login-box        { padding: 28px 20px; border-radius: 16px; width: 100%; }
-    .login-title      { font-size: 1.45rem; }
-    .login-logo       { font-size: 2.5rem; }
+    /* ── Floating Ask AI button above bottom nav ── */
+    #floatingChatBtn {
+      bottom: 72px !important;
+      right: 14px !important;
+      padding: 11px 16px !important;
+      font-size: 0.8rem !important;
+    }
 
-    /* ── Cards & grids ── */
-    .card            { padding: 14px; margin-bottom: 12px; }
-    .card-header     { flex-direction: column; align-items: flex-start; gap: 10px; }
+    /* ── Grids & cards ── */
     .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr !important; gap: 12px; }
-    .stats-grid      { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .stat-card       { padding: 14px; }
-    .stat-value      { font-size: 1.55rem; }
-    .urgent-grid     { grid-template-columns: 1fr; }
+    .stat-grid  { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+    .stat-card  { padding: 14px; }
+    .stat-card .value { font-size: 1.5rem; }
 
-    /* ── Dashboard ── */
-    .dashboard       { padding: 0; }
-    /* ── Remove double-padding from view containers on mobile ── */
+    /* ── View padding reset (content area provides padding) ── */
     .dashboard,
-    .analytics-view,
     .patients-view,
+    .risk-view,
+    .spec-view,
     .lab-view,
+    .imaging-view,
+    .analytics-view,
     .settings-view { padding: 0 !important; }
-
-    /* Settings max-width should be full on mobile */
     .settings-view { max-width: 100% !important; }
 
-
+    /* ── Card adjustments ── */
+    .card-header { flex-wrap: wrap; gap: 8px; }
 
     /* ── Consultation ── */
-    .consult-view    { flex-direction: column !important; height: auto !important; overflow: visible !important; }
-    .consult-left    { width: 100% !important; height: auto !important; max-height: none !important; border-right: none !important; border-bottom: 1px solid var(--border) !important; overflow: visible !important; flex: none !important; }
-    .consult-left-body  { max-height: 280px; overflow-y: auto; }
-    .consult-right   { width: 100% !important; height: auto !important; min-height: 380px !important; flex: none !important; border-left: none !important; }
-    .consult-right-body { max-height: 45vh; overflow-y: auto; }
-    .patient-switcher   { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
-    .patient-chip       { flex-shrink: 0; }
+    .consult-layout {
+      display: flex !important;
+      flex-direction: column !important;
+      height: auto !important;
+      overflow: visible !important;
+    }
+    .consult-left {
+      width: 100% !important;
+      height: auto !important;
+      max-height: none !important;
+      border-right: none !important;
+      border-bottom: 1px solid var(--border) !important;
+      overflow: visible !important;
+      flex: none !important;
+    }
+    .consult-left-body    { max-height: 260px; overflow-y: auto; }
+    .consult-center       { min-height: 400px; }
+    .consult-right        {
+      display: none;
+      position: fixed;
+      top: 0; right: 0; bottom: 0;
+      width: 85vw; max-width: 320px;
+      z-index: 800;
+      background: var(--panel);
+      border-left: 1px solid var(--border2);
+      box-shadow: -6px 0 32px rgba(0, 0, 0, 0.2);
+    }
+    .consult-right.mobile-panel-open { display: flex; }
+    .consult-right-toggle { display: inline-flex !important; }
+    .consult-right-body   { max-height: none; flex: 1; overflow-y: auto; }
+    .patient-switcher     { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px; gap: 6px; }
+    .patient-chip         { flex-shrink: 0; }
+    .chat-messages        { min-height: 280px; }
 
     /* ── Patients table ── */
-    .patients-view   { padding: 0; }
-    .table-wrap      { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); }
-    table            { min-width: 480px; }
+    .table-header         { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .filter-row           { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; gap: 6px; width: 100%; }
+    .filter-btn           { flex-shrink: 0; font-size: 0.72rem; padding: 5px 12px; }
+    .table-wrap           { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); }
+    table                 { min-width: 560px; }
 
-    /* ── Settings ── */
-    .settings-view   { padding: 0; }
-    #view-settings   { padding-bottom: 80px; }
-
-    /* ── Analytics ── */
-    .analytics-view  { padding: 0; }
-    .analytics-grid  { grid-template-columns: 1fr !important; }
-
-    /* ── Labs ── */
-    .lab-view        { padding: 0; }
-
-    /* ── Prescription ── */
-    #view-prescription > div { padding: 0 !important; }
+    /* ── Specializations ── */
+    .spec-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px; }
 
     /* ── Risk ── */
-    .risk-split      { flex-direction: column !important; }
+    .risk-grid  { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+    .risk-split { flex-direction: column !important; }
 
-    /* ── Imaging / Radiology ── */
-    #view-radiology  { padding: 0; }
+    /* ── Lab ── */
+    .lab-cards-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .lab-input-row  { grid-template-columns: 2fr 1.2fr 1fr; gap: 6px; }
 
-    /* ── Modals: full width on mobile ── */
+    /* ── Imaging ── */
+    .imaging-grid   { grid-template-columns: 1fr !important; }
+    .scan-type-bar  { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 4px; }
+    .scan-type-btn  { flex-shrink: 0; }
+
+    /* ── Analytics ── */
+    .kpi-strip      { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .analytics-grid { grid-template-columns: 1fr !important; }
+    .analytics-grid-3 { grid-template-columns: 1fr !important; }
+
+    /* ── Prescription ── */
+    .rx-dose-row    { grid-template-columns: 1fr 1fr; }
+    #view-prescription > div { padding: 0 !important; }
+
+    /* ── Settings ── */
+    #view-settings  { padding-bottom: 76px; }
+
+    /* ── Vitals input grid ── */
+    .vital-input-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* ── Form grids ── */
+    .form-grid-2, .form-grid-3 { grid-template-columns: 1fr !important; }
+    .form-group.span-2, .form-group.span-3 { grid-column: span 1 !important; }
+    .radio-group { flex-wrap: wrap; }
+
+    /* ── Modals: full width ── */
     .modal-overlay > div,
     .soap-box {
-      width: calc(100vw - 20px) !important;
+      width: calc(100vw - 24px) !important;
       max-width: none !important;
-      max-height: 88vh !important;
-      margin: 10px !important;
+      max-height: 90vh !important;
+      margin: 12px !important;
       border-radius: 16px !important;
     }
+    .modal-steps { overflow-x: auto; }
+    .step-label  { display: none; }
 
     /* ── Voice modal: full screen ── */
     #voiceConsultModal > div {
@@ -1400,38 +1524,134 @@
       margin: 0 !important;
     }
 
-    /* ── Sidebar user section ── */
-    .sidebar-user    { padding: 10px 12px; }
-    .avatar-info     { display: none; }
+    /* ── Login ── */
+    .login-container { padding: 16px; align-items: flex-start; padding-top: 40px; }
+    .login-box       { padding: 28px 20px; border-radius: 16px; width: 100%; }
+    .login-title     { font-size: 1.45rem; }
+    .login-logo      { font-size: 2.5rem; }
+
+    /* ── Radiology / PACS ── */
+    #view-radiology { padding: 0; }
+
+    /* ── Sidebar footer: hide avatar text on small screens ── */
+    .sidebar-footer .avatar-info { display: block; } /* restore on tablet */
   }
 
   /* ══════════════════════════════════════════════════════
-     SMALL MOBILE  ≤ 480px
+     MOBILE  ≤ 640px  (phones)
   ══════════════════════════════════════════════════════ */
-  @media screen and (max-width: 480px) {
-    .stats-grid      { grid-template-columns: 1fr 1fr; gap: 8px; }
-    .stat-value      { font-size: 1.35rem; }
-    .topbar-title    { font-size: 0.85rem; }
-    .mobile-nav-label { font-size: 0.56rem; }
-    .mobile-nav-icon  { font-size: 1.05rem; }
-  }
+  @media screen and (max-width: 640px) {
+    /* Tighter content padding */
+    .content          { padding: 12px 12px 72px; }
 
-  /* ══════════════════════════════════════════════════════
-     LANDSCAPE MOBILE
-  ══════════════════════════════════════════════════════ */
-  @media screen and (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
-    .mobile-bottom-nav { height: 48px; }
-    .mobile-nav-icon   { font-size: 0.95rem; }
-    .mobile-nav-label  { display: none; }
-    .content           { padding-bottom: 56px; }
-  }
+    /* Topbar */
+    .topbar           { padding: 0 12px; gap: 8px; }
+    .topbar-title     { font-size: 0.88rem; }
+    .icon-btn         { width: 34px; height: 34px; font-size: 0.9rem; }
 
-  /* ── Ask AI floating button: above bottom nav on mobile ── */
-  @media screen and (max-width: 768px) {
-    #floatingChatBtn {
-      bottom: 70px !important;
-      right: 14px !important;
-      padding: 11px 16px !important;
-      font-size: 0.8rem !important;
+    /* Stats: 2-col on phone */
+    .stat-grid        { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat-card .value { font-size: 1.4rem; }
+    .stat-card .label { font-size: 0.72rem; }
+
+    /* Specializations: 2-col */
+    .spec-grid        { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
+    .spec-card .spec-icon { font-size: 1.4rem; }
+
+    /* Risk: 1-col */
+    .risk-grid        { grid-template-columns: 1fr !important; }
+
+    /* Lab: 2-col cards, 2-col input */
+    .lab-cards-grid   { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .lab-input-row    { grid-template-columns: 1fr 1fr; gap: 6px; }
+    .lab-ref-col      { display: none; } /* hide ref range col on phones */
+
+    /* Analytics KPI: 2-col */
+    .kpi-strip        { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .kpi-num          { font-size: 1.3rem; }
+
+    /* Bottom nav */
+    .mobile-bottom-nav { height: 56px; }
+    .mobile-nav-icon   { font-size: 1.1rem; }
+    .mobile-nav-label  { font-size: 0.57rem; }
+
+    /* Toast */
+    .toast            { bottom: 66px !important; left: 10px !important; right: 10px !important; }
+    #floatingChatBtn  { bottom: 66px !important; right: 12px !important; }
+
+    /* Prescription dose row: 1-col */
+    .rx-dose-row      { grid-template-columns: 1fr; }
+
+    /* Vital input: 2-col */
+    .vital-input-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* Scan type buttons: horizontal scroll */
+    .scan-type-bar    { gap: 6px; }
+    .scan-type-btn    { padding: 8px 10px; }
+    .scan-type-btn .s-name { font-size: 0.72rem; }
+
+    /* Chat input area */
+    .chat-tools       { gap: 4px; }
+    .chat-tool-btn    { font-size: 0.67rem; padding: 4px 7px; }
+
+    /* Table: even more horizontal scroll room */
+    table             { min-width: 480px; }
+    .data-table th,
+    .data-table td    { padding: 10px 12px; font-size: 0.78rem; }
+
+    /* Sidebar footer: hide avatar text */
+    .sidebar-footer .avatar-info { display: none; }
+
+    /* Modals */
+    .modal-overlay > div,
+    .soap-box {
+      width: calc(100vw - 16px) !important;
+      margin: 8px !important;
+      max-height: 92vh !important;
     }
+    .modal-header     { padding: 16px 16px 14px; }
+    .modal-footer     { padding: 12px 16px; }
   }
+
+  /* ══════════════════════════════════════════════════════
+     SMALL PHONE  ≤ 400px
+  ══════════════════════════════════════════════════════ */
+  @media screen and (max-width: 400px) {
+    html              { font-size: 13px; }
+    .topbar-title     { font-size: 0.82rem; }
+    .stat-card .value { font-size: 1.25rem; }
+    .mobile-nav-label { font-size: 0.54rem; }
+    .spec-card        { padding: 12px 8px; }
+    .spec-card .spec-name { font-size: 0.72rem; }
+    .kpi-num          { font-size: 1.2rem; }
+    .content          { padding: 10px 10px 68px; }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     LANDSCAPE MOBILE (short viewport)
+  ══════════════════════════════════════════════════════ */
+  @media screen and (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
+    .mobile-bottom-nav  { height: 46px; }
+    .mobile-nav-icon    { font-size: 0.95rem; }
+    .mobile-nav-label   { display: none; }
+    .content            { padding-bottom: 54px; }
+    .toast              { bottom: 54px !important; }
+    #floatingChatBtn    { bottom: 54px !important; }
+    .mobile-bottom-nav .mobile-nav-item.active::before { display: none; }
+  }
+
+  /* ══════════════════════════════════════════════════════
+     PRINT STYLES
+  ══════════════════════════════════════════════════════ */
+  @media print {
+    .sidebar, .topbar, .mobile-bottom-nav,
+    .mobile-menu-btn, #floatingChatBtn,
+    .chat-input-area, .btn, .action-btn { display: none !important; }
+    .app    { display: block; }
+    .main   { height: auto; overflow: visible; }
+    .content { overflow: visible; padding: 0; }
+    .view.active { display: block; }
+  }
+
+
+
