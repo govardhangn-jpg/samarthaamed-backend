@@ -1304,14 +1304,266 @@
     gap: 16px;
   }
 
-  /* ── iOS input zoom prevention ── */
+  /* ══════════════════════════════════════════════════════════
+     RESPONSIVE STYLES — Mobile / Tablet / Laptop
+     ══════════════════════════════════════════════════════════ */
+
+  /* ── Hamburger: hidden on desktop ── */
+  .mobile-menu-btn {
+    display: none;
+    align-items: center; justify-content: center;
+    background: none; border: 1px solid var(--border);
+    border-radius: 8px; color: var(--text1);
+    font-size: 1.3rem; cursor: pointer;
+    padding: 5px 10px; flex-shrink: 0;
+    transition: border-color .2s;
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+  .mobile-menu-btn:hover { border-color: var(--teal); color: var(--teal); }
+
+  /* ── Bottom nav: hidden on desktop ── */
+  .mobile-bottom-nav { display: none; }
+
+  /* ── Sidebar overlay: hidden by default ── */
+  .mobile-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 998;
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  .mobile-overlay.show { display: block; }
+
+  /* ── iOS: prevent input zoom ── */
   @media screen and (max-width: 900px) {
-    .form-input, .form-select, textarea,
-    .form-input-login, input[type="text"],
-    input[type="email"], input[type="password"],
-    input[type="number"], select {
-      font-size: 16px !important;
+    input, select, textarea { font-size: 16px !important; }
+  }
+
+  /* ══ TABLET ≤ 1024px ══ */
+  @media screen and (max-width: 1024px) {
+    .app { grid-template-columns: 200px 1fr; }
+    .sidebar { width: 200px; min-width: 200px; }
+    .grid-2 { grid-template-columns: 1fr; }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .spec-grid { grid-template-columns: repeat(4, 1fr); }
+    .consult-layout { grid-template-columns: 240px 1fr; }
+    .consult-right { display: none; }
+    .kpi-strip { grid-template-columns: repeat(3, 1fr); }
+    .analytics-grid { grid-template-columns: 1fr; }
+    .imaging-grid { grid-template-columns: 1fr; }
+    .lab-cards-grid { grid-template-columns: repeat(3, 1fr); }
+    .search-bar { width: 180px; }
+  }
+
+  /* ══ MOBILE ≤ 900px ══ */
+  @media screen and (max-width: 900px) {
+
+    /* ── Shell ── */
+    html, body { height: 100%; overflow: hidden; }
+    .app {
+      grid-template-columns: 1fr;
+      grid-template-rows: 56px 1fr;
+      height: 100vh; height: 100dvh;
+      overflow: hidden;
     }
+
+    /* ── Sidebar: off-canvas drawer ── */
+    .sidebar {
+      position: fixed;
+      left: -280px; top: 0; bottom: 0;
+      width: 270px; z-index: 999;
+      transition: left .28s cubic-bezier(.4,0,.2,1);
+      overflow-y: auto;
+    }
+    .sidebar.mobile-open {
+      left: 0;
+      box-shadow: 8px 0 40px rgba(0,0,0,0.25);
+    }
+
+    /* ── Main ── */
+    .main {
+      grid-column: 1; grid-row: 2;
+      height: 100%; min-height: 0;
+      display: flex; flex-direction: column;
+      overflow: hidden;
+    }
+
+    /* ── Topbar ── */
+    .topbar { height: 56px; padding: 0 12px; gap: 10px; flex-shrink: 0; }
+    .mobile-menu-btn { display: flex; }
+    .search-bar { display: none; }
+    .topbar-subtitle { display: none; }
+    .topbar-title { font-size: 0.92rem; }
+    .icon-btn { width: 34px; height: 34px; }
+
+    /* ── Content scrolls inside fixed shell ── */
+    .content {
+      flex: 1; min-height: 0;
+      overflow-y: auto; overflow-x: hidden;
+      padding: 14px 14px 72px;
+      -webkit-overflow-scrolling: touch;
+      overscroll-behavior-y: contain;
+    }
+
+    /* ── Bottom navigation ── */
+    .mobile-bottom-nav {
+      display: flex;
+      position: fixed; bottom: 0; left: 0; right: 0;
+      height: 58px; z-index: 500;
+      background: var(--panel);
+      border-top: 1px solid var(--border);
+      box-shadow: 0 -2px 16px rgba(0,0,0,0.07);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .mobile-nav-item {
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2px; background: none; border: none;
+      cursor: pointer; color: var(--text3);
+      transition: color .15s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      position: relative;
+    }
+    .mobile-nav-item.active { color: var(--teal); }
+    .mobile-nav-item.active::before {
+      content: ''; position: absolute;
+      top: 0; left: 50%; transform: translateX(-50%);
+      width: 24px; height: 2px;
+      background: var(--teal); border-radius: 0 0 3px 3px;
+    }
+    .mobile-nav-item:active { opacity: 0.55; }
+    .mobile-nav-icon { font-size: 1.15rem; line-height: 1; }
+    .mobile-nav-label { font-size: 0.6rem; font-weight: 600; white-space: nowrap; }
+
+    /* ── Toast above bottom nav ── */
+    .toast { bottom: 68px !important; left: 12px !important; right: 12px !important; width: auto !important; max-width: none !important; }
+    #floatingChatBtn { bottom: 68px !important; right: 14px !important; }
+
+    /* ── Grids ── */
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr !important; gap: 12px; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .stat-card { padding: 14px; }
+    .stat-card .value { font-size: 1.45rem; }
+    .spec-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px; }
+    .risk-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .lab-cards-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+    .imaging-grid { grid-template-columns: 1fr !important; }
+    .kpi-strip { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+    .analytics-grid { grid-template-columns: 1fr !important; }
+    .rx-dose-row { grid-template-columns: 1fr 1fr; }
+    .vital-input-grid { grid-template-columns: repeat(2, 1fr); }
+
+    /* ── View padding (content area provides padding) ── */
+    .dashboard, .patients-view, .risk-view, .spec-view,
+    .lab-view, .imaging-view, .analytics-view, .settings-view { padding: 0 !important; }
+    .settings-view { max-width: 100% !important; }
+
+    /* ── Cards ── */
+    .card-header { flex-wrap: wrap; gap: 8px; }
+
+    /* ── Consultation ── */
+    .consult-layout {
+      display: flex !important; flex-direction: column !important;
+      height: auto !important; overflow: visible !important;
+    }
+    .consult-left {
+      width: 100% !important; height: auto !important;
+      border-right: none !important;
+      border-bottom: 1px solid var(--border) !important;
+      overflow: visible !important; flex: none !important;
+    }
+    .consult-left-body { max-height: 240px; overflow-y: auto; }
+    .consult-center { min-height: 360px; }
+    .consult-right {
+      display: flex !important; width: 100% !important;
+      height: auto !important; min-height: 320px !important;
+      border-left: none !important; flex: none !important;
+      overflow: visible !important;
+    }
+    .consult-right-body { max-height: none; overflow-y: auto; }
+    .patient-switcher { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px; }
+    .patient-chip { flex-shrink: 0; }
+    .chat-messages { min-height: 260px; }
+
+    /* ── Patients table ── */
+    .table-header { flex-direction: column; align-items: flex-start; gap: 10px; }
+    .filter-row { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 4px; width: 100%; }
+    .filter-btn { flex-shrink: 0; }
+    .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    table { min-width: 520px; }
+
+    /* ── Hide less important table cols ── */
+    .data-table th:nth-child(3), .data-table td:nth-child(3),
+    .data-table th:nth-child(4), .data-table td:nth-child(4) { display: none; }
+
+    /* ── Scan type bar ── */
+    .scan-type-bar { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 4px; }
+    .scan-type-btn { flex-shrink: 0; }
+
+    /* ── Lab tabs ── */
+    .lab-tabs { overflow-x: auto; flex-wrap: nowrap; -webkit-overflow-scrolling: touch; }
+    .lab-tab { flex-shrink: 0; }
+
+    /* ── Risk ── */
+    .risk-split { flex-direction: column !important; }
+
+    /* ── Settings ── */
+    #view-settings { padding-bottom: 72px; }
+
+    /* ── Forms ── */
+    .form-grid-2, .form-grid-3 { grid-template-columns: 1fr !important; }
+    .form-group.span-2, .form-group.span-3 { grid-column: span 1 !important; }
+
+    /* ── Modals ── */
+    .modal-overlay > div, .soap-box {
+      width: calc(100vw - 20px) !important;
+      max-width: none !important; max-height: 90vh !important;
+      margin: 10px !important; border-radius: 16px !important;
+    }
+    #voiceConsultModal > div {
+      width: 100vw !important; height: 100vh !important; height: 100dvh !important;
+      max-width: none !important; max-height: none !important;
+      border-radius: 0 !important; margin: 0 !important;
+    }
+
+    /* ── Login ── */
+    .login-container { padding: 16px; align-items: flex-start; padding-top: 32px; }
+    .login-box { padding: 28px 20px; width: 100%; border-radius: 16px; }
+    .login-title { font-size: 1.5rem; }
+
+    /* ── Sidebar user ── */
+    .sidebar-footer .avatar-info { display: none; }
+  }
+
+  /* ══ SMALL PHONE ≤ 480px ══ */
+  @media screen and (max-width: 480px) {
+    .content { padding: 10px 10px 70px; }
+    .topbar { padding: 0 10px; gap: 8px; }
+    .topbar-title { font-size: 0.85rem; }
+    .stat-grid { grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .stat-card .value { font-size: 1.25rem; }
+    .spec-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .risk-grid { grid-template-columns: 1fr !important; }
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+    .mobile-bottom-nav { height: 56px; }
+    .mobile-nav-icon { font-size: 1.05rem; }
+    .mobile-nav-label { font-size: 0.57rem; }
+    .toast { bottom: 66px !important; }
+    #floatingChatBtn { bottom: 66px !important; }
+    .rx-dose-row { grid-template-columns: 1fr; }
+  }
+
+  /* ══ LANDSCAPE MOBILE ══ */
+  @media screen and (max-width: 900px) and (orientation: landscape) and (max-height: 500px) {
+    .mobile-bottom-nav { height: 44px; }
+    .mobile-nav-label { display: none; }
+    .content { padding-bottom: 52px; }
+    .toast { bottom: 52px !important; }
   }
 
 </style>
@@ -3728,27 +3980,22 @@
 
     </div><!-- end: .content -->
 
-    <!-- ── MOBILE BOTTOM NAVIGATION (shown ≤ 900px) ── -->
-    <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Mobile navigation">
+    <!-- ── MOBILE BOTTOM NAV ── -->
+    <nav class="mobile-bottom-nav" id="mobileBottomNav">
       <button class="mobile-nav-item active" onclick="mobileNavTo('dashboard')" id="mbnav-dashboard">
-        <span class="mobile-nav-icon">⬡</span>
-        <span class="mobile-nav-label">Dashboard</span>
+        <span class="mobile-nav-icon">⬡</span><span class="mobile-nav-label">Home</span>
       </button>
       <button class="mobile-nav-item" onclick="mobileNavTo('consult')" id="mbnav-consult">
-        <span class="mobile-nav-icon">💬</span>
-        <span class="mobile-nav-label">Consult</span>
+        <span class="mobile-nav-icon">💬</span><span class="mobile-nav-label">Consult</span>
       </button>
       <button class="mobile-nav-item" onclick="mobileNavTo('patients')" id="mbnav-patients">
-        <span class="mobile-nav-icon">👥</span>
-        <span class="mobile-nav-label">Patients</span>
+        <span class="mobile-nav-icon">👥</span><span class="mobile-nav-label">Patients</span>
       </button>
       <button class="mobile-nav-item" onclick="mobileNavTo('labs')" id="mbnav-labs">
-        <span class="mobile-nav-icon">🧪</span>
-        <span class="mobile-nav-label">Labs</span>
+        <span class="mobile-nav-icon">🧪</span><span class="mobile-nav-label">Labs</span>
       </button>
-      <button class="mobile-nav-item" onclick="mobileNavTo('settings')" id="mbnav-settings">
-        <span class="mobile-nav-icon">⚙️</span>
-        <span class="mobile-nav-label">More</span>
+      <button class="mobile-nav-item" onclick="mobileNavTo('settings')" id="mbnav-more">
+        <span class="mobile-nav-icon">⚙️</span><span class="mobile-nav-label">More</span>
       </button>
     </nav>
 
@@ -4675,14 +4922,27 @@
       document.getElementById('topbar-sub').textContent = views[id].sub;
     }
     // Sync mobile bottom nav
-    document.querySelectorAll('.mobile-nav-item').forEach(btn => btn.classList.remove('active'));
-    const mbn = document.getElementById('mbnav-' + id);
-    if (mbn) mbn.classList.add('active');
-    else { const mb = document.getElementById('mbnav-settings'); if (mb) mb.classList.add('active'); }
-    // Consult view is self-contained; all other views scroll via .content
+    document.querySelectorAll('.mobile-nav-item').forEach(b => b.classList.remove('active'));
+    const mb = document.getElementById('mbnav-' + id);
+    if (mb) mb.classList.add('active');
+    else { const mo = document.getElementById('mbnav-more'); if (mo) mo.classList.add('active'); }
+    // Scroll to top
     const content = document.querySelector('.content');
     if (content) content.scrollTop = 0;
     onViewChange(id);
+  }
+
+  // Mobile bottom nav helper
+  function mobileNavTo(id) {
+    showView(id);
+    // Close sidebar if open
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    if (sidebar && sidebar.classList.contains('mobile-open')) {
+      sidebar.classList.remove('mobile-open');
+      if (overlay) overlay.classList.remove('show');
+      document.body.style.overflow = '';
+    }
   }
 
   // Textarea auto-grow already handled inline
@@ -7378,39 +7638,14 @@ INVESTIGATIONS:
   function toggleMobileSidebar() {
     const sidebar = document.querySelector('.sidebar');
     const overlay = document.getElementById('mobileOverlay');
-    if (sidebar && overlay) {
-      sidebar.classList.toggle('mobile-open');
-      overlay.classList.toggle('show');
-      document.body.style.overflow = sidebar.classList.contains('mobile-open') ? 'hidden' : '';
-    }
+    if (!sidebar) return;
+    const isOpen = sidebar.classList.toggle('mobile-open');
+    if (overlay) overlay.classList.toggle('show', isOpen);
   }
 
-  // Mobile bottom nav — navigate and update active state
-  function mobileNavTo(id) {
-    showView(id);
-    // Close sidebar if open
-    const sidebar = document.querySelector('.sidebar');
-    const overlay = document.getElementById('mobileOverlay');
-    if (sidebar && sidebar.classList.contains('mobile-open')) {
-      sidebar.classList.remove('mobile-open');
-      if (overlay) overlay.classList.remove('show');
-      document.body.style.overflow = '';
-    }
-    // Update bottom nav active state
-    document.querySelectorAll('.mobile-nav-item').forEach(btn => btn.classList.remove('active'));
-    const activeBtn = document.getElementById('mbnav-' + id);
-    if (activeBtn) activeBtn.classList.add('active');
-    else {
-      // For views not in bottom nav, activate "More" (settings button as catch-all)
-      const moreBtn = document.getElementById('mbnav-settings');
-      if (moreBtn) moreBtn.classList.add('active');
-    }
-  }
-
-  // Close mobile sidebar when clicking on navigation items
   document.addEventListener('DOMContentLoaded', function() {
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
+    // Close sidebar on nav-item click (mobile)
+    document.querySelectorAll('.nav-item').forEach(item => {
       item.addEventListener('click', function() {
         if (window.innerWidth <= 900) {
           setTimeout(() => {
@@ -7419,21 +7654,19 @@ INVESTIGATIONS:
             if (sidebar && sidebar.classList.contains('mobile-open')) {
               sidebar.classList.remove('mobile-open');
               if (overlay) overlay.classList.remove('show');
-              document.body.style.overflow = '';
             }
-          }, 300);
+          }, 280);
         }
       });
     });
 
-    // Handle window resize
+    // Restore sidebar on desktop resize
     window.addEventListener('resize', function() {
       if (window.innerWidth > 900) {
         const sidebar = document.querySelector('.sidebar');
         const overlay = document.getElementById('mobileOverlay');
         if (sidebar) sidebar.classList.remove('mobile-open');
         if (overlay) overlay.classList.remove('show');
-        document.body.style.overflow = '';
       }
     });
   });
