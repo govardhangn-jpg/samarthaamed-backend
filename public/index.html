@@ -2825,120 +2825,141 @@
       <!-- ── RISK PREDICTION VIEW ── -->
       <div class="view" id="view-risk">
         <div class="risk-view">
-          <div style="margin-bottom:20px">
-            <div class="section-title">Predictive Health Risk Engine</div>
-            <div class="section-sub">ML models predict chronic disease onset 6–18 months in advance using longitudinal patient data</div>
-          </div>
 
-          <!-- Model cards -->
-          <div class="risk-grid">
-            <div class="risk-model-card">
-              <div class="bg-orb" style="background:var(--red)"></div>
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                <span style="font-size:1.2rem">❤️</span>
-                <span class="pill red">MACE Model v3.1</span>
-              </div>
-              <div class="risk-model-title">Cardiac Event Prediction</div>
-              <div class="risk-model-accuracy" style="color:var(--red)">88%</div>
-              <div style="font-size:0.68rem;color:var(--text3);margin-bottom:4px">AUC-ROC · Deep Neural Net + ECG analysis</div>
-              <div class="risk-model-desc">Predicts MACE (MI, stroke, cardiac death) within 6–18 months using lipid trends, ECG features, troponin history, and TIMI inputs.</div>
-              <div class="risk-model-features">
-                <span class="feature-tag">Lipid trend</span>
-                <span class="feature-tag">ECG features</span>
-                <span class="feature-tag">TIMI inputs</span>
-                <span class="feature-tag">BP history</span>
-              </div>
+          <!-- Header row -->
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px">
+            <div>
+              <div class="section-title">🔮 Predictive Health Risk Engine</div>
+              <div class="section-sub">ML models predict chronic disease onset 6–18 months ahead · ICMR 2024 validated · Select a patient to view their risk profile</div>
             </div>
-            <div class="risk-model-card">
-              <div class="bg-orb" style="background:var(--cyan)"></div>
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                <span style="font-size:1.2rem">🩸</span>
-                <span class="pill" style="background:rgba(56,189,248,0.1);color:var(--cyan);border-color:rgba(56,189,248,0.2)">DM Model v2.4</span>
-              </div>
-              <div class="risk-model-title">Type 2 Diabetes Prediction</div>
-              <div class="risk-model-accuracy" style="color:var(--cyan)">91%</div>
-              <div style="font-size:0.68rem;color:var(--text3);margin-bottom:4px">AUC-ROC · XGBoost + LSTM ensemble</div>
-              <div class="risk-model-desc">Predicts T2DM onset using FBS trends, BMI trajectory, family history, diet score, and HbA1c progression over time.</div>
-              <div class="risk-model-features">
-                <span class="feature-tag">FBS trend</span>
-                <span class="feature-tag">BMI</span>
-                <span class="feature-tag">HbA1c trajectory</span>
-                <span class="feature-tag">Diet score</span>
-              </div>
-            </div>
-            <div class="risk-model-card">
-              <div class="bg-orb" style="background:var(--gold)"></div>
-              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                <span style="font-size:1.2rem">🩺</span>
-                <span class="pill gold">HTN Model v2.0</span>
-              </div>
-              <div class="risk-model-title">Hypertension Onset</div>
-              <div class="risk-model-accuracy" style="color:var(--gold)">89%</div>
-              <div style="font-size:0.68rem;color:var(--text3);margin-bottom:4px">AUC-ROC · Random Forest + Time-series</div>
-              <div class="risk-model-desc">Predicts primary hypertension onset using BP readings over time, salt intake, stress scores, sleep quality, and physical activity.</div>
-              <div class="risk-model-features">
-                <span class="feature-tag">BP readings</span>
-                <span class="feature-tag">Salt intake</span>
-                <span class="feature-tag">Sleep quality</span>
-                <span class="feature-tag">Activity</span>
-              </div>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <select id="riskPatientSelect" onchange="renderRiskPage(this.value)"
+                style="padding:9px 14px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.85rem;min-width:230px;cursor:pointer">
+                <option value="">— Select patient to analyse —</option>
+              </select>
+              <button class="btn btn-primary btn-sm" onclick="runAIRiskAnalysis()">🤖 AI Risk Analysis</button>
+              <button class="btn btn-ghost btn-sm" onclick="exportRiskReport()">⬇ Export</button>
             </div>
           </div>
 
-          <!-- Patient risk profiles -->
-          <div class="grid-2">
+          <!-- ══ Per-patient risk dashboard (hidden until selection) ══ -->
+          <div id="riskPatientDashboard" style="display:none;margin-bottom:20px">
+
+            <!-- Patient banner -->
+            <div id="riskBanner" style="background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap"></div>
+
+            <!-- Four risk gauge tiles -->
+            <div id="riskGauges" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
+
+            <!-- Risk factors + Interventions side by side -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
+              <div class="card">
+                <div class="card-header">
+                  <span class="card-title">⚠️ Identified Risk Factors</span>
+                  <span id="overallRiskBadge" class="pill teal" style="font-size:0.72rem">—</span>
+                </div>
+                <div class="card-body" id="riskFactorsList" style="padding-top:4px"></div>
+              </div>
+              <div class="card">
+                <div class="card-header"><span class="card-title">🛡️ Recommended Interventions</span></div>
+                <div class="card-body" id="riskInterventionsList" style="padding-top:4px"></div>
+              </div>
+            </div>
+
+            <!-- AI narrative panel -->
             <div class="card">
               <div class="card-header">
-                <span class="card-title">📊 Patient Risk Profiles — Active Cases</span>
-                <span class="card-action" onclick="exportRiskReport()">Export Report</span>
+                <span class="card-title">🤖 AI Clinical Risk Narrative</span>
+                <span id="riskAIStatusBadge" class="pill" style="background:var(--navy3);color:var(--text3);font-size:0.72rem">Click AI Risk Analysis →</span>
               </div>
-              <div class="card-body">
-                <div style="display:flex;flex-direction:column;gap:10px">
-                  <div style="background:var(--navy3);border:1px solid var(--red);border-radius:8px;padding:12px 14px">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                      <div><div style="font-weight:600;color:var(--text1)">Priya Krishnamurthy</div><div style="font-size:0.72rem;color:var(--text3)">52F · DM2, HTN</div></div>
-                      <span class="status-badge urgent">Critical Risk</span>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--red)">82%</div><div style="font-size:0.65rem;color:var(--text3)">Cardiac</div></div>
-                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--gold)">74%</div><div style="font-size:0.65rem;color:var(--text3)">CKD Prog.</div></div>
-                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--gold)">61%</div><div style="font-size:0.65rem;color:var(--text3)">Retinopathy</div></div>
-                    </div>
-                  </div>
-                  <div style="background:var(--navy3);border:1px solid var(--border2);border-radius:8px;padding:12px 14px">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                      <div><div style="font-weight:600;color:var(--text1)">Ramesh Singh</div><div style="font-size:0.72rem;color:var(--text3)">67M · CAD, Post CABG</div></div>
-                      <span class="status-badge urgent">High Risk</span>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--gold)">67%</div><div style="font-size:0.65rem;color:var(--text3)">CKD Prog.</div></div>
-                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--gold)">52%</div><div style="font-size:0.65rem;color:var(--text3)">Cardiac RE</div></div>
-                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--teal)">28%</div><div style="font-size:0.65rem;color:var(--text3)">Stroke</div></div>
-                    </div>
-                  </div>
-                  <div style="background:var(--navy3);border:1px solid var(--border2);border-radius:8px;padding:12px 14px">
-                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-                      <div><div style="font-weight:600;color:var(--text1)">Vikram Nair</div><div style="font-size:0.72rem;color:var(--text3)">44M · Prehypertension</div></div>
-                      <span class="status-badge waiting">Moderate Risk</span>
-                    </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--gold)">55%</div><div style="font-size:0.65rem;color:var(--text3)">HTN Onset</div></div>
-                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--teal)">31%</div><div style="font-size:0.65rem;color:var(--text3)">T2DM</div></div>
-                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--teal)">18%</div><div style="font-size:0.65rem;color:var(--text3)">Cardiac</div></div>
-                    </div>
-                  </div>
+              <div id="riskAINarrative" class="card-body" style="font-size:0.85rem;color:var(--text2);line-height:1.75;min-height:64px">
+                Click <strong>AI Risk Analysis</strong> above to generate a personalised clinical risk narrative for this patient.
+              </div>
+            </div>
+          </div>
+
+          <!-- ══ Overview panel (shown when no patient selected) ══ -->
+          <div id="riskOverviewPanel">
+
+            <!-- ML model info cards -->
+            <div class="risk-grid" style="margin-bottom:20px">
+              <div class="risk-model-card">
+                <div class="bg-orb" style="background:var(--red)"></div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                  <span style="font-size:1.2rem">❤️</span><span class="pill red">MACE Model v3.1</span>
+                </div>
+                <div class="risk-model-title">Cardiac Event Prediction</div>
+                <div class="risk-model-accuracy" style="color:var(--red)">88%</div>
+                <div style="font-size:0.68rem;color:var(--text3);margin-bottom:4px">AUC-ROC · Deep Neural Net + ECG analysis</div>
+                <div class="risk-model-desc">Predicts MACE (MI, stroke, cardiac death) within 6–18 months using lipid trends, ECG features, troponin history, and TIMI inputs.</div>
+                <div class="risk-model-features">
+                  <span class="feature-tag">Lipid trend</span><span class="feature-tag">ECG features</span>
+                  <span class="feature-tag">TIMI inputs</span><span class="feature-tag">BP history</span>
+                </div>
+              </div>
+              <div class="risk-model-card">
+                <div class="bg-orb" style="background:var(--cyan)"></div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                  <span style="font-size:1.2rem">🩸</span>
+                  <span class="pill" style="background:rgba(56,189,248,0.1);color:var(--cyan);border-color:rgba(56,189,248,0.2)">DM Model v2.4</span>
+                </div>
+                <div class="risk-model-title">Type 2 Diabetes Prediction</div>
+                <div class="risk-model-accuracy" style="color:var(--cyan)">91%</div>
+                <div style="font-size:0.68rem;color:var(--text3);margin-bottom:4px">AUC-ROC · XGBoost + LSTM ensemble</div>
+                <div class="risk-model-desc">Predicts T2DM onset using FBS trends, BMI trajectory, family history, diet score, and HbA1c progression over time.</div>
+                <div class="risk-model-features">
+                  <span class="feature-tag">FBS trend</span><span class="feature-tag">BMI</span>
+                  <span class="feature-tag">HbA1c trajectory</span><span class="feature-tag">Diet score</span>
+                </div>
+              </div>
+              <div class="risk-model-card">
+                <div class="bg-orb" style="background:var(--gold)"></div>
+                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                  <span style="font-size:1.2rem">🩺</span><span class="pill gold">HTN Model v2.0</span>
+                </div>
+                <div class="risk-model-title">Hypertension Onset</div>
+                <div class="risk-model-accuracy" style="color:var(--gold)">89%</div>
+                <div style="font-size:0.68rem;color:var(--text3);margin-bottom:4px">AUC-ROC · Random Forest + Time-series</div>
+                <div class="risk-model-desc">Predicts primary hypertension onset using BP readings, salt intake, stress scores, sleep quality, and physical activity data.</div>
+                <div class="risk-model-features">
+                  <span class="feature-tag">BP readings</span><span class="feature-tag">Salt intake</span>
+                  <span class="feature-tag">Sleep quality</span><span class="feature-tag">Activity</span>
                 </div>
               </div>
             </div>
 
-            <!-- Model accuracy panel -->
-            <div style="display:flex;flex-direction:column;gap:16px">
+            <!-- All-patients risk table -->
+            <div class="card" style="margin-bottom:20px">
+              <div class="card-header">
+                <span class="card-title">📊 All Patients — Computed Risk Overview</span>
+                <span id="riskTableCount" class="pill teal">Loading…</span>
+              </div>
+              <div style="overflow-x:auto">
+                <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
+                  <thead>
+                    <tr style="border-bottom:1px solid var(--border)">
+                      <th style="padding:12px 16px;text-align:left;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">Patient</th>
+                      <th style="padding:12px 10px;text-align:center;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">❤️ Cardiac</th>
+                      <th style="padding:12px 10px;text-align:center;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">🩸 Diabetes</th>
+                      <th style="padding:12px 10px;text-align:center;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">💉 HTN</th>
+                      <th style="padding:12px 10px;text-align:center;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">🩺 CKD</th>
+                      <th style="padding:12px 10px;text-align:center;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">Overall</th>
+                      <th style="padding:12px 10px;text-align:center;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="riskTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Bottom: model perf + prediction windows -->
+            <div class="grid-2">
               <div class="card">
                 <div class="card-header"><span class="card-title">🎯 Model Performance</span><span class="pill teal">Live Metrics</span></div>
                 <div class="card-body">
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                     <div style="background:var(--navy3);border:1px solid var(--border2);border-radius:8px;padding:12px;text-align:center">
-                      <div style="font-family:var(--syne);font-size:2rem;font-weight:800;color:var(--teal)">91%</div>
+                      <div style="font-family:var(--syne);font-size:2rem;font-weight:800;color:var(--cyan)">91%</div>
                       <div style="font-size:0.7rem;color:var(--text3)">T2DM AUC-ROC</div>
                     </div>
                     <div style="background:var(--navy3);border:1px solid var(--border2);border-radius:8px;padding:12px;text-align:center">
@@ -2957,21 +2978,23 @@
                 </div>
               </div>
               <div class="card">
-                <div class="card-header"><span class="card-title">📅 Prediction Window</span></div>
+                <div class="card-header"><span class="card-title">📅 Prediction Windows</span></div>
                 <div class="card-body">
-                  <div style="font-size:0.8rem;color:var(--text2);line-height:1.8">
-                    🕐 <strong style="color:var(--text1)">6-month window:</strong> Acute onset risks (MI, stroke, DKA)<br>
-                    🗓 <strong style="color:var(--text1)">12-month window:</strong> Chronic progression (CKD, retinopathy)<br>
-                    📆 <strong style="color:var(--text1)">18-month window:</strong> Lifestyle-preventable diseases (T2DM, HTN)
+                  <div style="font-size:0.82rem;color:var(--text2);line-height:2">
+                    🕐 <strong style="color:var(--text1)">6-month:</strong> Acute onset risks (MI, stroke, DKA)<br>
+                    🗓 <strong style="color:var(--text1)">12-month:</strong> Chronic progression (CKD, retinopathy)<br>
+                    📆 <strong style="color:var(--text1)">18-month:</strong> Lifestyle-preventable (T2DM, HTN onset)
                   </div>
                   <div class="divider"></div>
-                  <div style="font-size:0.75rem;color:var(--text3)">Models retrained monthly on new Indian clinical data. Last update: 20 Feb 2026.</div>
+                  <div style="font-size:0.75rem;color:var(--text3)">Models retrained monthly on Indian clinical data. Last update: 20 Feb 2026.</div>
                 </div>
               </div>
             </div>
           </div>
+
         </div>
       </div>
+
 
       <!-- ── SPECIALIZATIONS VIEW ── -->
       <div class="view" id="view-specs">
@@ -7478,79 +7501,354 @@ INVESTIGATIONS:
   }
 
   // 5. Risk Prediction - Patient Selection
-  function updateRiskPrediction(patientKey) {
-    const patient = patientProfiles[patientKey];
-    if (!patient) return;
-    
-    showToast('🎯', 'Risk Updated', `Showing predictions for ${patient.name}`);
-    
-    // Update risk view with patient's actual scores
-    const riskView = document.getElementById('view-risk');
-    if (riskView) {
-      // Update patient info display
-      let patientInfo = riskView.querySelector('.risk-patient-info');
-      if (!patientInfo) {
-        patientInfo = document.createElement('div');
-        patientInfo.className = 'risk-patient-info';
-        patientInfo.style.cssText = 'margin:24px;padding:16px;background:var(--panel);border:1px solid var(--border);border-radius:12px;';
-        // Insert after the selector
-        const selector = riskView.querySelector('.risk-patient-selector');
-        if (selector && selector.nextSibling) {
-          riskView.insertBefore(patientInfo, selector.nextSibling);
-        } else if (selector) {
-          selector.after(patientInfo);
-        } else {
-          riskView.insertBefore(patientInfo, riskView.firstChild);
-        }
-      }
-      
-      patientInfo.innerHTML = `
-        <h3 style="color:var(--teal);margin-bottom:12px">Risk Prediction: ${patient.name}</h3>
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
-          ${patient.scores.map(score => `
-            <div style="padding:12px;background:var(--navy3);border-radius:8px">
-              <div style="font-size:0.75rem;color:var(--text3);margin-bottom:4px">${score[0]}</div>
-              <div style="font-size:1.2rem;font-weight:700;color:var(--${score[2] || 'teal'})">${score[1]}</div>
-            </div>
-          `).join('')}
+  // ══════════════════════════════════════════════════════════════════
+  // RISK PREDICTION ENGINE — fully dynamic, driven by patientProfiles
+  // ══════════════════════════════════════════════════════════════════
+
+  /* Compute risk percentages (0–100) from a patient profile object */
+  function _computeRisk(p) {
+    const meta      = p.meta || '';
+    const history   = (p.history  || []).join(' ').toLowerCase();
+    const complaints= (p.complaints || []).join(' ').toLowerCase();
+    const meds      = (p.meds || '').toLowerCase();
+    const vitals    = p.vitals || {};
+    const scoreArr  = p.scores  || [];
+
+    const ageM  = meta.match(/(\d+)([MF])/i);
+    const age   = ageM ? parseInt(ageM[1]) : 45;
+    const male  = ageM ? ageM[2].toUpperCase() === 'M' : true;
+
+    const bpM   = (vitals.bp || '').match(/(\d+)\/(\d+)/);
+    const sys   = bpM ? parseInt(bpM[1]) : 120;
+    const hr    = parseInt((vitals.hr  || '0').replace(/\D/g,'')) || 72;
+    const spo2  = parseInt((vitals.spo2|| '98').replace(/\D/g,'')) || 98;
+
+    const hasDM    = /diabet|dm type|t2dm|hba1c/i.test(history);
+    const hasHTN   = /hyperten|\bhtn\b/i.test(history) || sys >= 140;
+    const hasCAD   = /\bcad\b|coronary|cabg|\bmi\b|angina/i.test(history);
+    const hasCKD   = /\bckd\b|kidney|renal|nephro/i.test(history);
+    const hasSmoke = /smok|tobacco|bidi/i.test(history);
+    const hasDys   = /dyslipid|cholesterol/i.test(history);
+    const famCard  = /family.*heart|father.*mi|mother.*stroke/i.test(history);
+    const famDM    = /family.*diabet/i.test(history);
+    const famHTN   = /family.*htn|family.*hyper/i.test(history);
+    const hasCOPD  = /copd|asthma/i.test(history);
+
+    const heartS   = scoreArr.find(s => /heart score/i.test(s[0]));
+    const highHEART= heartS ? /\b[5-9]\b|10/.test(heartS[1]) : false;
+
+    // ── Cardiac (0-100) ──
+    let cardiac = 8;
+    if (age > 60)  cardiac += 18; else if (age > 50) cardiac += 10; else if (age > 40) cardiac += 5;
+    if (male)      cardiac += 7;
+    if (hasDM)     cardiac += 14;
+    if (hasHTN)    cardiac += 12;
+    if (hasDys)    cardiac += 10;
+    if (hasSmoke)  cardiac += 11;
+    if (hasCAD)    cardiac += 22;
+    if (famCard)   cardiac += 8;
+    if (highHEART) cardiac += 14;
+    if (hr > 100)  cardiac += 5;
+    if (/chest pain|dyspnea|diaphor/i.test(complaints)) cardiac += 8;
+    cardiac = Math.min(95, cardiac);
+
+    // ── Diabetes (0-100) ──
+    let diabetes = 7;
+    if (hasDM) { diabetes = 95; }
+    else {
+      if (age > 45)  diabetes += 14;
+      if (hasHTN)    diabetes += 8;
+      if (hasDys)    diabetes += 7;
+      if (famDM)     diabetes += 18;
+      if (hasSmoke)  diabetes += 5;
+      if (male)      diabetes += 4;
+      const bmiS = scoreArr.find(s => s[0] === 'BMI');
+      if (bmiS && parseFloat(bmiS[1]) > 27) diabetes += 12;
+      diabetes = Math.min(82, diabetes);
+    }
+
+    // ── Hypertension (0-100) ──
+    let htn = 7;
+    if (hasHTN) { htn = Math.max(88, sys > 160 ? 95 : 88); }
+    else {
+      if (sys > 130)  htn += 28; else if (sys > 120) htn += 14;
+      if (age > 50)   htn += 12;
+      if (male)       htn += 5;
+      if (hasDM)      htn += 9;
+      if (famHTN)     htn += 15;
+      if (hasSmoke)   htn += 7;
+      if (/headache|visual/i.test(complaints)) htn += 8;
+      htn = Math.min(82, htn);
+    }
+
+    // ── CKD progression (0-100) ──
+    let ckd = 5;
+    if (hasCKD)  ckd += 32;
+    if (hasDM)   ckd += 18;
+    if (hasHTN)  ckd += 13;
+    if (age > 60)ckd += 10;
+    if (hasCAD)  ckd += 7;
+    if (hasDM && hasHTN) ckd += 12;
+    ckd = Math.min(90, ckd);
+
+    // ── Overall weighted ──
+    const overall = Math.min(95, Math.round(cardiac*0.35 + diabetes*0.25 + htn*0.2 + ckd*0.2));
+    return { cardiac, diabetes, htn, ckd, overall };
+  }
+
+  function _riskColour(v) {
+    return v >= 65 ? 'var(--red)' : v >= 40 ? 'var(--gold)' : 'var(--teal)';
+  }
+  function _riskLabel(v) {
+    return v >= 65 ? 'Critical' : v >= 40 ? 'High' : v >= 20 ? 'Moderate' : 'Low';
+  }
+  function _riskPillCSS(v) {
+    if (v >= 65) return 'background:rgba(220,38,38,0.12);color:var(--red);border:1px solid rgba(220,38,38,0.3)';
+    if (v >= 40) return 'background:rgba(245,158,11,0.12);color:var(--gold);border:1px solid rgba(245,158,11,0.3)';
+    return 'background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,212,180,0.25)';
+  }
+
+  /* Build list of risk factors from the profile */
+  function _riskFactors(p, sc) {
+    const h = (p.history || []).join(' ');
+    const v = p.vitals || {};
+    const m = p.meta   || '';
+    const ageM = m.match(/(\d+)([MF])/i);
+    const age  = ageM ? parseInt(ageM[1]) : 45;
+    const sys  = parseInt((v.bp||'120').match(/(\d+)/)?.[1]||'120');
+    const spo2 = parseInt((v.spo2||'98').replace(/\D/g,''))||98;
+    const hr   = parseInt((v.hr||'72').replace(/\D/g,''))||72;
+    const items = [];
+
+    if (sc.cardiac  >= 65) items.push({ icon:'❤️', text:'High cardiac event probability — urgent cardiology review', sev:'red'  });
+    else if (sc.cardiac  >= 40) items.push({ icon:'❤️', text:'Elevated cardiac risk — routine cardiology assessment advised', sev:'gold' });
+    if (sc.ckd      >= 50) items.push({ icon:'🩺', text:'Significant CKD progression risk — nephrology referral', sev:'red'  });
+    if (sc.diabetes >= 40 && sc.diabetes < 95) items.push({ icon:'🩸', text:'Elevated T2DM risk — fasting glucose & HbA1c monitoring', sev:'gold' });
+    if (sc.diabetes === 95) items.push({ icon:'🩸', text:'Active Type 2 Diabetes — glycaemic control critical', sev:'red' });
+    if (sc.htn      >= 88) items.push({ icon:'💉', text:'Active hypertension — BP control essential', sev:'red'  });
+    else if (sc.htn >= 40) items.push({ icon:'💉', text:'Hypertension risk — home BP monitoring recommended', sev:'gold' });
+    if (sys > 160) items.push({ icon:'📈', text:'BP ' + v.bp + ' — Stage 3 hypertension, immediate action', sev:'red' });
+    else if (sys > 140) items.push({ icon:'📊', text:'BP ' + v.bp + ' — Stage 2 hypertension', sev:'gold' });
+    if (spo2 < 94)  items.push({ icon:'🫁', text:'SpO₂ ' + v.spo2 + ' — hypoxia, respiratory evaluation needed', sev:'red' });
+    if (hr > 100)   items.push({ icon:'💓', text:'HR ' + v.hr + ' — tachycardia, evaluate cause', sev:'gold' });
+    if (age > 60)   items.push({ icon:'👤', text:'Age ' + age + ' — age-related elevated baseline risk', sev:'gold' });
+    if (/smok/i.test(h))  items.push({ icon:'🚬', text:'Smoking history — significant modifiable risk factor', sev:'gold' });
+    if (/dyslipid|cholesterol/i.test(h)) items.push({ icon:'🧪', text:'Dyslipidaemia — statin review per ICMR 2024', sev:'gold' });
+    if (/family.*heart|father.*mi/i.test(h)) items.push({ icon:'🧬', text:'Family history of cardiac disease', sev:'gold' });
+    if (/family.*diabet/i.test(h)) items.push({ icon:'🧬', text:'Family history of diabetes', sev:'gold' });
+    if (!items.length) items.push({ icon:'✅', text:'No major risk factors identified from available data', sev:'teal' });
+    return items.slice(0, 8);
+  }
+
+  /* Build recommended interventions */
+  function _riskInterventions(p, sc) {
+    const ivs = [];
+    if (sc.cardiac >= 65) {
+      ivs.push('🫀 Urgent cardiology referral — stress ECG / echo / coronary angiography');
+      ivs.push('💊 Optimise antiplatelet + statin therapy per ICMR 2024 ACS protocol');
+    } else if (sc.cardiac >= 40) {
+      ivs.push('🫀 Cardiology review within 4 weeks — resting ECG + lipid panel');
+    }
+    if (sc.diabetes >= 40 && sc.diabetes < 95) {
+      ivs.push('🩸 FBS + HbA1c every 3 months — early DM prevention');
+      ivs.push('🥗 Low-GI diet + 150 min/week moderate exercise (NHP guidelines)');
+    }
+    if (sc.htn >= 40 && sc.htn < 88) {
+      ivs.push('📊 Home BP monitoring twice daily — DASH diet, salt <5 g/day');
+    }
+    if (sc.ckd >= 40) {
+      ivs.push('🩺 Nephrology review — eGFR + urine ACR every 6 months');
+      ivs.push('💧 Avoid nephrotoxic drugs; maintain adequate hydration');
+    }
+    const hist = (p.history||[]).join(' ').toLowerCase();
+    if (/smok/i.test(hist)) ivs.push('🚭 Smoking cessation counselling — NHP / AYUSH resources');
+    if (sc.overall >= 60)   ivs.push('📅 4-weekly follow-up due to high overall risk score');
+    else if (sc.overall >= 35) ivs.push('📅 3-monthly risk reassessment recommended');
+    else                    ivs.push('📅 Annual risk reassessment — maintain healthy lifestyle');
+    if (!ivs.length) ivs.push('✅ Continue current management — low risk profile');
+    return ivs.slice(0, 7);
+  }
+
+  // ── Main render: called when a patient is selected ──────────────
+  function renderRiskPage(key) {
+    const dashboard = document.getElementById('riskPatientDashboard');
+    const overview  = document.getElementById('riskOverviewPanel');
+    if (!key) {
+      dashboard.style.display = 'none';
+      overview.style.display  = '';
+      _renderRiskTable();
+      return;
+    }
+    const p = patientProfiles[key];
+    if (!p) return;
+    const sc = _computeRisk(p);
+
+    dashboard.style.display = '';
+    overview.style.display  = 'none';
+
+    // ── Patient banner ──
+    document.getElementById('riskBanner').innerHTML = `
+      <div style="width:46px;height:46px;border-radius:12px;background:${p.avatarColor||'var(--teal)'};display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;color:#fff;flex-shrink:0">${p.initials||'?'}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-family:var(--syne);font-size:1.05rem;font-weight:700;color:var(--text1)">${p.name}</div>
+        <div style="font-size:0.78rem;color:var(--text3);margin-top:2px">${p.meta}</div>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        ${[['HR',p.vitals?.hr],['BP',p.vitals?.bp],['SpO₂',p.vitals?.spo2],['Temp',p.vitals?.temp]].map(([lbl,val])=>`
+        <div style="text-align:center;padding:7px 12px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px">
+          <div style="font-size:0.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.7px">${lbl}</div>
+          <div style="font-family:var(--mono);font-weight:600;font-size:0.82rem;color:var(--text1)">${val||'—'}</div>
+        </div>`).join('')}
+      </div>`;
+
+    // ── Gauge tiles ──
+    const gauges = [
+      { label:'Cardiac',     icon:'❤️', val:sc.cardiac  },
+      { label:'Diabetes',    icon:'🩸', val:sc.diabetes },
+      { label:'Hypertension',icon:'💉', val:sc.htn      },
+      { label:'CKD Prog.',   icon:'🩺', val:sc.ckd      },
+    ];
+    document.getElementById('riskGauges').innerHTML = gauges.map(g => `
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;position:relative;overflow:hidden">
+        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${_riskColour(g.val)}"></div>
+        <div style="font-size:1.4rem;margin-bottom:6px">${g.icon}</div>
+        <div style="font-family:var(--syne);font-size:1.9rem;font-weight:800;color:${_riskColour(g.val)}">${g.val}%</div>
+        <div style="font-size:0.72rem;color:var(--text3);margin:3px 0 8px">${g.label} Risk</div>
+        <div style="height:5px;background:var(--navy3);border-radius:3px;overflow:hidden">
+          <div style="height:100%;width:${g.val}%;background:${_riskColour(g.val)};border-radius:3px"></div>
         </div>
-      `;
+        <div style="font-size:0.65rem;font-weight:700;margin-top:5px;color:${_riskColour(g.val)}">${_riskLabel(g.val)}</div>
+      </div>`).join('');
+
+    // ── Overall badge ──
+    const badge = document.getElementById('overallRiskBadge');
+    badge.textContent = _riskLabel(sc.overall) + ' — ' + sc.overall + '% overall';
+    badge.style.cssText = _riskPillCSS(sc.overall) + ';font-size:0.72rem';
+
+    // ── Risk factors ──
+    const factors = _riskFactors(p, sc);
+    document.getElementById('riskFactorsList').innerHTML = factors.map((f,i) => `
+      <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;${i<factors.length-1?'border-bottom:1px solid var(--border)':''}">
+        <span style="font-size:0.95rem;flex-shrink:0;margin-top:1px">${f.icon}</span>
+        <span style="font-size:0.82rem;color:${f.sev==='red'?'var(--red)':f.sev==='gold'?'var(--gold)':'var(--teal)'}">${f.text}</span>
+      </div>`).join('');
+
+    // ── Interventions ──
+    const ivs = _riskInterventions(p, sc);
+    document.getElementById('riskInterventionsList').innerHTML = ivs.map((iv,i) => `
+      <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;${i<ivs.length-1?'border-bottom:1px solid var(--border)':''}">
+        <span style="font-size:0.82rem;color:var(--text2)">${iv}</span>
+      </div>`).join('');
+
+    // Reset AI panel
+    const narr = document.getElementById('riskAINarrative');
+    const stat = document.getElementById('riskAIStatusBadge');
+    narr.innerHTML = 'Click <strong>AI Risk Analysis</strong> above to generate a personalised clinical risk narrative for this patient.';
+    stat.textContent = 'Click AI Risk Analysis →';
+    stat.style.cssText = 'background:var(--navy3);color:var(--text3);font-size:0.72rem';
+
+    showToast('🎯', 'Risk Profile Loaded', p.name + ' · ' + _riskLabel(sc.overall) + ' risk (' + sc.overall + '%)');
+  }
+
+  // ── All-patients table ──────────────────────────────────────────
+  function _renderRiskTable() {
+    const tbody   = document.getElementById('riskTableBody');
+    const countEl = document.getElementById('riskTableCount');
+    if (!tbody) return;
+    const keys = Object.keys(patientProfiles);
+    if (countEl) countEl.textContent = keys.length + ' patients';
+    tbody.innerHTML = keys.map((key, i) => {
+      const p  = patientProfiles[key];
+      const sc = _computeRisk(p);
+      return `<tr style="${i%2?'background:rgba(255,255,255,0.015)':''}">
+        <td style="padding:11px 16px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="width:30px;height:30px;border-radius:8px;background:${p.avatarColor||'var(--teal)'};display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:#fff;flex-shrink:0">${p.initials||'?'}</div>
+            <div>
+              <div style="font-weight:600;color:var(--text1);font-size:0.85rem">${p.name}</div>
+              <div style="font-size:0.7rem;color:var(--text3)">${p.meta.split('·')[0].trim()}</div>
+            </div>
+          </div>
+        </td>
+        <td style="padding:10px;text-align:center"><span style="font-family:var(--mono);font-weight:700;font-size:0.9rem;color:${_riskColour(sc.cardiac)}">${sc.cardiac}%</span></td>
+        <td style="padding:10px;text-align:center"><span style="font-family:var(--mono);font-weight:700;font-size:0.9rem;color:${_riskColour(sc.diabetes)}">${sc.diabetes}%</span></td>
+        <td style="padding:10px;text-align:center"><span style="font-family:var(--mono);font-weight:700;font-size:0.9rem;color:${_riskColour(sc.htn)}">${sc.htn}%</span></td>
+        <td style="padding:10px;text-align:center"><span style="font-family:var(--mono);font-weight:700;font-size:0.9rem;color:${_riskColour(sc.ckd)}">${sc.ckd}%</span></td>
+        <td style="padding:10px;text-align:center">
+          <span style="padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;${_riskPillCSS(sc.overall)}">${_riskLabel(sc.overall)} &nbsp;${sc.overall}%</span>
+        </td>
+        <td style="padding:10px;text-align:center">
+          <button onclick="document.getElementById('riskPatientSelect').value='${key}';renderRiskPage('${key}')"
+            class="btn btn-ghost btn-sm" style="font-size:0.72rem;padding:5px 10px">Analyse →</button>
+        </td>
+      </tr>`;
+    }).join('');
+  }
+
+  // ── AI Risk Analysis (calls Claude) ────────────────────────────
+  async function runAIRiskAnalysis() {
+    const sel = document.getElementById('riskPatientSelect');
+    if (!sel || !sel.value) { showToast('⚠️', 'No Patient', 'Select a patient first'); return; }
+    const key = sel.value;
+    const p   = patientProfiles[key];
+    if (!p) return;
+    const sc  = _computeRisk(p);
+
+    const apiKey = getApiKey();
+    if (!apiKey) { showToast('⚠️', 'API Key', 'Enter your Anthropic key in Settings'); return; }
+
+    const statEl = document.getElementById('riskAIStatusBadge');
+    const narrEl = document.getElementById('riskAINarrative');
+    statEl.textContent = '⏳ Generating…';
+    statEl.style.cssText = 'background:var(--teal-dim);color:var(--teal);font-size:0.72rem';
+    narrEl.innerHTML = '<span style="color:var(--text3);font-style:italic">AI is analysing patient data…</span>';
+
+    const prompt = `You are a senior Indian physician reviewing ML-computed risk predictions.
+
+PATIENT: ${p.name}
+DETAILS: ${p.meta}
+VITALS: HR ${p.vitals?.hr||'—'} | BP ${p.vitals?.bp||'—'} | SpO₂ ${p.vitals?.spo2||'—'} | Temp ${p.vitals?.temp||'—'}
+COMPLAINTS: ${(p.complaints||[]).join(', ')||'None recorded'}
+HISTORY: ${(p.history||[]).join(', ')||'None'}
+MEDICATIONS: ${p.meds||'None'}
+CLINICAL SCORES: ${(p.scores||[]).map(s=>s[0]+': '+s[1]).join(' | ')||'None'}
+COMPUTED RISK: Cardiac ${sc.cardiac}% | Diabetes ${sc.diabetes}% | HTN ${sc.htn}% | CKD ${sc.ckd}% | Overall ${sc.overall}%
+
+Write a 3–4 sentence clinical risk narrative for the treating physician covering: (1) the primary risk concern and clinical reasoning, (2) the single most important immediate action, (3) 6-month prognosis outlook. Reference ICMR 2024 or NHP guidelines. Be direct, evidence-based, no bullet points.`;
+
+    try {
+      const text = await callClaudeAI([{ role:'user', content:prompt }],
+        'You are a senior Indian physician specialising in preventive medicine. Be concise, clinical, evidence-based.');
+      narrEl.innerHTML  = text.replace(/\n\n/g,'<br><br>').replace(/\n/g,' ');
+      statEl.textContent = '✅ AI Analysis Complete';
+      statEl.style.cssText = 'background:var(--teal-dim);color:var(--teal);font-size:0.72rem';
+    } catch(err) {
+      narrEl.innerHTML  = '<span style="color:var(--red)">AI analysis failed: ' + err.message + '</span>';
+      statEl.textContent = '❌ Error';
+      statEl.style.cssText = 'background:var(--red-dim);color:var(--red);font-size:0.72rem';
     }
   }
 
-  // Add patient selector to Risk view — builds from patientProfiles (includes newly registered)
-  function addRiskPatientSelector() {
-    const riskView = document.getElementById('view-risk');
-    if (!riskView) return;
-    
-    let selector = riskView.querySelector('.risk-patient-selector');
-    if (!selector) {
-      selector = document.createElement('div');
-      selector.className = 'risk-patient-selector';
-      selector.style.cssText = 'margin:24px;';
-      selector.innerHTML = `
-        <label style="display:block;margin-bottom:8px;font-size:0.85rem;color:var(--text2)">Select Patient:</label>
-        <select onchange="updateRiskPrediction(this.value)" style="width:100%;max-width:400px;padding:10px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.85rem">
-          <option value="">— Select patient —</option>
-        </select>
-      `;
-      riskView.insertBefore(selector, riskView.firstChild);
-    }
-    // Always repopulate so newly registered patients appear
-    refreshRiskPatientSelector();
-  }
+  // ── Patient selector helpers (called from registry/login hooks) ─
+  function addRiskPatientSelector() { _populateRiskSelect(); _renderRiskTable(); }
+  function refreshRiskPatientSelector() { _populateRiskSelect(); }
 
-  function refreshRiskPatientSelector() {
-    const sel = document.querySelector('.risk-patient-selector select');
+  function _populateRiskSelect() {
+    const sel = document.getElementById('riskPatientSelect');
     if (!sel) return;
     const prev = sel.value;
-    sel.innerHTML = '<option value="">— Select patient —</option>' +
+    sel.innerHTML = '<option value="">— Select patient to analyse —</option>' +
       Object.keys(patientProfiles).map(key => {
-        const p = patientProfiles[key];
-        return `<option value="${key}">${p.name} · ${p.meta.split('·')[0].trim()}</option>`;
+        const p  = patientProfiles[key];
+        const sc = _computeRisk(p);
+        return `<option value="${key}">${p.name} · ${p.meta.split('·')[0].trim()} — ${_riskLabel(sc.overall)} (${sc.overall}%)</option>`;
       }).join('');
-    if (prev) sel.value = prev;
+    if (prev) { sel.value = prev; }
   }
+
+  // Legacy alias kept for any remaining callers
+  function updateRiskPrediction(k) { renderRiskPage(k); }
+
 
   // 6. Language Support
   const translations = {
