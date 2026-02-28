@@ -1304,727 +1304,13 @@
     gap: 16px;
   }
 
-  /* Mobile responsive for login */
-  @media screen and (max-width: 768px) {
-    .login-box {
-      padding: 32px 24px;
-    }
-
-    .login-title {
-      font-size: 1.6rem;
-    }
-
-    .login-logo {
-      font-size: 3rem;
-    }
-  }
-
-
-  /* ══════════════════════════════════════════════════════════
-     MOBILE RESPONSIVE STYLES
-     ══════════════════════════════════════════════════════════ */
-
-  @media screen and (max-width: 1024px) {
-    /* Tablet adjustments */
-    .grid-2 { grid-template-columns: 1fr; }
-    .grid-3 { grid-template-columns: repeat(2, 1fr); }
-    .grid-4 { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  @media screen and (max-width: 768px) {
-    /* Ensure html and body allow scrolling */
-    html, body {
-      overflow-x: hidden !important;
-      overflow-y: auto !important;
-      height: auto !important;
-      min-height: 100vh !important;
-    }
-
-    /* Mobile layout */
-    .app {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto 1fr;
-      height: auto !important;
-      min-height: 100vh !important;
-      overflow: visible !important;
-    }
-
-    /* Main content wrapper */
-    .main {
-      grid-column: 1;
-      overflow: visible !important;
-      display: flex;
-      flex-direction: column;
-      height: auto !important;
-      min-height: calc(100vh - 60px); /* Subtract topbar height */
-    }
-
-    /* Content area should scroll */
-    .content {
-      flex: 1;
-      overflow-y: visible !important;
-      overflow-x: hidden !important;
-      height: auto !important;
-      padding: 16px;
-      padding-bottom: 80px;
-    }
-
-    /* Hide sidebar by default on mobile */
-    .sidebar {
-      position: fixed;
-      left: -280px;
-      top: 0;
-      bottom: 0;
-      z-index: 1000;
-      transition: left 0.3s ease;
-      box-shadow: 4px 0 20px rgba(0,0,0,0.5);
-    }
-
-    .sidebar.mobile-open {
-      left: 0;
-    }
-
-    /* Mobile overlay when sidebar is open */
-    .mobile-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 999;
-    }
-
-    .mobile-overlay.show {
-      display: block;
-    }
-
-    /* Adjust main content for mobile */
-    .main {
-      grid-column: 1;
-    }
-
-    /* Mobile topbar */
-    .topbar {
-      padding: 12px 16px;
-      gap: 12px;
-    }
-
-    .topbar-left {
-      gap: 8px;
-    }
-
-    .topbar-title {
-      font-size: 1rem;
-    }
-
-    .topbar-sub {
-      font-size: 0.7rem;
-    }
-
-    /* Mobile hamburger menu */
-    .mobile-menu-btn {
-      display: block !important;
-      background: none;
-      border: none;
-      color: var(--text1);
-      font-size: 1.5rem;
-      cursor: pointer;
-      padding: 8px;
-      margin-right: 8px;
-    }
-
-    /* Hide desktop search on very small screens */
-    .topbar-search {
-      max-width: 120px;
-    }
-
-    .topbar-search input {
-      font-size: 0.8rem;
-    }
-
-    /* Topbar actions on mobile */
-    .topbar-actions {
-      gap: 8px;
-    }
-
-    .topbar-btn {
-      padding: 6px 10px;
-      font-size: 0.75rem;
-    }
-
-    .action-icon {
-      width: 32px;
-      height: 32px;
-      font-size: 1rem;
-    }
-
-
-    /* Cards on mobile */
-    .card {
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-
-    .card-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    /* Grids to single column */
-    .grid-2, .grid-3, .grid-4 {
-      grid-template-columns: 1fr;
-      gap: 16px;
-    }
-
-    /* Stats grid */
-    .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-
-    .stat-card {
-      padding: 16px;
-    }
-
-    .stat-value {
-      font-size: 1.8rem;
-    }
-
-    /* Dashboard urgent cards */
-    .urgent-grid {
-      grid-template-columns: 1fr;
-    }
-
-    /* Consultation view on mobile - CRITICAL FIXES */
-    #view-consult {
-      flex-direction: column !important;
-      height: auto !important;
-      min-height: auto !important;
-      overflow: visible !important;
-    }
-
-    .consult-view {
-      flex-direction: column !important;
-      height: auto !important;
-      min-height: auto !important;
-      overflow: visible !important;
-    }
-
-    .consult-left {
-      width: 100% !important;
-      height: auto !important;
-      min-height: auto !important;
-      max-height: none !important;
-      border-right: none !important;
-      border-bottom: 1px solid var(--border) !important;
-      overflow: visible !important;
-      flex: none !important;
-    }
-
-    .consult-left-body {
-      max-height: none !important;
-      overflow: visible !important;
-      height: auto !important;
-    }
-
-    .consult-right {
-      width: 100% !important;
-      height: auto !important;
-      min-height: 400px !important;
-      max-height: none !important;
-      overflow: visible !important;
-      border-left: none !important;
-      flex: none !important;
-    }
-
-    .consult-right-body {
-      max-height: none !important;
-      overflow: visible !important;
-      height: auto !important;
-    }
-
-    /* Patient switcher - horizontal scroll */
-    .patient-switcher {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      padding-bottom: 8px;
-    }
-
-    .patient-chip {
-      flex-shrink: 0;
-    }
-
-    /* Chat on mobile */
-    .chat-messages {
-      max-height: none !important;
-      min-height: 300px;
-      height: auto !important;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .chat-input-area {
-      padding: 12px;
-    }
-
-    .chat-tools {
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .chat-tool-btn {
-      font-size: 0.7rem;
-      padding: 6px 10px;
-    }
-
-    /* Patient cards */
-    .patient-card {
-      padding: 12px;
-    }
-
-    /* Table on mobile */
-    .data-table {
-      font-size: 0.8rem;
-    }
-
-    .data-table th,
-    .data-table td {
-      padding: 8px 6px;
-    }
-
-    /* Hide some table columns on mobile */
-    .data-table th:nth-child(3),
-    .data-table td:nth-child(3),
-    .data-table th:nth-child(4),
-    .data-table td:nth-child(4) {
-      display: none;
-    }
-
-    /* Modals on mobile */
-    .modal {
-      width: 95% !important;
-      max-width: 95% !important;
-      max-height: 90vh;
-      margin: 5vh auto;
-    }
-
-    .soap-box {
-      width: 95%;
-      max-width: 95%;
-      max-height: 90vh;
-      padding: 16px;
-    }
-
-    .soap-section {
-      padding: 12px;
-    }
-
-    /* Buttons on mobile */
-    .btn {
-      padding: 10px 16px;
-      font-size: 0.85rem;
-    }
-
-    .btn-sm {
-      padding: 6px 12px;
-      font-size: 0.75rem;
-    }
-
-    /* Filter buttons */
-    .filter-row {
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .filter-btn {
-      font-size: 0.75rem;
-      padding: 6px 12px;
-    }
-
-    /* Spec cards */
-    .spec-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-
-    .spec-card {
-      padding: 16px 12px;
-    }
-
-    .spec-icon {
-      font-size: 2rem;
-    }
-
-    .spec-name {
-      font-size: 0.85rem;
-    }
-
-    /* Lab items */
-    .lab-item {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 4px;
-    }
-
-    /* Rx items */
-    .rx-item {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    /* Imaging controls */
-    .scan-types {
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .scan-type-btn {
-      font-size: 0.75rem;
-      padding: 8px 12px;
-    }
-
-    /* Settings on mobile */
-    .settings-section {
-      padding: 16px;
-    }
-
-    .settings-row {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    /* Toast on mobile */
-    .toast {
-      max-width: 90%;
-      left: 5%;
-      right: 5%;
-    }
-
-    /* Form elements */
-    .form-input,
-    .form-select,
-    textarea {
-      font-size: 16px; /* Prevents zoom on iOS */
-    }
-
-    /* Radiology view */
-    #view-radiology > div {
-      padding: 16px !important;
-      padding-bottom: 60px !important;
-    }
-
-    /* Dashboard view */
-    #view-dashboard,
-    .dashboard {
-      height: auto !important;
-      min-height: auto !important;
-      overflow: visible !important;
-    }
-
-    /* Patients view */
-    #view-patients {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    /* Settings view */
-    #view-settings {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    /* Risk prediction view */
-    #view-risk {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    /* Prescription view */
-    #view-prescription {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    .prescription-builder {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    .prescription-grid {
-      grid-template-columns: 1fr !important;
-    }
-
-    .rx-search-area {
-      position: relative !important;
-    }
-
-    .rx-suggestions {
-      position: relative !important;
-      max-height: 200px !important;
-    }
-
-    /* Labs view */
-    #view-labs {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    .lab-view {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    .lab-tabs {
-      overflow-x: auto !important;
-      flex-wrap: nowrap !important;
-      -webkit-overflow-scrolling: touch;
-      gap: 6px;
-    }
-
-    .lab-tab {
-      flex-shrink: 0 !important;
-      font-size: 0.75rem !important;
-      padding: 8px 12px !important;
-    }
-
-    .lab-panel {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    .lab-cards-grid {
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 12px !important;
-    }
-
-    .lab-entry-card {
-      min-height: auto !important;
-    }
-
-    /* Lab view header - stack on mobile */
-    #view-labs > .lab-view > div:first-child {
-      flex-direction: column !important;
-      align-items: flex-start !important;
-      gap: 16px !important;
-    }
-
-    #view-labs .form-select {
-      width: 100% !important;
-      max-width: 100% !important;
-    }
-
-    #view-labs > .lab-view > div:first-child > div:last-child {
-      width: 100%;
-      flex-direction: column !important;
-      gap: 12px !important;
-    }
-
-    #view-labs .btn {
-      width: 100% !important;
-    }
-
-    /* Imaging view */
-    #view-imaging {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    .imaging-container {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    .imaging-split {
-      flex-direction: column !important;
-      height: auto !important;
-    }
-
-    .imaging-left,
-    .imaging-right {
-      width: 100% !important;
-      border: none !important;
-      height: auto !important;
-      min-height: auto !important;
-    }
-
-    .upload-area {
-      min-height: 200px !important;
-    }
-
-    .findings-area {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    /* Analytics view */
-    #view-analytics {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    /* Specializations view */
-    #view-specs {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    /* Remove fixed heights from containers */
-    .consult-patient-info,
-    .consult-vitals,
-    .consult-details,
-    .tab-content {
-      height: auto !important;
-      max-height: none !important;
-      overflow: visible !important;
-    }
-
-    /* Ensure scrollable areas work */
-    .consult-patient-details {
-      max-height: none !important;
-      overflow: visible !important;
-    }
-
-    /* Force all flex containers to allow content flow */
-    .flex-view {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    /* All cards should expand */
-    .card {
-      height: auto !important;
-      max-height: none !important;
-    }
-
-    .card-body {
-      height: auto !important;
-      max-height: none !important;
-      overflow: visible !important;
-    }
-
-    /* Patient info sections */
-    .patient-info-section {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    /* Mini sections in consultation */
-    .vital-mini,
-    .symptom-section,
-    .history-section {
-      height: auto !important;
-      max-height: none !important;
-    }
-
-    /* Ensure all divs with flex display stack properly */
-    [style*="display:flex"] {
-      flex-wrap: wrap !important;
-    }
-
-    /* Fix any viewport height constraints */
-    [style*="height:100vh"],
-    [style*="height: 100vh"] {
-      height: auto !important;
-      min-height: 100vh !important;
-    }
-
-    [style*="calc(100vh"] {
-      height: auto !important;
-    }
-
-    /* Analytics charts */
-    .analytics-section {
-      padding: 12px;
-    }
-
-    /* Risk prediction */
-    .risk-card {
-      padding: 12px;
-    }
-  }
-
-  @media screen and (max-width: 480px) {
-    /* Extra small mobile */
-    .topbar-title {
-      font-size: 0.9rem;
-    }
-
-    .stats-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .spec-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .patient-switcher {
-      gap: 8px;
-    }
-
-    .patient-chip {
-      min-width: 120px;
-    }
-
-    /* Vertical tabs on mobile */
-    .consult-right-tabs {
-      flex-direction: row;
-      overflow-x: auto;
-    }
-
-    .r-tab {
-      flex-shrink: 0;
-      writing-mode: horizontal-tb;
-      min-width: auto;
-      padding: 8px 16px;
-    }
-
-    /* Hide some less critical elements */
-    .topbar-sub {
-      display: none;
-    }
-
-    .card-action {
-      font-size: 0.75rem;
-    }
-  }
-
-  /* Landscape mobile */
-  @media screen and (max-width: 900px) and (orientation: landscape) {
-    .consult-view {
-      flex-direction: row;
-    }
-
-    .consult-left {
-      width: 40%;
-      border-right: 1px solid var(--border);
-      border-bottom: none;
-    }
-
-    .consult-right {
-      width: 60%;
-    }
-  }
-
-  /* Add mobile menu button (will be added via JS) */
-  .mobile-menu-btn {
-    display: none;
-  }
-
-  @media screen and (max-width: 768px) {
-    .mobile-menu-btn {
-      display: block;
+  /* ── iOS input zoom prevention ── */
+  @media screen and (max-width: 900px) {
+    .form-input, .form-select, textarea,
+    .form-input-login, input[type="text"],
+    input[type="email"], input[type="password"],
+    input[type="number"], select {
+      font-size: 16px !important;
     }
   }
 
@@ -2238,7 +1524,7 @@
 
     <!-- TOPBAR -->
     <div class="topbar" id="topbar">
-      <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" style="display:none">☰</button>
+      <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" aria-label="Open menu">☰</button>
       <div>
         <div class="topbar-title" id="topbar-title">Clinical Dashboard</div>
         <div class="topbar-subtitle" id="topbar-sub">Tuesday, 24 February 2026 · AIIMS Delhi</div>
@@ -4441,6 +3727,31 @@
       <!-- end: view-radiology -->
 
     </div><!-- end: .content -->
+
+    <!-- ── MOBILE BOTTOM NAVIGATION (shown ≤ 900px) ── -->
+    <nav class="mobile-bottom-nav" id="mobileBottomNav" aria-label="Mobile navigation">
+      <button class="mobile-nav-item active" onclick="mobileNavTo('dashboard')" id="mbnav-dashboard">
+        <span class="mobile-nav-icon">⬡</span>
+        <span class="mobile-nav-label">Dashboard</span>
+      </button>
+      <button class="mobile-nav-item" onclick="mobileNavTo('consult')" id="mbnav-consult">
+        <span class="mobile-nav-icon">💬</span>
+        <span class="mobile-nav-label">Consult</span>
+      </button>
+      <button class="mobile-nav-item" onclick="mobileNavTo('patients')" id="mbnav-patients">
+        <span class="mobile-nav-icon">👥</span>
+        <span class="mobile-nav-label">Patients</span>
+      </button>
+      <button class="mobile-nav-item" onclick="mobileNavTo('labs')" id="mbnav-labs">
+        <span class="mobile-nav-icon">🧪</span>
+        <span class="mobile-nav-label">Labs</span>
+      </button>
+      <button class="mobile-nav-item" onclick="mobileNavTo('settings')" id="mbnav-settings">
+        <span class="mobile-nav-icon">⚙️</span>
+        <span class="mobile-nav-label">More</span>
+      </button>
+    </nav>
+
   </div><!-- end: .main -->
 </div><!-- end: .app -->
 
@@ -5363,6 +4674,11 @@
       document.getElementById('topbar-title').textContent = views[id].title;
       document.getElementById('topbar-sub').textContent = views[id].sub;
     }
+    // Sync mobile bottom nav
+    document.querySelectorAll('.mobile-nav-item').forEach(btn => btn.classList.remove('active'));
+    const mbn = document.getElementById('mbnav-' + id);
+    if (mbn) mbn.classList.add('active');
+    else { const mb = document.getElementById('mbnav-settings'); if (mb) mb.classList.add('active'); }
     // Consult view is self-contained; all other views scroll via .content
     const content = document.querySelector('.content');
     if (content) content.scrollTop = 0;
@@ -8062,17 +7378,32 @@ INVESTIGATIONS:
   function toggleMobileSidebar() {
     const sidebar = document.querySelector('.sidebar');
     const overlay = document.getElementById('mobileOverlay');
-    
     if (sidebar && overlay) {
       sidebar.classList.toggle('mobile-open');
       overlay.classList.toggle('show');
-      
-      // Prevent body scroll when sidebar is open
-      if (sidebar.classList.contains('mobile-open')) {
-        document.body.style.overflow = 'hidden';
-      } else {
-        document.body.style.overflow = '';
-      }
+      document.body.style.overflow = sidebar.classList.contains('mobile-open') ? 'hidden' : '';
+    }
+  }
+
+  // Mobile bottom nav — navigate and update active state
+  function mobileNavTo(id) {
+    showView(id);
+    // Close sidebar if open
+    const sidebar = document.querySelector('.sidebar');
+    const overlay = document.getElementById('mobileOverlay');
+    if (sidebar && sidebar.classList.contains('mobile-open')) {
+      sidebar.classList.remove('mobile-open');
+      if (overlay) overlay.classList.remove('show');
+      document.body.style.overflow = '';
+    }
+    // Update bottom nav active state
+    document.querySelectorAll('.mobile-nav-item').forEach(btn => btn.classList.remove('active'));
+    const activeBtn = document.getElementById('mbnav-' + id);
+    if (activeBtn) activeBtn.classList.add('active');
+    else {
+      // For views not in bottom nav, activate "More" (settings button as catch-all)
+      const moreBtn = document.getElementById('mbnav-settings');
+      if (moreBtn) moreBtn.classList.add('active');
     }
   }
 
@@ -8081,14 +7412,13 @@ INVESTIGATIONS:
     const navItems = document.querySelectorAll('.nav-item');
     navItems.forEach(item => {
       item.addEventListener('click', function() {
-        // On mobile, close sidebar after clicking nav item
-        if (window.innerWidth <= 768) {
+        if (window.innerWidth <= 900) {
           setTimeout(() => {
             const sidebar = document.querySelector('.sidebar');
             const overlay = document.getElementById('mobileOverlay');
             if (sidebar && sidebar.classList.contains('mobile-open')) {
               sidebar.classList.remove('mobile-open');
-              overlay.classList.remove('show');
+              if (overlay) overlay.classList.remove('show');
               document.body.style.overflow = '';
             }
           }, 300);
@@ -8098,7 +7428,7 @@ INVESTIGATIONS:
 
     // Handle window resize
     window.addEventListener('resize', function() {
-      if (window.innerWidth > 768) {
+      if (window.innerWidth > 900) {
         const sidebar = document.querySelector('.sidebar');
         const overlay = document.getElementById('mobileOverlay');
         if (sidebar) sidebar.classList.remove('mobile-open');
