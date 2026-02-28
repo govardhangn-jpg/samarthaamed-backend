@@ -10506,6 +10506,23 @@ CRITICAL RULES FOR EMERGENCY MODE:
   }
 
   function startVoiceConsultation(emergencyMode) {
+    // ── iOS / Android audio unlock ──────────────────────────────────
+    // Mobile browsers require a user-gesture to unlock the audio subsystem.
+    // We trigger a silent utterance here (inside the tap handler) to unlock it
+    // before any async AI response tries to speak.
+    try {
+      const unlock = new SpeechSynthesisUtterance('');
+      unlock.volume = 0;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(unlock);
+    } catch(e) {}
+
+    // ── Pre-load voices (iOS returns empty list until this event fires) ──
+    if (window.speechSynthesis.getVoices().length === 0) {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null; // only once
+      };
+    }
     // Show voice consultation modal
     const modal = document.createElement('div');
     modal.id = 'voiceConsultModal';
@@ -10796,20 +10813,32 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
       window._elCurrentAudio.pause();
       window._elCurrentAudio = null;
     }
-    if (window._elAudioCtx)  { window._elAudioCtx.close().catch(()=>{}); window._elAudioCtx = null; }
-    if (window._ttsAudioCtx) { window._ttsAudioCtx.close().catch(()=>{}); window._ttsAudioCtx = null; }
+    if (window._elAudioCtx) { window._elAudioCtx.close().catch(()=>{}); window._elAudioCtx = null; }
     voiceConsultation.isSpeaking = true;
     updateVoiceStatus('AI Speaking…', text.substring(0, 100) + '…');
     animateWaveform(true);
+
+    // iOS Safari bug: speechSynthesis pauses after ~15s if the page is in background.
+    // Keep-alive: resume() every 10s while speaking.
+    if (window._iosSpeakKeepAlive) clearInterval(window._iosSpeakKeepAlive);
+    window._iosSpeakKeepAlive = setInterval(() => {
+      if (window.speechSynthesis.speaking) {
+        window.speechSynthesis.pause();
+        window.speechSynthesis.resume();
+      } else {
+        clearInterval(window._iosSpeakKeepAlive);
+        window._iosSpeakKeepAlive = null;
+      }
+    }, 10000);
 
     // Stop mic while speaking
     if (voiceConsultation.isListening) {
       try { voiceConsultation.recognition.stop(); } catch(e) {}
     }
 
-    const elKey    = _vault.get('elak');
-    const elVoice  = _vault.get('elvi');
-    const useEL    = elKey && elVoice && document.getElementById('elUseVoiceConsult')?.checked !== false;
+    const elKey   = _vault.get('elak') || localStorage.getItem('elak');
+    const elVoice = _vault.get('elvi') || localStorage.getItem('elvi');
+    const useEL   = elKey && elVoice && document.getElementById('elUseVoiceConsult')?.checked !== false;
 
     if (useEL) {
       try {
@@ -10886,62 +10915,49 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
   }
 
   function _speakBrowser(text) {
-    // Strategy: use Web Audio API to boost volume 1.5×.
-    // SpeechSynthesis → MediaStreamDestination → GainNode(1.5) → speakers.
-    // Falls back to plain utterance if Web Audio or MediaStream APIs are unavailable.
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang  = voiceConsultation.currentLanguage;
-    utterance.rate  = 0.95;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0; // keep at max before the gain stage
+    utterance.lang   = voiceConsultation.currentLanguage;
+    utterance.rate   = 0.95;
+    utterance.pitch  = 1.0;
+    utterance.volume = 1.0;
 
-    const voices = voiceConsultation.synthesis.getVoices();
-    const best   = voices.find(v =>
-      v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]) &&
-      (v.name.includes('Google') || v.name.includes('Microsoft'))
-    ) || voices.find(v => v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]));
-    if (best) utterance.voice = best;
-
-    utterance.onend = () => {
-      if (window._ttsAudioCtx) {
-        window._ttsAudioCtx.close().catch(() => {});
-        window._ttsAudioCtx = null;
-      }
-      if (window._ttsAudioEl) {
-        window._ttsAudioEl.pause();
-        window._ttsAudioEl = null;
+    utterance.onend   = _onSpeakEnd;
+    utterance.onerror = (e) => {
+      if (e.error !== 'interrupted' && e.error !== 'canceled') {
+        console.warn('SpeechSynthesis error:', e.error);
       }
       _onSpeakEnd();
     };
 
-    // Try boosted path via MediaStreamDestination
-    try {
-      const actx = new (window.AudioContext || window.webkitAudioContext)();
-      const dest  = actx.createMediaStreamDestination();
-      const gain  = actx.createGain();
-      gain.gain.value = 1.5;
+    function _pickVoiceAndSpeak() {
+      const voices = window.speechSynthesis.getVoices();
+      const lang0  = voiceConsultation.currentLanguage.split('-')[0];
+      const best   = voices.find(v => v.lang.startsWith(lang0) && (v.name.includes('Google') || v.name.includes('Microsoft')))
+                  || voices.find(v => v.lang.startsWith(lang0));
+      if (best) utterance.voice = best;
+      window.speechSynthesis.cancel(); // clear queue before speaking
+      window.speechSynthesis.speak(utterance);
+    }
 
-      // Route: utterance → MediaStream → MediaElement → GainNode → output
-      // We play the utterance silently into the destination, then re-emit it amplified
-      const srcNode = actx.createMediaStreamSource(dest.stream);
-      srcNode.connect(gain);
-      gain.connect(actx.destination);
-
-      window._ttsAudioCtx = actx;
-
-      // Speak normally — the gain node on the MediaStreamDestination path amplifies it
-      // NOTE: Chrome/Edge require an active AudioContext started by a user gesture.
-      // We resume in case it was suspended.
-      actx.resume().then(() => {
-        voiceConsultation.synthesis.speak(utterance);
-      });
-    } catch (e) {
-      // Fallback: plain speech at native volume
-      voiceConsultation.synthesis.speak(utterance);
+    // On mobile, getVoices() may return [] on first call — wait for the event
+    if (window.speechSynthesis.getVoices().length > 0) {
+      _pickVoiceAndSpeak();
+    } else {
+      window.speechSynthesis.onvoiceschanged = () => {
+        window.speechSynthesis.onvoiceschanged = null;
+        _pickVoiceAndSpeak();
+      };
+      // Safety fallback: speak even if event never fires (some Android browsers)
+      setTimeout(() => {
+        if (voiceConsultation.isSpeaking && !window.speechSynthesis.speaking) {
+          window.speechSynthesis.speak(utterance);
+        }
+      }, 1000);
     }
   }
 
   function _onSpeakEnd() {
+    if (window._iosSpeakKeepAlive) { clearInterval(window._iosSpeakKeepAlive); window._iosSpeakKeepAlive = null; }
     voiceConsultation.isSpeaking = false;
     animateWaveform(false);
     updateVoiceStatus('Ready', 'Your turn to speak');
