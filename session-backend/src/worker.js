@@ -15,22 +15,40 @@
  */
 
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin':  'https://samarthaamed.netlify.app',         // restrict to your domain in production
+  'Access-Control-Allow-Origin':  '*',         // restrict to your domain in production
   'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
   'Access-Control-Allow-Headers': 'Content-Type, Authorization',
   'Content-Type': 'application/json',
 };
 
-// Allowed invitation codes — mirrors validInvitations in the frontend.
-// Only these codes can register sessions. Add new users here when you
-// add them to the frontend validInvitations object.
-const VALID_CODES = new Set([
+// ── SAMARTHAA-MED: Invitation codes ──────────────────────────────
+// Add new medical-app users here when you add them to the frontend.
+const MED_VALID_CODES = new Set([
   'INV-2026-OWNER-001',
   'INV-2026-OWNER-002',
   'INV-2026-DEMO-GEN-001',
   'INV-2026-DENTAL-SUJAY-001',
   'INV-2026-DEMO-BOPANNA-001',
 ]);
+
+// ── SAMARTHAA-LEGAL: User emails ──────────────────────────────────
+// For the legal app, email addresses are used as the session key.
+// Add each authorised email (lowercase) when you add a user in the
+// backend database.  Emails never expire — remove to revoke.
+const LEGAL_VALID_EMAILS = new Set([
+  // *** ADD AUTHORISED LEGAL-APP EMAILS BELOW ***
+  // e.g. 'govardhan@example.com',
+  //      'rekha@example.com',
+  // Leave empty to block all registrations until you add users.
+  'govardhangn@samarthaa.legal',
+  'rekhajayaram20@samarthaa.legal',
+  'bopanna@samarthaa.legal',
+  'demo1@samarthaa.legal',
+  'demo2@samarthaa.legal',
+]);
+
+// Combined — anything in either set is a valid session key
+const VALID_CODES = new Set([...MED_VALID_CODES, ...LEGAL_VALID_EMAILS]);
 
 // Owner codes that can call /session/status
 const OWNER_CODES = new Set([
