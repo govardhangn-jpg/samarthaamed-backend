@@ -10998,11 +10998,18 @@ CRITICAL RULES FOR EMERGENCY MODE:
               const finalText = _isAndroid
                 ? await _correctMedicalTerms(combined)
                 : combined;
-              // If correction changed the text, update the transcript bubble
+              // If correction changed the text, update the last user transcript bubble
               if (finalText !== combined) {
-                const bubbles = document.querySelectorAll('.voice-transcript-bubble.user');
-                const last = bubbles[bubbles.length - 1];
-                if (last) last.textContent = finalText;
+                const transcriptDiv = document.getElementById('voiceTranscript');
+                if (transcriptDiv) {
+                  // Find last user bubble — it's the last div with flex-end justify
+                  const allMsgs = transcriptDiv.querySelectorAll('div[style*="flex-end"]');
+                  const lastMsg = allMsgs[allMsgs.length - 1];
+                  if (lastMsg) {
+                    const textEl = lastMsg.querySelector('div[style*="font-size:0.9rem"]');
+                    if (textEl) textEl.textContent = finalText;
+                  }
+                }
               }
               processVoiceInput(finalText);
             }
@@ -11157,6 +11164,27 @@ CRITICAL RULES FOR EMERGENCY MODE:
   // response has fully finished speaking before being processed.
   const _voiceQueue = [];      // inputs waiting to be processed
   let   _voiceBusy  = false;   // true while AI is processing OR speaking
+
+  // ── Android AudioContext unlock ────────────────────────────────────
+  // Android Chrome suspends AudioContext until a user gesture. Unlock it
+  // on the first tap anywhere so ElevenLabs audio plays immediately.
+  (function _unlockAudioContext() {
+    if (!/Android/i.test(navigator.userAgent)) return;
+    const unlock = async () => {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        await ctx.resume();
+        ctx.close();
+        console.log('✅ AudioContext unlocked on Android');
+      } catch(e) {}
+      document.removeEventListener('touchstart', unlock);
+      document.removeEventListener('touchend',   unlock);
+      document.removeEventListener('click',      unlock);
+    };
+    document.addEventListener('touchstart', unlock, { once: true, passive: true });
+    document.addEventListener('touchend',   unlock, { once: true, passive: true });
+    document.addEventListener('click',      unlock, { once: true, passive: true });
+  })();
 
   function processVoiceInput(text) {
     // Always stop the mic immediately — prevents capturing AI voice as input
@@ -11344,31 +11372,39 @@ CRITICAL RULES FOR EMERGENCY MODE:
     audio.volume  = 1.0;
     window._elCurrentAudio = audio;
 
-    // Amplify to 1.5× using Web Audio API GainNode (goes beyond browser's 1.0 vol cap)
+    // Amplify using Web Audio API GainNode
+    // On Android: AudioContext may be suspended — resume() it first
     try {
       const actx = new (window.AudioContext || window.webkitAudioContext)();
+      // Resume suspended context (required on Android after no recent user gesture)
+      if (actx.state === 'suspended') await actx.resume();
       const src  = actx.createMediaElementSource(audio);
       const gain = actx.createGain();
       gain.gain.value = 1.5;
       src.connect(gain);
       gain.connect(actx.destination);
       window._elAudioCtx = actx;
-    } catch(e) { /* fallback: native volume */ }
+    } catch(e) { /* fallback: native volume only */ }
 
-    audio.onended = () => {
-      URL.revokeObjectURL(url);
-      window._elCurrentAudio = null;
-      if (window._elAudioCtx) { window._elAudioCtx.close().catch(()=>{}); window._elAudioCtx = null; }
-      _onSpeakEnd();
-    };
-    audio.onerror = (e) => {
+    const _cleanupAudio = () => {
       URL.revokeObjectURL(url);
       window._elCurrentAudio = null;
       if (window._elAudioCtx) { window._elAudioCtx.close().catch(()=>{}); window._elAudioCtx = null; }
       _onSpeakEnd();
     };
 
-    await audio.play();
+    audio.onended = _cleanupAudio;
+    audio.onerror = _cleanupAudio;
+
+    // On Android, play() can fail silently or throw — handle both
+    try {
+      await audio.play();
+    } catch(playErr) {
+      console.warn('ElevenLabs audio.play() failed on Android:', playErr.message);
+      // play() blocked — fall through to browser TTS
+      _cleanupAudio();
+      throw new Error('audio.play() blocked: ' + playErr.message);
+    }
   }
 
   function _speakBrowser(text) {
@@ -11407,9 +11443,9 @@ CRITICAL RULES FOR EMERGENCY MODE:
       // Safety fallback: speak even if event never fires (some Android browsers)
       setTimeout(() => {
         if (voiceConsultation.isSpeaking && !window.speechSynthesis.speaking) {
-          window.speechSynthesis.speak(utterance);
+          _pickVoiceAndSpeak();
         }
-      }, 1000);
+      }, 800);
     }
   }
 
