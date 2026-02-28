@@ -2008,7 +2008,7 @@
           <span class="nav-icon">🧪</span> Lab Results
           <span class="nav-badge">5</span>
         </div>
-        <div class="nav-item" onclick="showView('imaging');if(window.innerWidth<=900){var s=document.querySelector('.sidebar'),o=document.getElementById('mobileOverlay');if(s)s.classList.remove('mobile-open');if(o)o.classList.remove('show');}">
+        <div id="navImagingAI" class="nav-item" onclick="showView('imaging');if(window.innerWidth<=900){var s=document.querySelector('.sidebar'),o=document.getElementById('mobileOverlay');if(s)s.classList.remove('mobile-open');if(o)o.classList.remove('show');}">
           <span class="nav-icon">🩻</span> Imaging AI
         </div>
       </div>
@@ -2603,7 +2603,7 @@
               <div class="chat-tools">
                 <span class="chat-tool-btn" onclick="chatAttachReport()">📎 Attach Report</span>
                 <span class="chat-tool-btn" onclick="chatVoiceInput(this)">🎤 Voice Input</span>
-                <span class="chat-tool-btn" onclick="showView('imaging')">📊 Upload ECG</span>
+                <span id="chatToolImagingBtn" class="chat-tool-btn" onclick="showView('imaging')">📊 Upload ECG</span>
                 <span class="chat-tool-btn" onclick="chatImportLabs()">🧪 Import Labs</span>
                 <span class="chat-tool-btn" onclick="generateSoapNote()">📝 Generate SOAP Note</span>
               </div>
@@ -3068,7 +3068,7 @@
               <div class="spec-name">Pediatrics</div>
               <div class="spec-cases">310K cases</div>
             </div>
-            <div class="spec-card" onclick="showView('radiology')">
+            <div id="specCardRadiology" class="spec-card" onclick="showView('radiology')">
               <div class="spec-icon">🩻</div>
               <div class="spec-name">Radiology & Imaging AI</div>
               <div class="spec-cases">95K cases</div>
@@ -5177,6 +5177,14 @@
   }
 
   function showView(id) {
+    // Block access to restricted views for non-owners
+    if ((id === 'imaging' || id === 'radiology')) {
+      const code = localStorage.getItem('samarthaamed_invitation_code') || '';
+      if (!IMAGING_ALLOWED.includes(code)) {
+        showToast('🔒', 'Access Restricted', 'Imaging & Radiology features are available for owner accounts only.');
+        return;
+      }
+    }
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     const v = document.getElementById('view-' + id);
@@ -8464,13 +8472,48 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
     }, 500);
   }
 
+  // ── Feature-level access control ────────────────────────────────
+  // Imaging AI (view-imaging) and Radiology (view-radiology) are
+  // restricted to owner accounts only.
+  const IMAGING_ALLOWED = ['INV-2026-OWNER-001', 'INV-2026-OWNER-002'];
+
+  function applyFeaturePermissions() {
+    const code = localStorage.getItem('samarthaamed_invitation_code') || '';
+    const hasAccess = IMAGING_ALLOWED.includes(code);
+
+    // Elements to hide for non-owners
+    const restricted = [
+      'navImagingAI',         // Sidebar: Imaging AI nav item
+      'specCardRadiology',    // Specializations: Radiology & Imaging AI card
+      'chatToolImagingBtn',   // Consult chat: Upload ECG button
+      'view-imaging',         // The Imaging AI view itself
+      'view-radiology',       // The Radiology view itself
+    ];
+
+    restricted.forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.style.display = hasAccess ? '' : 'none';
+    });
+
+    // If a non-owner somehow lands on a restricted view, redirect to dashboard
+    if (!hasAccess) {
+      const active = document.querySelector('.view.active');
+      if (active && (active.id === 'view-imaging' || active.id === 'view-radiology')) {
+        showView('dashboard');
+      }
+    }
+  }
+
   function initializeApp() {
     // Ensure dashboard is visible
     const dashboard = document.getElementById('view-dashboard');
     if (dashboard) {
       dashboard.classList.add('active');
     }
-    
+
+    // Apply feature-level permissions based on invitation code
+    applyFeaturePermissions();
+
     // Add logout button to sidebar
     addLogoutButton();
     
@@ -10642,144 +10685,263 @@ CRITICAL RULES FOR EMERGENCY MODE:
     document.body.appendChild(modal);
     initializeVoiceRecognition();
     voiceConsultation.active = true;
-    
-    // Auto-start listening
+
+    // Auto-start: give mobile browsers more time to settle after audio unlock
     setTimeout(() => {
-      toggleVoiceListening();
-    }, 500);
+      if (_sttMicGranted || !_isMobile) {
+        toggleVoiceListening();
+      } else {
+        // On mobile wait for mic permission to resolve first
+        setTimeout(toggleVoiceListening, 800);
+      }
+    }, _isIOS ? 1200 : 600);
   }
 
-  // Initialize speech recognition
-  function initializeVoiceRecognition() {
-    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-    
-    if (!SpeechRecognition) {
-      showToast('⚠️', 'Not Supported', 'Voice recognition is not supported in this browser. Try Chrome or Edge.');
+  // ── Speech Recognition — mobile-robust implementation ────────────
+  // Key mobile facts:
+  //   iOS Safari: does NOT support continuous=true; recognition stops after
+  //               each utterance and must be restarted manually.
+  //   Android Chrome: supports continuous but throws on rapid restart.
+  //   Both: a failed/errored instance must be discarded and recreated.
+
+  const _isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+  const _isIOS    = /iPhone|iPad|iPod/i.test(navigator.userAgent);
+  let   _sttRestartTimer  = null;   // debounce auto-restart
+  let   _sttErrorCount    = 0;      // consecutive errors — bail after 3
+  let   _sttMicGranted    = false;  // microphone permission already granted
+
+  // Build a fresh SpeechRecognition instance (required after errors on mobile)
+  function _createRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return null;
+
+    const r = new SR();
+    // iOS Safari crashes with continuous=true → use false and auto-restart in onend
+    r.continuous      = _isIOS ? false : true;
+    r.interimResults  = true;
+    r.lang            = voiceConsultation.currentLanguage;
+    r.maxAlternatives = 1;   // higher values cause issues on some Android builds
+
+    r.onstart = () => {
+      _sttErrorCount = 0;
+      voiceConsultation.isListening = true;
+      updateVoiceStatus('Listening…', 'Speak now');
+      animateWaveform(true);
+      const btn = document.getElementById('voiceMicBtn');
+      if (btn) { btn.style.background = 'var(--red)'; btn.style.transform = 'scale(1.1)'; }
+    };
+
+    r.onresult = (event) => {
+      let interim = '', final = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const t = event.results[i][0].transcript;
+        if (event.results[i].isFinal) final   += t;
+        else                          interim += t;
+      }
+      if (interim) updateVoiceStatus('Listening…', interim);
+      if (final)   { addToVoiceTranscript('user', final); processVoiceInput(final); }
+    };
+
+    r.onerror = (event) => {
+      const err = event.error;
+      console.warn('STT error:', err);
+
+      if (err === 'not-allowed' || err === 'service-not-allowed') {
+        _sttMicGranted = false;
+        showToast('🎤', 'Microphone Blocked', 'Allow microphone access in your browser settings, then try again.');
+        voiceConsultation.isListening = false;
+        voiceConsultation.autoListen  = false;
+        _setMicBtnIdle();
+        return;
+      }
+
+      if (err === 'no-speech') {
+        // Normal on mobile — just restart quietly
+        updateVoiceStatus('Tap mic to speak', 'No speech detected');
+        return;
+      }
+
+      if (err === 'network') {
+        updateVoiceStatus('Network error', 'Check connection & retry');
+        _sttErrorCount++;
+      } else if (err === 'aborted') {
+        // Intentional stop — ignore
+        return;
+      } else {
+        _sttErrorCount++;
+      }
+
+      if (_sttErrorCount >= 3) {
+        updateVoiceStatus('Mic unavailable', 'Tap mic to retry');
+        voiceConsultation.isListening = false;
+        _setMicBtnIdle();
+        _sttErrorCount = 0;
+      }
+    };
+
+    r.onend = () => {
+      voiceConsultation.isListening = false;
+      _setMicBtnIdle();
+
+      // Auto-restart: recreate instance (required on iOS) and restart after delay
+      if (voiceConsultation.autoListen && !voiceConsultation.isSpeaking && voiceConsultation.active) {
+        if (_sttRestartTimer) clearTimeout(_sttRestartTimer);
+        _sttRestartTimer = setTimeout(() => {
+          if (!voiceConsultation.isSpeaking && voiceConsultation.active && voiceConsultation.autoListen) {
+            // Always create a fresh instance on iOS to avoid "recognition already started" errors
+            if (_isIOS) voiceConsultation.recognition = _createRecognition();
+            _startRecognition();
+          }
+        }, _isIOS ? 400 : 300);
+      } else if (!voiceConsultation.isSpeaking) {
+        updateVoiceStatus('Tap mic to speak', 'Microphone is off');
+      }
+    };
+
+    return r;
+  }
+
+  function _setMicBtnIdle() {
+    animateWaveform(false);
+    const btn = document.getElementById('voiceMicBtn');
+    if (btn) { btn.style.background = 'var(--teal)'; btn.style.transform = 'scale(1)'; }
+  }
+
+  // Safe start — handles "already started" InvalidStateError on Android
+  function _startRecognition() {
+    if (!voiceConsultation.recognition) voiceConsultation.recognition = _createRecognition();
+    if (!voiceConsultation.recognition) {
+      showToast('⚠️', 'Not Supported', 'Speech recognition requires Chrome on Android or Safari on iOS.');
       return;
     }
-
-    voiceConsultation.recognition = new SpeechRecognition();
-    voiceConsultation.recognition.continuous = true;
-    voiceConsultation.recognition.interimResults = true;
-    voiceConsultation.recognition.lang = voiceConsultation.currentLanguage;
-    voiceConsultation.recognition.maxAlternatives = 3;
-
-    voiceConsultation.recognition.onstart = () => {
-      voiceConsultation.isListening = true;
-      updateVoiceStatus('Listening...', 'Speak now');
-      animateWaveform(true);
-      document.getElementById('voiceMicBtn').style.background = 'var(--red)';
-      document.getElementById('voiceMicBtn').style.transform = 'scale(1.1)';
-    };
-
-    voiceConsultation.recognition.onresult = (event) => {
-      let interimTranscript = '';
-      let finalTranscript = '';
-
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          finalTranscript += transcript;
-        } else {
-          interimTranscript += transcript;
-        }
-      }
-
-      if (interimTranscript) {
-        updateVoiceStatus('Listening...', interimTranscript);
-      }
-
-      if (finalTranscript) {
-        addToVoiceTranscript('user', finalTranscript);
-        processVoiceInput(finalTranscript);
-      }
-    };
-
-    voiceConsultation.recognition.onerror = (event) => {
-      console.error('Voice recognition error:', event.error);
-      if (event.error === 'no-speech') {
-        updateVoiceStatus('No speech detected', 'Please speak clearly');
-      } else if (event.error === 'not-allowed') {
-        showToast('⚠️', 'Microphone Access Denied', 'Please allow microphone access');
-        voiceConsultation.isListening = false;
-      }
-    };
-
-    voiceConsultation.recognition.onend = () => {
-      voiceConsultation.isListening = false;
-      document.getElementById('voiceMicBtn').style.background = 'var(--teal)';
-      document.getElementById('voiceMicBtn').style.transform = 'scale(1)';
-      animateWaveform(false);
-      
-      // Auto-restart if auto-listen is enabled and not speaking
-      if (voiceConsultation.autoListen && !voiceConsultation.isSpeaking && voiceConsultation.active) {
+    if (voiceConsultation.isListening) return; // already running
+    try {
+      voiceConsultation.recognition.start();
+    } catch (e) {
+      if (e.name === 'InvalidStateError') {
+        // Instance stuck — recreate and retry once
+        voiceConsultation.recognition = _createRecognition();
         setTimeout(() => {
-          if (!voiceConsultation.isSpeaking && voiceConsultation.active) {
-            voiceConsultation.recognition.start();
-          }
-        }, 1000);
+          try { voiceConsultation.recognition.start(); } catch(e2) { console.warn('STT start retry failed:', e2); }
+        }, 250);
       } else {
-        updateVoiceStatus('Stopped', 'Click microphone to continue');
+        console.warn('STT start error:', e);
       }
-    };
+    }
   }
 
-  // Toggle voice listening
+  function initializeVoiceRecognition() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      showToast('⚠️', 'Not Supported', 'Use Chrome (Android) or Safari (iOS) for voice recognition.');
+      return;
+    }
+    voiceConsultation.recognition = _createRecognition();
+
+    // On mobile, request mic permission explicitly first so the user sees
+    // the permission prompt before we call recognition.start()
+    if (_isMobile && !_sttMicGranted) {
+      navigator.mediaDevices?.getUserMedia({ audio: true })
+        .then(stream => {
+          _sttMicGranted = true;
+          // Release the stream immediately — we only needed it for the permission prompt
+          stream.getTracks().forEach(t => t.stop());
+        })
+        .catch(err => {
+          console.warn('Mic permission denied:', err);
+          showToast('🎤', 'Microphone Access Needed', 'Please allow microphone access when prompted.');
+        });
+    }
+  }
+
+  // Toggle voice listening (called by the mic button)
   function toggleVoiceListening() {
     if (!voiceConsultation.recognition) {
       initializeVoiceRecognition();
+      setTimeout(_startRecognition, 300);
       return;
     }
-
     if (voiceConsultation.isListening) {
-      voiceConsultation.recognition.stop();
+      // Manual stop — disable auto-listen too
       voiceConsultation.autoListen = false;
-      document.getElementById('autoListenToggle').checked = false;
+      const tog = document.getElementById('autoListenToggle');
+      if (tog) tog.checked = false;
+      if (_sttRestartTimer) { clearTimeout(_sttRestartTimer); _sttRestartTimer = null; }
+      try { voiceConsultation.recognition.stop(); } catch(e) {}
+      updateVoiceStatus('Tap mic to speak', 'Microphone is off');
     } else {
-      try {
-        voiceConsultation.recognition.start();
-      } catch (e) {
-        console.error('Failed to start recognition:', e);
-      }
+      voiceConsultation.autoListen = true;
+      const tog = document.getElementById('autoListenToggle');
+      if (tog) tog.checked = true;
+      _startRecognition();
     }
   }
 
   // Process voice input with AI
-  async function processVoiceInput(text) {
+  // ── Voice input queue ── prevents overlapping AI responses ─────
+  // Problem: user speaks sentence 1, pauses, speaks sentence 2 before
+  // AI has finished responding to sentence 1 → both responses play at once.
+  // Fix: a simple FIFO queue + busy flag. New inputs wait until the current
+  // response has fully finished speaking before being processed.
+  const _voiceQueue = [];      // inputs waiting to be processed
+  let   _voiceBusy  = false;   // true while AI is processing OR speaking
+
+  function processVoiceInput(text) {
+    // Always stop the mic immediately — prevents capturing AI voice as input
+    if (voiceConsultation.isListening) {
+      try { voiceConsultation.recognition.stop(); } catch(e) {}
+    }
+    if (_voiceBusy) {
+      // Already handling a response — queue this input
+      _voiceQueue.push(text);
+      updateVoiceStatus('Queued…', `"${text.substring(0, 50)}"`);
+      return;
+    }
+    _runVoiceInput(text);
+  }
+
+  async function _runVoiceInput(text) {
+    _voiceBusy = true;
+
+    // Cancel any speech still playing (e.g. user interrupts mid-sentence)
+    _cancelAllSpeech();
+
     updateVoiceStatus('Processing…', 'AI is thinking…');
     const apiKey = getApiKey();
     if (!apiKey) {
       updateVoiceStatus('API Key Missing', 'Enter Anthropic key in Settings');
+      _finishVoiceTurn();
       return;
     }
+
     // Build multi-turn context from voice history
     const history = voiceConsultation.conversationHistory.slice(-10)
       .map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.text }));
-    if (!history.length || history[history.length-1].role !== 'user') {
+    if (!history.length || history[history.length - 1].role !== 'user') {
       history.push({ role: 'user', content: text });
     }
-    // Ensure alternating roles
     const msgs = [];
     for (const m of history) {
-      if (msgs.length && msgs[msgs.length-1].role === m.role) {
-        msgs[msgs.length-1].content += ' ' + m.content;
+      if (msgs.length && msgs[msgs.length - 1].role === m.role) {
+        msgs[msgs.length - 1].content += ' ' + m.content;
       } else { msgs.push(m); }
     }
-    // Use emergency system prompt if in emergency mode, otherwise standard
+
     let systemPrompt;
     if (_emergencyMode) {
       systemPrompt = _buildEmergencySystemPrompt(_emergencyContext);
     } else {
       const patientCtx = getActivePatientContext();
-      systemPrompt = `You are Samarthaa, an AI clinical decision-support assistant speaking aloud to an Indian doctor during a patient consultation. ${patientCtx}
-Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empathetic. Cite ICMR 2024 or NHP guidelines when relevant. Match the language the doctor speaks (English/Hindi/Kannada etc.). No bullet points — this is spoken.`;
+      systemPrompt = `You are Samarthaa, an AI clinical decision-support assistant speaking aloud to an Indian doctor during a patient consultation. ${patientCtx}\nRules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empathetic. Cite ICMR 2024 or NHP guidelines when relevant. Match the language the doctor speaks (English/Hindi/Kannada etc.). No bullet points — this is spoken.`;
     }
+
     try {
       const raw = await callClaudeAI(msgs, systemPrompt);
       const aiResponse = raw.replace(/<[^>]+>/g, '').trim();
       addToVoiceTranscript('ai', aiResponse);
       speakText(aiResponse);
-    } catch(err) {
+      // _voiceBusy is cleared in _onSpeakEnd once speech finishes
+    } catch (err) {
       console.error('Voice AI error:', err);
       updateVoiceStatus('Error', err.message);
       const fallback = generateFallbackResponse ? generateFallbackResponse(text) : 'I could not process that. Please try again.';
@@ -10788,6 +10950,34 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     }
   }
 
+  // Called by _onSpeakEnd after speech finishes — process next queued input or resume mic
+  function _finishVoiceTurn() {
+    _voiceBusy = false;
+    if (_voiceQueue.length > 0) {
+      const next = _voiceQueue.shift();
+      _runVoiceInput(next);   // process next item immediately, mic stays off
+    } else {
+      // Nothing queued — resume mic
+      updateVoiceStatus('Ready', 'Your turn to speak');
+      if (voiceConsultation.autoListen && voiceConsultation.active) {
+        setTimeout(() => {
+          if (!voiceConsultation.isListening && voiceConsultation.active) {
+            if (_isIOS) voiceConsultation.recognition = _createRecognition();
+            _startRecognition();
+          }
+        }, _isIOS ? 600 : 400);
+      }
+    }
+  }
+
+  // Hard-cancel all audio immediately
+  function _cancelAllSpeech() {
+    window.speechSynthesis.cancel();
+    if (window._elCurrentAudio) { window._elCurrentAudio.pause(); window._elCurrentAudio = null; }
+    if (window._elAudioCtx)     { window._elAudioCtx.close().catch(() => {}); window._elAudioCtx = null; }
+    if (window._iosSpeakKeepAlive) { clearInterval(window._iosSpeakKeepAlive); window._iosSpeakKeepAlive = null; }
+    voiceConsultation.isSpeaking = false;
+  }
   // Fallback response generator (when AI is unavailable)
   function generateFallbackResponse(input) {
     const lowerInput = input.toLowerCase();
@@ -10807,13 +10997,8 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
   // ── Text-to-Speech: ElevenLabs → browser Web Speech API fallback ──
   async function speakText(text) {
-    // Stop any ongoing speech
-    voiceConsultation.synthesis.cancel();
-    if (window._elCurrentAudio) {
-      window._elCurrentAudio.pause();
-      window._elCurrentAudio = null;
-    }
-    if (window._elAudioCtx) { window._elAudioCtx.close().catch(()=>{}); window._elAudioCtx = null; }
+    // Cancel anything currently playing before starting new speech
+    _cancelAllSpeech();
     voiceConsultation.isSpeaking = true;
     updateVoiceStatus('AI Speaking…', text.substring(0, 100) + '…');
     animateWaveform(true);
@@ -10960,14 +11145,8 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     if (window._iosSpeakKeepAlive) { clearInterval(window._iosSpeakKeepAlive); window._iosSpeakKeepAlive = null; }
     voiceConsultation.isSpeaking = false;
     animateWaveform(false);
-    updateVoiceStatus('Ready', 'Your turn to speak');
-    if (voiceConsultation.autoListen && voiceConsultation.active) {
-      setTimeout(() => {
-        if (!voiceConsultation.isListening && voiceConsultation.active) {
-          toggleVoiceListening();
-        }
-      }, 500);
-    }
+    // Drain queue or resume mic — centralised in _finishVoiceTurn
+    _finishVoiceTurn();
   }
 
   // Add message to transcript
@@ -11042,10 +11221,16 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
   // Change voice language
   function changeVoiceLanguage(lang) {
     voiceConsultation.currentLanguage = lang;
+    const wasListening = voiceConsultation.isListening;
+    // Stop current instance and recreate with new language
     if (voiceConsultation.recognition) {
-      voiceConsultation.recognition.lang = lang;
-      showToast('🌐', 'Language Changed', `Now using ${lang}`);
+      try { voiceConsultation.recognition.stop(); } catch(e) {}
     }
+    voiceConsultation.recognition = _createRecognition();
+    if (wasListening && voiceConsultation.active) {
+      setTimeout(_startRecognition, 400);
+    }
+    showToast('🌐', 'Language Changed', `Now listening in ${lang}`);
   }
 
   // Clear voice history
