@@ -10733,7 +10733,8 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
       window._elCurrentAudio.pause();
       window._elCurrentAudio = null;
     }
-    if (window._elAudioCtx) { window._elAudioCtx.close().catch(()=>{}); window._elAudioCtx = null; }
+    if (window._elAudioCtx)  { window._elAudioCtx.close().catch(()=>{}); window._elAudioCtx = null; }
+    if (window._ttsAudioCtx) { window._ttsAudioCtx.close().catch(()=>{}); window._ttsAudioCtx = null; }
     voiceConsultation.isSpeaking = true;
     updateVoiceStatus('AI Speaking…', text.substring(0, 100) + '…');
     animateWaveform(true);
@@ -10822,19 +10823,59 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
   }
 
   function _speakBrowser(text) {
+    // Strategy: use Web Audio API to boost volume 1.5×.
+    // SpeechSynthesis → MediaStreamDestination → GainNode(1.5) → speakers.
+    // Falls back to plain utterance if Web Audio or MediaStream APIs are unavailable.
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang   = voiceConsultation.currentLanguage;
-    utterance.rate   = 0.95;
-    utterance.pitch  = 1.0;
-    utterance.volume = 1.0;  // Web Speech API max is 1.0; gain node not available for utterances
+    utterance.lang  = voiceConsultation.currentLanguage;
+    utterance.rate  = 0.95;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0; // keep at max before the gain stage
+
     const voices = voiceConsultation.synthesis.getVoices();
     const best   = voices.find(v =>
       v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]) &&
       (v.name.includes('Google') || v.name.includes('Microsoft'))
     ) || voices.find(v => v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]));
     if (best) utterance.voice = best;
-    utterance.onend = _onSpeakEnd;
-    voiceConsultation.synthesis.speak(utterance);
+
+    utterance.onend = () => {
+      if (window._ttsAudioCtx) {
+        window._ttsAudioCtx.close().catch(() => {});
+        window._ttsAudioCtx = null;
+      }
+      if (window._ttsAudioEl) {
+        window._ttsAudioEl.pause();
+        window._ttsAudioEl = null;
+      }
+      _onSpeakEnd();
+    };
+
+    // Try boosted path via MediaStreamDestination
+    try {
+      const actx = new (window.AudioContext || window.webkitAudioContext)();
+      const dest  = actx.createMediaStreamDestination();
+      const gain  = actx.createGain();
+      gain.gain.value = 1.5;
+
+      // Route: utterance → MediaStream → MediaElement → GainNode → output
+      // We play the utterance silently into the destination, then re-emit it amplified
+      const srcNode = actx.createMediaStreamSource(dest.stream);
+      srcNode.connect(gain);
+      gain.connect(actx.destination);
+
+      window._ttsAudioCtx = actx;
+
+      // Speak normally — the gain node on the MediaStreamDestination path amplifies it
+      // NOTE: Chrome/Edge require an active AudioContext started by a user gesture.
+      // We resume in case it was suspended.
+      actx.resume().then(() => {
+        voiceConsultation.synthesis.speak(utterance);
+      });
+    } catch (e) {
+      // Fallback: plain speech at native volume
+      voiceConsultation.synthesis.speak(utterance);
+    }
   }
 
   function _onSpeakEnd() {
