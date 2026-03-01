@@ -4962,9 +4962,6 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
 
   // Start voice consultation
   function startVoiceConsultation() {
-    // MOBILE FIX: unlock audio immediately on this user tap (before any async work)
-    _unlockAudioForMobile();
-
     // Show voice consultation modal
     const modal = document.createElement('div');
     modal.id = 'voiceConsultModal';
@@ -5152,9 +5149,6 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
 
   // Toggle voice listening
   function toggleVoiceListening() {
-    // MOBILE FIX: re-unlock on every mic tap to keep audio session alive
-    _unlockAudioForMobile();
-
     if (!voiceConsultation.recognition) {
       initializeVoiceRecognition();
       return;
@@ -5250,6 +5244,16 @@ Guidelines:
   async function speakText(text) {
     // Stop any ongoing speech
     voiceConsultation.synthesis.cancel();
+    // Stop AudioContext path (mobile)
+    if (window._elAudioSrc) {
+      try { window._elAudioSrc.stop(); } catch(e) {}
+      window._elAudioSrc = null;
+    }
+    if (window._elAudioCtx) {
+      try { window._elAudioCtx.close(); } catch(e) {}
+      window._elAudioCtx = null;
+    }
+    // Stop HTMLAudio path (fallback)
     if (window._elCurrentAudio) {
       window._elCurrentAudio.pause();
       window._elCurrentAudio = null;
@@ -5310,63 +5314,44 @@ Guidelines:
       throw new Error(errBody?.detail?.message || `ElevenLabs error ${response.status}`);
     }
 
-    // Fetch as arrayBuffer → Blob → Object URL
-    // This is more reliable than response.blob() on iOS Safari
     const arrayBuffer = await response.arrayBuffer();
-    const blob  = new Blob([arrayBuffer], { type: 'audio/mpeg' });
-    const url   = URL.createObjectURL(blob);
-    const audio = new Audio(url);
-    audio.volume = 1.0;
-    window._elCurrentAudio = audio;
 
-    return new Promise((resolve, reject) => {
-      audio.oncanplaythrough = () => {
-        // Only trigger play once ready — avoids iOS silent failure
-        audio.oncanplaythrough = null;
-      };
-      audio.onended = () => {
-        URL.revokeObjectURL(url);
-        window._elCurrentAudio = null;
+    // Use AudioContext — same pattern as legal app (which works on mobile).
+    // AudioContext works after async IF the page already has mic permission
+    // (which we always have by this point). resume() is the critical missing step.
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AudioCtx();
+
+    // resume() is REQUIRED on iOS Safari and Android Chrome — without it,
+    // the context stays 'suspended' and start() silently does nothing
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+    }
+
+    const decoded  = await ctx.decodeAudioData(arrayBuffer);
+    const gain     = ctx.createGain();
+    gain.gain.value = 2.5;
+    gain.connect(ctx.destination);
+
+    const src    = ctx.createBufferSource();
+    src.buffer   = decoded;
+    src.connect(gain);
+
+    // Store refs for stopSpeaking()
+    window._elAudioCtx = ctx;
+    window._elAudioSrc = src;
+    window._elCurrentAudio = null; // not using Audio element in this path
+
+    return new Promise((resolve) => {
+      src.onended = () => {
+        try { ctx.close(); } catch(e) {}
+        window._elAudioCtx = null;
+        window._elAudioSrc = null;
         _onSpeakEnd();
         resolve();
       };
-      audio.onerror = () => {
-        URL.revokeObjectURL(url);
-        window._elCurrentAudio = null;
-        _onSpeakEnd();
-        reject(new Error('Audio playback error'));
-      };
-      // play() returns a Promise on modern browsers
-      const p = audio.play();
-      if (p && typeof p.catch === 'function') {
-        p.catch(err => {
-          console.warn('audio.play() blocked:', err.message);
-          URL.revokeObjectURL(url);
-          window._elCurrentAudio = null;
-          reject(err);
-        });
-      }
+      src.start(0);
     });
-  }
-
-  // ── Mobile Audio Unlock ───────────────────────────────────────────────────
-  // iOS Safari and Android Chrome block audio.play() unless audio has been
-  // started during a direct user gesture (tap/click). We play a silent clip
-  // on the very first user tap to permanently unlock audio for the session.
-  function _unlockAudioForMobile() {
-    if (window._samarthaAudioUnlocked) return;
-    window._samarthaAudioUnlocked = true;
-    try {
-      // Silent MP3 — 0.1s of silence
-      const SILENT_MP3 = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEtpdCAtIG11c2ljIGZvciBldmVyeW9uZSEhAAA=';
-      const sil = new Audio(SILENT_MP3);
-      sil.volume = 0.001;
-      sil.play().catch(() => {});
-      // Also create + resume an AudioContext to unlock WebAudio
-      const ctx = new (window.AudioContext || window.webkitAudioContext || function(){})();
-      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
-      if (ctx) setTimeout(() => ctx.close().catch(() => {}), 1000);
-    } catch(e) {}
   }
 
   function _speakBrowser(text) {

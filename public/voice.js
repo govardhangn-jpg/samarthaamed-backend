@@ -184,26 +184,25 @@ const Voice = (() => {
             }
 
             const arrayBuffer = await response.arrayBuffer();
-            const blob    = new Blob([arrayBuffer], { type: 'audio/mpeg' });
-            const blobUrl = URL.createObjectURL(blob);
-            const audioEl = new Audio(blobUrl);
-            audioEl.volume = 1.0;
-            // Store ref so stopSpeaking() can cancel it
-            audioContext  = audioEl; // reuse slot for cleanup
 
-            audioEl.onended = () => {
-                URL.revokeObjectURL(blobUrl);
-                audioContext = null;
-                finishSpeaking();
-            };
-            audioEl.onerror = () => {
-                URL.revokeObjectURL(blobUrl);
-                audioContext = null;
-                fallbackTTS(text);
-            };
+            // MOBILE FIX: create fresh AudioContext and resume() before decoding.
+            // resume() is required on iOS Safari and Android Chrome — the context
+            // starts 'suspended' and audio silently fails without this call.
+            audioContext = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioContext.state === 'suspended') {
+                await audioContext.resume();
+            }
 
-            const p = audioEl.play();
-            if (p) p.catch(() => fallbackTTS(text));
+            const decoded  = await audioContext.decodeAudioData(arrayBuffer);
+            const gainNode = audioContext.createGain();
+            gainNode.gain.value = 2.5;
+            gainNode.connect(audioContext.destination);
+
+            audioSource        = audioContext.createBufferSource();
+            audioSource.buffer = decoded;
+            audioSource.connect(gainNode);
+            audioSource.onended = () => finishSpeaking();
+            audioSource.start(0);
             isPlaying = true;
 
         } catch (err) {
@@ -221,12 +220,7 @@ const Voice = (() => {
             audioSource = null;
         }
         if (audioContext) {
-            // May be an Audio element (mobile) or AudioContext (desktop fallback)
-            if (typeof audioContext.pause === 'function') {
-                try { audioContext.pause(); audioContext.src = ''; } catch {}
-            } else if (typeof audioContext.close === 'function') {
-                try { audioContext.close(); } catch {}
-            }
+            try { audioContext.close(); } catch {}
             audioContext = null;
         }
         window.speechSynthesis && window.speechSynthesis.cancel();
