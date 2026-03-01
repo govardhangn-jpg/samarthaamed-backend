@@ -4962,6 +4962,9 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
 
   // Start voice consultation
   function startVoiceConsultation() {
+    // MOBILE FIX: unlock audio immediately on this user tap (before any async work)
+    _unlockAudioForMobile();
+
     // Show voice consultation modal
     const modal = document.createElement('div');
     modal.id = 'voiceConsultModal';
@@ -5149,8 +5152,8 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
 
   // Toggle voice listening
   function toggleVoiceListening() {
-    // Unlock audio on every mic tap (user gesture — required by iOS/Android)
-    _unlockAudio();
+    // MOBILE FIX: re-unlock on every mic tap to keep audio session alive
+    _unlockAudioForMobile();
 
     if (!voiceConsultation.recognition) {
       initializeVoiceRecognition();
@@ -5168,17 +5171,6 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
         console.error('Failed to start recognition:', e);
       }
     }
-  }
-
-  // Play silent audio to unlock browser audio for this session
-  function _unlockAudio() {
-    if (window._audioUnlocked) return;
-    window._audioUnlocked = true;
-    try {
-      const silent = new Audio('data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEtpdCAtIG11c2ljIGZvciBldmVyeW9uZSEhAAA=');
-      silent.volume = 0.001;
-      silent.play().catch(() => {});
-    } catch(e) {}
   }
 
   // Process voice input with AI
@@ -5293,7 +5285,6 @@ Guidelines:
     const model      = localStorage.getItem('el_model')      || 'eleven_multilingual_v2';
     const stability  = parseFloat(localStorage.getItem('el_stability'))  || 0.5;
     const similarity = parseFloat(localStorage.getItem('el_similarity')) || 0.85;
-    const isAndroid  = /android/i.test(navigator.userAgent);
 
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
@@ -5319,8 +5310,8 @@ Guidelines:
       throw new Error(errBody?.detail?.message || `ElevenLabs error ${response.status}`);
     }
 
-    // Use blob URL + HTMLAudioElement for all platforms
-    // (AudioContext blocked after async fetch on mobile; HTMLAudioElement works after mic grant)
+    // Fetch as arrayBuffer → Blob → Object URL
+    // This is more reliable than response.blob() on iOS Safari
     const arrayBuffer = await response.arrayBuffer();
     const blob  = new Blob([arrayBuffer], { type: 'audio/mpeg' });
     const url   = URL.createObjectURL(blob);
@@ -5328,16 +5319,11 @@ Guidelines:
     audio.volume = 1.0;
     window._elCurrentAudio = audio;
 
-    // iOS: resume AudioContext if one exists (belt-and-suspenders)
-    if (!isAndroid && window.AudioContext || window.webkitAudioContext) {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        if (ctx.state === 'suspended') await ctx.resume();
-        await ctx.close();
-      } catch(e) {}
-    }
-
     return new Promise((resolve, reject) => {
+      audio.oncanplaythrough = () => {
+        // Only trigger play once ready — avoids iOS silent failure
+        audio.oncanplaythrough = null;
+      };
       audio.onended = () => {
         URL.revokeObjectURL(url);
         window._elCurrentAudio = null;
@@ -5350,16 +5336,37 @@ Guidelines:
         _onSpeakEnd();
         reject(new Error('Audio playback error'));
       };
-      const playPromise = audio.play();
-      if (playPromise) {
-        playPromise.catch(err => {
-          // Autoplay blocked — resolve so caller falls through to browser TTS
+      // play() returns a Promise on modern browsers
+      const p = audio.play();
+      if (p && typeof p.catch === 'function') {
+        p.catch(err => {
+          console.warn('audio.play() blocked:', err.message);
           URL.revokeObjectURL(url);
           window._elCurrentAudio = null;
           reject(err);
         });
       }
     });
+  }
+
+  // ── Mobile Audio Unlock ───────────────────────────────────────────────────
+  // iOS Safari and Android Chrome block audio.play() unless audio has been
+  // started during a direct user gesture (tap/click). We play a silent clip
+  // on the very first user tap to permanently unlock audio for the session.
+  function _unlockAudioForMobile() {
+    if (window._samarthaAudioUnlocked) return;
+    window._samarthaAudioUnlocked = true;
+    try {
+      // Silent MP3 — 0.1s of silence
+      const SILENT_MP3 = 'data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEtpdCAtIG11c2ljIGZvciBldmVyeW9uZSEhAAA=';
+      const sil = new Audio(SILENT_MP3);
+      sil.volume = 0.001;
+      sil.play().catch(() => {});
+      // Also create + resume an AudioContext to unlock WebAudio
+      const ctx = new (window.AudioContext || window.webkitAudioContext || function(){})();
+      if (ctx && ctx.state === 'suspended') ctx.resume().catch(() => {});
+      if (ctx) setTimeout(() => ctx.close().catch(() => {}), 1000);
+    } catch(e) {}
   }
 
   function _speakBrowser(text) {
@@ -6258,8 +6265,7 @@ Generate a structured dental diagnosis and phased treatment plan. Return JSON on
 
   // ── Read-aloud helper callable from dental/radiology AI ──────────
   async function elReadAloud(text, context) {
-    _unlockAudio(); // unlock audio on user-triggered read-aloud
-   const apiKey  = _SYSTEM_EL_API_KEY  || null;
+    const apiKey  = _SYSTEM_EL_API_KEY  || null;
     const voiceId = _SYSTEM_EL_VOICE_ID || null;
 
     // Check the right checkbox for this context

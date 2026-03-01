@@ -184,33 +184,27 @@ const Voice = (() => {
             }
 
             const arrayBuffer = await response.arrayBuffer();
-            const isAndroid = /android/i.test(navigator.userAgent);
+            const blob    = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+            const blobUrl = URL.createObjectURL(blob);
+            const audioEl = new Audio(blobUrl);
+            audioEl.volume = 1.0;
+            // Store ref so stopSpeaking() can cancel it
+            audioContext  = audioEl; // reuse slot for cleanup
 
-            if (isAndroid) {
-                // Android: HTMLAudioElement works after mic permission is granted
-                const blob    = new Blob([arrayBuffer], { type: 'audio/mpeg' });
-                const blobUrl = URL.createObjectURL(blob);
-                let audioEl   = new Audio(blobUrl);
-                audioEl.volume = 1.0;
-                audioEl.onended = () => { URL.revokeObjectURL(blobUrl); finishSpeaking(); };
-                audioEl.onerror = () => { URL.revokeObjectURL(blobUrl); fallbackTTS(text); };
-                audioEl.play().catch(() => fallbackTTS(text));
-                isPlaying = true;
-            } else {
-                // iOS / Desktop: AudioContext with resume()
-                audioContext = new (window.AudioContext || window.webkitAudioContext)();
-                if (audioContext.state === 'suspended') await audioContext.resume();
-                const decoded  = await audioContext.decodeAudioData(arrayBuffer.slice(0));
-                const gainNode = audioContext.createGain();
-                gainNode.gain.value = 2.5;
-                gainNode.connect(audioContext.destination);
-                audioSource        = audioContext.createBufferSource();
-                audioSource.buffer = decoded;
-                audioSource.connect(gainNode);
-                audioSource.onended = () => finishSpeaking();
-                audioSource.start(0);
-                isPlaying = true;
-            }
+            audioEl.onended = () => {
+                URL.revokeObjectURL(blobUrl);
+                audioContext = null;
+                finishSpeaking();
+            };
+            audioEl.onerror = () => {
+                URL.revokeObjectURL(blobUrl);
+                audioContext = null;
+                fallbackTTS(text);
+            };
+
+            const p = audioEl.play();
+            if (p) p.catch(() => fallbackTTS(text));
+            isPlaying = true;
 
         } catch (err) {
             if (err.name === 'AbortError') return; // user cancelled — silent
@@ -227,13 +221,13 @@ const Voice = (() => {
             audioSource = null;
         }
         if (audioContext) {
-            try { audioContext.close(); } catch {}
+            // May be an Audio element (mobile) or AudioContext (desktop fallback)
+            if (typeof audioContext.pause === 'function') {
+                try { audioContext.pause(); audioContext.src = ''; } catch {}
+            } else if (typeof audioContext.close === 'function') {
+                try { audioContext.close(); } catch {}
+            }
             audioContext = null;
-        }
-        // Stop HTMLAudioElement (Android path)
-        if (window._medAudioEl) {
-            try { window._medAudioEl.pause(); window._medAudioEl.src = ''; } catch {}
-            window._medAudioEl = null;
         }
         window.speechSynthesis && window.speechSynthesis.cancel();
         finishSpeaking();
