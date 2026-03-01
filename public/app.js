@@ -5241,71 +5241,51 @@ Guidelines:
   }
 
   // ── Text-to-Speech: ElevenLabs → browser Web Speech API fallback ──
-  // ── DIAGNOSTIC OVERLAY ─────────────────────────────────────────
-  function _dbg(msg, color) {
-    color = color || '#fff';
-    let box = document.getElementById('_samDiag');
-    if (!box) {
-      box = document.createElement('div');
-      box.id = '_samDiag';
-      box.style.cssText = [
-        'position:fixed;bottom:0;left:0;right:0;z-index:99999',
-        'background:rgba(0,0,0,0.92);color:#fff;font-size:12px',
-        'font-family:monospace;padding:8px;max-height:40vh;overflow-y:auto',
-        'border-top:2px solid #f59e0b;pointer-events:none'
-      ].join(';');
-      document.body.appendChild(box);
-    }
-    const line = document.createElement('div');
-    line.style.cssText = 'padding:2px 0;border-bottom:1px solid #333;color:' + color;
-    line.textContent = new Date().toISOString().slice(11,23) + '  ' + msg;
-    box.appendChild(line);
-    box.scrollTop = box.scrollHeight;
-    console.log('[SAM-DIAG]', msg);
+  // ── Diagnostic logger — writes into the voice transcript (visible in modal)
+  function _vdbg(msg, ok) {
+    console.log('[VOICE-DBG]', msg);
+    const t = document.getElementById('voiceTranscript');
+    if (!t) return;
+    const d = document.createElement('div');
+    d.style.cssText = 'font-size:10px;font-family:monospace;padding:2px 6px;margin:1px 0;border-radius:3px;color:#fff;background:' +
+      (ok === false ? '#7f1d1d' : ok === true ? '#14532d' : '#1e3a5f');
+    d.textContent = String(new Date()).slice(16,24) + '  ' + msg;
+    t.appendChild(d);
+    t.scrollTop = t.scrollHeight;
   }
 
   async function speakText(text) {
-    _dbg('speakText() called. len=' + text.length);
-
-    // Stop any ongoing speech
+    _vdbg('speakText() len=' + text.length);
     voiceConsultation.synthesis.cancel();
-    if (window._elCurrentAudio) {
-      window._elCurrentAudio.pause();
-      window._elCurrentAudio = null;
-    }
+    if (window._elCurrentAudio) { window._elCurrentAudio.pause(); window._elCurrentAudio = null; }
 
     voiceConsultation.isSpeaking = true;
     updateVoiceStatus('AI Speaking…', text.substring(0, 100) + '…');
     animateWaveform(true);
-
-    if (voiceConsultation.isListening) {
-      try { voiceConsultation.recognition.stop(); } catch(e) {}
-    }
+    if (voiceConsultation.isListening) { try { voiceConsultation.recognition.stop(); } catch(e) {} }
 
     await _loadConfig();
     const elKey   = _SYSTEM_EL_API_KEY  || null;
     const elVoice = _SYSTEM_EL_VOICE_ID || null;
     const cbEl    = document.getElementById('elUseVoiceConsult');
-    const cbChecked = cbEl ? cbEl.checked : 'element not found';
-    const useEL   = elKey && elVoice && cbEl?.checked !== false;
+    const useEL   = !!(elKey && elVoice && cbEl?.checked !== false);
 
-    _dbg('config: elKey=' + (elKey ? 'SET('+elKey.slice(0,8)+'…)' : 'EMPTY') +
-         ' elVoice=' + (elVoice ? 'SET' : 'EMPTY') +
-         ' checkbox=' + cbChecked +
-         ' useEL=' + useEL, useEL ? '#4ade80' : '#f87171');
+    _vdbg('elKey=' + (elKey ? 'SET('+elKey.slice(0,6)+')' : 'MISSING') +
+          '  elVoice=' + (elVoice ? 'SET' : 'MISSING') +
+          '  checkbox=' + (cbEl ? cbEl.checked : 'NO-ELEMENT') +
+          '  useEL=' + useEL, useEL);
 
     if (useEL) {
       try {
-        _dbg('→ calling _speakElevenLabs…');
+        _vdbg('-> calling ElevenLabs');
         await _speakElevenLabs(text, elKey, elVoice);
-        _dbg('✓ _speakElevenLabs resolved OK', '#4ade80');
+        _vdbg('ElevenLabs finished OK', true);
         return;
       } catch(err) {
-        _dbg('✗ ElevenLabs error: ' + err.message, '#f87171');
+        _vdbg('ElevenLabs FAILED: ' + err.message, false);
       }
     }
-
-    _dbg('→ falling back to _speakBrowser');
+    _vdbg('-> _speakBrowser fallback');
     _speakBrowser(text);
   }
 
@@ -5314,102 +5294,79 @@ Guidelines:
     const stability  = parseFloat(localStorage.getItem('el_stability'))  || 0.5;
     const similarity = parseFloat(localStorage.getItem('el_similarity')) || 0.85;
 
-    _dbg('EL fetch start. model=' + model + ' voice=' + voiceId.slice(0,8) + '…');
-
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    _vdbg('EL fetch  voice=' + voiceId.slice(0,8));
+    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
       method: 'POST',
-      headers: {
-        'xi-api-key': apiKey,
-        'Content-Type': 'application/json',
-        'Accept': 'audio/mpeg'
-      },
-      body: JSON.stringify({
-        text: text,
-        model_id: model,
+      headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+      body: JSON.stringify({ text, model_id: model,
         voice_settings: { stability, similarity_boost: similarity, style: 0.25, use_speaker_boost: true }
       })
     });
 
-    _dbg('EL response: status=' + response.status + ' ok=' + response.ok,
-         response.ok ? '#4ade80' : '#f87171');
-
+    _vdbg('EL status=' + response.status, response.ok);
     if (!response.ok) {
-      const errBody = await response.json().catch(() => ({}));
-      throw new Error(errBody?.detail?.message || 'ElevenLabs error ' + response.status);
+      const e = await response.json().catch(() => ({}));
+      throw new Error(e?.detail?.message || 'EL HTTP ' + response.status);
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    _dbg('EL audio bytes=' + arrayBuffer.byteLength);
+    _vdbg('EL bytes=' + arrayBuffer.byteLength, arrayBuffer.byteLength > 1000);
 
-    // AudioContext with resume() — required on iOS/Android
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) {
-      _dbg('✗ AudioContext NOT supported!', '#f87171');
-      throw new Error('AudioContext not supported');
-    }
+    if (!AudioCtx) throw new Error('No AudioContext');
 
     const ctx = new AudioCtx();
-    _dbg('AudioContext state before resume: ' + ctx.state,
-         ctx.state === 'running' ? '#4ade80' : '#fb923c');
-
+    _vdbg('AudioCtx state=' + ctx.state, ctx.state === 'running');
     if (ctx.state === 'suspended') {
       await ctx.resume();
-      _dbg('AudioContext state after resume: ' + ctx.state,
-           ctx.state === 'running' ? '#4ade80' : '#f87171');
+      _vdbg('after resume=' + ctx.state, ctx.state === 'running');
     }
 
-    let decoded;
-    try {
-      decoded = await ctx.decodeAudioData(arrayBuffer);
-      _dbg('decoded OK. duration=' + decoded.duration.toFixed(1) + 's', '#4ade80');
-    } catch(e) {
-      _dbg('✗ decodeAudioData failed: ' + e.message, '#f87171');
-      ctx.close().catch(()=>{});
-      throw e;
-    }
+    const decoded = await ctx.decodeAudioData(arrayBuffer);
+    _vdbg('decoded dur=' + decoded.duration.toFixed(1) + 's', true);
 
     const gain = ctx.createGain();
     gain.gain.value = 2.5;
     gain.connect(ctx.destination);
-
     const src = ctx.createBufferSource();
     src.buffer = decoded;
     src.connect(gain);
-
     window._elAudioCtx = ctx;
     window._elAudioSrc = src;
 
-    _dbg('src.start(0) — audio should play now', '#4ade80');
-
+    _vdbg('src.start(0) — PLAYING NOW', true);
     return new Promise((resolve) => {
       src.onended = () => {
-        _dbg('✓ audio playback ended', '#4ade80');
+        _vdbg('audio ended', true);
         try { ctx.close(); } catch(e) {}
-        window._elAudioCtx = null;
-        window._elAudioSrc = null;
-        _onSpeakEnd();
-        resolve();
+        window._elAudioCtx = null; window._elAudioSrc = null;
+        _onSpeakEnd(); resolve();
       };
       src.start(0);
     });
   }
 
   function _speakBrowser(text) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang  = voiceConsultation.currentLanguage;
-    utterance.rate  = 0.95;
-    utterance.pitch = 1.0;
-    utterance.volume = 1.0;
-    const voices = voiceConsultation.synthesis.getVoices();
-    const best   = voices.find(v =>
-      v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]) &&
-      (v.name.includes('Google') || v.name.includes('Microsoft'))
-    ) || voices.find(v => v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]));
-    if (best) utterance.voice = best;
-    utterance.onend = _onSpeakEnd;
-    voiceConsultation.synthesis.speak(utterance);
+    const synth = window.speechSynthesis;
+    if (!synth) { _vdbg('no speechSynthesis!', false); _onSpeakEnd(); return; }
+    synth.cancel();
+    setTimeout(() => {
+      const u = new SpeechSynthesisUtterance(text);
+      u.lang = voiceConsultation.currentLanguage || 'en-US';
+      u.rate = 0.95; u.pitch = 1.0; u.volume = 1.0;
+      const voices = synth.getVoices();
+      const base   = (u.lang).split('-')[0];
+      const best   = voices.find(v => v.lang.startsWith(base) && (v.name.includes('Google') || v.name.includes('Microsoft')))
+                  || voices.find(v => v.lang.startsWith(base));
+      if (best) u.voice = best;
+      _vdbg('browser TTS speak  voices=' + voices.length + (best ? '  voice=' + best.name : '  NO MATCH'));
+      u.onend   = () => { _vdbg('browserTTS ended', true); _onSpeakEnd(); };
+      u.onerror = (e) => { _vdbg('browserTTS error=' + e.error, false); _onSpeakEnd(); };
+      synth.speak(u);
+    }, 150);
   }
 
+  
   function _onSpeakEnd() {
     voiceConsultation.isSpeaking = false;
     animateWaveform(false);
