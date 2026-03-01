@@ -2029,11 +2029,10 @@
   }
 
 
-  /* ══ Bottom navigation — hidden on desktop, shown on mobile ══ */
+  /* ══ Mobile bottom navigation ══ */
   .mobile-bottom-nav { display: none; }
 
   @media screen and (max-width: 768px) {
-    /* Bottom navigation */
     .mobile-bottom-nav {
       display: flex;
       position: fixed;
@@ -2046,78 +2045,36 @@
       padding-bottom: env(safe-area-inset-bottom, 0px);
     }
     .mobile-nav-item {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
-      background: none;
-      border: none;
-      cursor: pointer;
-      color: var(--text3);
-      transition: color .15s;
-      padding: 6px 2px;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      position: relative;
+      flex: 1; display: flex; flex-direction: column;
+      align-items: center; justify-content: center; gap: 3px;
+      background: none; border: none; cursor: pointer;
+      color: var(--text3); transition: color .15s; padding: 6px 2px;
+      -webkit-tap-highlight-color: transparent; touch-action: manipulation; position: relative;
     }
     .mobile-nav-item.active { color: var(--teal); }
     .mobile-nav-item.active::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 50%;
-      transform: translateX(-50%);
-      width: 28px; height: 2px;
-      background: var(--teal);
-      border-radius: 0 0 2px 2px;
+      content: ''; position: absolute; top: 0; left: 50%;
+      transform: translateX(-50%); width: 28px; height: 2px;
+      background: var(--teal); border-radius: 0 0 2px 2px;
     }
     .mobile-nav-item:active { opacity: 0.55; }
     .mobile-nav-icon  { font-size: 1.2rem; line-height: 1; }
     .mobile-nav-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
-
-    /* Toast and floating button above bottom nav */
-    .toast {
-      bottom: 72px !important;
-      left: 12px !important;
-      right: 12px !important;
-      width: auto !important;
-      max-width: none !important;
-    }
-    #floatingChatBtn {
-      bottom: 72px !important;
-      right: 14px !important;
-    }
-
-    /* Content padding so nothing hides behind bottom nav */
-    .content {
-      padding-bottom: 76px !important;
-    }
+    .content { padding-bottom: 76px !important; }
+    .toast { bottom: 72px !important; left: 12px !important; right: 12px !important; width: auto !important; max-width: none !important; }
+    #floatingChatBtn { bottom: 72px !important; right: 14px !important; }
   }
-
   @media screen and (max-width: 480px) {
     .mobile-bottom-nav { height: 56px; }
-    .mobile-nav-icon   { font-size: 1.1rem; }
-    .mobile-nav-label  { font-size: 0.57rem; }
-    .toast             { bottom: 66px !important; }
-    #floatingChatBtn   { bottom: 66px !important; }
+    .mobile-nav-icon { font-size: 1.1rem; }
+    .mobile-nav-label { font-size: 0.57rem; }
+    .toast { bottom: 66px !important; }
+    #floatingChatBtn { bottom: 66px !important; }
   }
-
-  @media screen and (max-width: 400px) {
-    .mobile-bottom-nav { height: 56px; }
-    .mobile-nav-label  { font-size: 0.54rem; }
-    .content           { padding-bottom: 68px !important; }
-  }
-
   @media screen and (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
-    .mobile-bottom-nav  { height: 46px; }
-    .mobile-nav-icon    { font-size: 0.95rem; }
-    .mobile-nav-label   { display: none; }
-    .content            { padding-bottom: 54px !important; }
-    .toast              { bottom: 54px !important; }
-    #floatingChatBtn    { bottom: 54px !important; }
+    .mobile-bottom-nav { height: 46px; }
+    .mobile-nav-label { display: none; }
   }
-
 </style>
 
 </head>
@@ -5389,31 +5346,6 @@
   </div>
   <div class="toast-bar"></div>
 </div>
-
-<!-- ══ Mobile bottom navigation ══ -->
-<nav class="mobile-bottom-nav" id="mobileBottomNav">
-  <button class="mobile-nav-item active" onclick="showView('dashboard')">
-    <span class="mobile-nav-icon">🏠</span>
-    <span class="mobile-nav-label">Dashboard</span>
-  </button>
-  <button class="mobile-nav-item" onclick="showView('consult')">
-    <span class="mobile-nav-icon">🩺</span>
-    <span class="mobile-nav-label">Consult</span>
-  </button>
-  <button class="mobile-nav-item" onclick="showView('patients')">
-    <span class="mobile-nav-icon">👥</span>
-    <span class="mobile-nav-label">Patients</span>
-  </button>
-  <button class="mobile-nav-item" onclick="showView('prescription')">
-    <span class="mobile-nav-icon">💊</span>
-    <span class="mobile-nav-label">Rx</span>
-  </button>
-  <button class="mobile-nav-item" onclick="showView('settings')">
-    <span class="mobile-nav-icon">⚙️</span>
-    <span class="mobile-nav-label">Settings</span>
-  </button>
-</nav>
-
 </body>
 </html>
     `;
@@ -8934,7 +8866,6 @@ INVESTIGATIONS:
     if (_configLoadPromise) return _configLoadPromise;
     _configLoadPromise = fetch('/api/config')
       .then(r => {
-        // Guard: if server returns HTML (404 page), r.json() will throw a confusing error
         const ct = r.headers.get('content-type') || '';
         if (!ct.includes('application/json')) {
           throw new Error('Config endpoint returned non-JSON (' + r.status + '). Deploy netlify/functions/config.js');
@@ -10538,7 +10469,6 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
   // ── Text-to-Speech: ElevenLabs → browser Web Speech API fallback ──
   async function speakText(text) {
-    // Stop any in-flight audio
     if (window._elAudioSrc) { try { window._elAudioSrc.stop(); } catch(e) {} window._elAudioSrc = null; }
     if (window._elAudioCtx) { try { window._elAudioCtx.close(); } catch(e) {} window._elAudioCtx = null; }
     if (window._elCurrentAudio) { window._elCurrentAudio.pause(); window._elCurrentAudio = null; }
@@ -10552,13 +10482,10 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
       try { voiceConsultation.recognition.stop(); } catch(e) {}
     }
 
-    // Read keys from _vault (populated by _loadConfig from /api/config)
-    // Ensure config is loaded (keys come from /api/config → netlify function)
     await _loadConfig();
     const elKey   = _vault.get('elak') || '';
     const elVoice = _vault.get('elvi') || '';
-    const useEL   = !!(elKey && elVoice &&
-                    document.getElementById('elUseVoiceConsult')?.checked !== false);
+    const useEL   = !!(elKey && elVoice && document.getElementById('elUseVoiceConsult')?.checked !== false);
 
     if (useEL) {
       try {
@@ -10578,13 +10505,8 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
     const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
       method: 'POST',
-      headers: {
-        'xi-api-key':   apiKey,
-        'Content-Type': 'application/json',
-        'Accept':       'audio/mpeg'
-      },
-      body: JSON.stringify({
-        text, model_id: model,
+      headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
+      body: JSON.stringify({ text, model_id: model,
         voice_settings: { stability, similarity_boost: similarity, style: 0.25, use_speaker_boost: true }
       })
     });
@@ -10595,20 +10517,14 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     }
 
     const arrayBuffer = await response.arrayBuffer();
-
-    // AudioContext with resume() — mandatory on iOS Safari + Android Chrome.
-    // The context starts 'suspended' on mobile and audio plays silently without resume().
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) throw new Error('AudioContext not supported');
-
     const ctx = new AudioCtx();
     if (ctx.state === 'suspended') await ctx.resume();
-
-    const decoded  = await ctx.decodeAudioData(arrayBuffer);
-    const gain     = ctx.createGain();
+    const decoded = await ctx.decodeAudioData(arrayBuffer);
+    const gain = ctx.createGain();
     gain.gain.value = 2.5;
     gain.connect(ctx.destination);
-
     const src = ctx.createBufferSource();
     src.buffer = decoded;
     src.connect(gain);
@@ -10618,10 +10534,8 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     return new Promise((resolve) => {
       src.onended = () => {
         try { ctx.close(); } catch(e) {}
-        window._elAudioCtx = null;
-        window._elAudioSrc = null;
-        _onSpeakEnd();
-        resolve();
+        window._elAudioCtx = null; window._elAudioSrc = null;
+        _onSpeakEnd(); resolve();
       };
       src.start(0);
     });
@@ -12129,5 +12043,24 @@ Please provide clinical guidance on management.`;
   }
 
 </script>
+
+<!-- ══ Mobile bottom navigation ══ -->
+<nav class="mobile-bottom-nav" id="mobileBottomNav">
+  <button class="mobile-nav-item active" onclick="showView('dashboard')">
+    <span class="mobile-nav-icon">🏠</span><span class="mobile-nav-label">Dashboard</span>
+  </button>
+  <button class="mobile-nav-item" onclick="showView('consult')">
+    <span class="mobile-nav-icon">🩺</span><span class="mobile-nav-label">Consult</span>
+  </button>
+  <button class="mobile-nav-item" onclick="showView('patients')">
+    <span class="mobile-nav-icon">👥</span><span class="mobile-nav-label">Patients</span>
+  </button>
+  <button class="mobile-nav-item" onclick="showView('prescription')">
+    <span class="mobile-nav-icon">💊</span><span class="mobile-nav-label">Rx</span>
+  </button>
+  <button class="mobile-nav-item" onclick="showView('settings')">
+    <span class="mobile-nav-icon">⚙️</span><span class="mobile-nav-label">Settings</span>
+  </button>
+</nav>
 </body>
 </html>
