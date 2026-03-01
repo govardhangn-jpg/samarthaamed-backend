@@ -132,7 +132,7 @@
 -->
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <title>SamarthaaMed — Clinical Intelligence Platform</title>
 <!-- EmailJS — browser-side email sending (no backend required) -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -2028,53 +2028,6 @@
     }
   }
 
-
-  /* ══ Mobile bottom navigation ══ */
-  .mobile-bottom-nav { display: none; }
-
-  @media screen and (max-width: 768px) {
-    .mobile-bottom-nav {
-      display: flex;
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 60px;
-      background: var(--panel);
-      border-top: 1.5px solid var(--border);
-      z-index: 500;
-      box-shadow: 0 -2px 20px rgba(0,0,0,0.08);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
-    }
-    .mobile-nav-item {
-      flex: 1; display: flex; flex-direction: column;
-      align-items: center; justify-content: center; gap: 3px;
-      background: none; border: none; cursor: pointer;
-      color: var(--text3); transition: color .15s; padding: 6px 2px;
-      -webkit-tap-highlight-color: transparent; touch-action: manipulation; position: relative;
-    }
-    .mobile-nav-item.active { color: var(--teal); }
-    .mobile-nav-item.active::before {
-      content: ''; position: absolute; top: 0; left: 50%;
-      transform: translateX(-50%); width: 28px; height: 2px;
-      background: var(--teal); border-radius: 0 0 2px 2px;
-    }
-    .mobile-nav-item:active { opacity: 0.55; }
-    .mobile-nav-icon  { font-size: 1.2rem; line-height: 1; }
-    .mobile-nav-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
-    .content { padding-bottom: 76px !important; }
-    .toast { bottom: 72px !important; left: 12px !important; right: 12px !important; width: auto !important; max-width: none !important; }
-    #floatingChatBtn { bottom: 72px !important; right: 14px !important; }
-  }
-  @media screen and (max-width: 480px) {
-    .mobile-bottom-nav { height: 56px; }
-    .mobile-nav-icon { font-size: 1.1rem; }
-    .mobile-nav-label { font-size: 0.57rem; }
-    .toast { bottom: 66px !important; }
-    #floatingChatBtn { bottom: 66px !important; }
-  }
-  @media screen and (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
-    .mobile-bottom-nav { height: 46px; }
-    .mobile-nav-label { display: none; }
-  }
 </style>
 
 </head>
@@ -8867,9 +8820,7 @@ INVESTIGATIONS:
     _configLoadPromise = fetch('/api/config')
       .then(r => {
         const ct = r.headers.get('content-type') || '';
-        if (!ct.includes('application/json')) {
-          throw new Error('Config endpoint returned non-JSON (' + r.status + '). Deploy netlify/functions/config.js');
-        }
+        if (!ct.includes('application/json')) throw new Error('Config returned non-JSON (status ' + r.status + ')');
         return r.json();
       })
       .then(cfg => {
@@ -8880,10 +8831,11 @@ INVESTIGATIONS:
         if (ak) _vault.set('smak', ak);
         if (ek) _vault.set('elak', ek);
         if (ev) _vault.set('elvi', ev);
+        // Just store whether Orthanc is configured — proxy handles credentials
         _orthancBase = (cfg.orthancUrl || '').replace(/\/$/, '');
         _configLoaded = true;
         _updatePacsBadge();
-        console.log('[SamarthaaMed] Config loaded. EL key:', ek ? 'SET' : 'MISSING', 'Voice ID:', ev ? 'SET' : 'MISSING');
+        console.log('[Config] EL key:', ek ? 'SET' : 'MISSING', '| Voice ID:', ev ? 'SET' : 'MISSING');
       })
       .catch(err => console.error('[SamarthaaMed] Failed to load config:', err.message));
     return _configLoadPromise;
@@ -10469,19 +10421,22 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
   // ── Text-to-Speech: ElevenLabs → browser Web Speech API fallback ──
   async function speakText(text) {
+    // Stop any ongoing speech
     if (window._elAudioSrc) { try { window._elAudioSrc.stop(); } catch(e) {} window._elAudioSrc = null; }
     if (window._elAudioCtx) { try { window._elAudioCtx.close(); } catch(e) {} window._elAudioCtx = null; }
     if (window._elCurrentAudio) { window._elCurrentAudio.pause(); window._elCurrentAudio = null; }
-    if (window.speechSynthesis && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+    voiceConsultation.synthesis.cancel();
 
     voiceConsultation.isSpeaking = true;
     updateVoiceStatus('AI Speaking…', text.substring(0, 100) + '…');
     animateWaveform(true);
 
+    // Stop mic while speaking
     if (voiceConsultation.isListening) {
       try { voiceConsultation.recognition.stop(); } catch(e) {}
     }
 
+    // Ensure config is loaded before reading keys
     await _loadConfig();
     const elKey   = _vault.get('elak') || '';
     const elVoice = _vault.get('elvi') || '';
@@ -10490,11 +10445,12 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     if (useEL) {
       try {
         await _speakElevenLabs(text, elKey, elVoice);
-        return;
+        return; // ElevenLabs handled onend itself
       } catch(err) {
-        console.warn('ElevenLabs failed, falling back to browser TTS:', err.message);
+        console.warn('ElevenLabs TTS failed, falling back to browser:', err.message);
       }
     }
+    // Fallback: browser Web Speech API
     _speakBrowser(text);
   }
 
@@ -10505,26 +10461,42 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
     const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
       method: 'POST',
-      headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
-      body: JSON.stringify({ text, model_id: model,
-        voice_settings: { stability, similarity_boost: similarity, style: 0.25, use_speaker_boost: true }
+      headers: {
+        'xi-api-key': apiKey,
+        'Content-Type': 'application/json',
+        'Accept': 'audio/mpeg'
+      },
+      body: JSON.stringify({
+        text: text,
+        model_id: model,
+        voice_settings: {
+          stability: stability,
+          similarity_boost: similarity,
+          style: 0.25,
+          use_speaker_boost: true
+        }
       })
     });
 
     if (!response.ok) {
       const errBody = await response.json().catch(() => ({}));
-      throw new Error(errBody?.detail?.message || 'ElevenLabs HTTP ' + response.status);
+      throw new Error(errBody?.detail?.message || 'ElevenLabs error ' + response.status);
     }
 
     const arrayBuffer = await response.arrayBuffer();
+
+    // AudioContext with resume() — required on iOS Safari + Android Chrome.
+    // Without resume() the context stays suspended and audio plays silently.
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) throw new Error('AudioContext not supported');
     const ctx = new AudioCtx();
     if (ctx.state === 'suspended') await ctx.resume();
+
     const decoded = await ctx.decodeAudioData(arrayBuffer);
-    const gain = ctx.createGain();
+    const gain    = ctx.createGain();
     gain.gain.value = 2.5;
     gain.connect(ctx.destination);
+
     const src = ctx.createBufferSource();
     src.buffer = decoded;
     src.connect(gain);
@@ -10534,8 +10506,10 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     return new Promise((resolve) => {
       src.onended = () => {
         try { ctx.close(); } catch(e) {}
-        window._elAudioCtx = null; window._elAudioSrc = null;
-        _onSpeakEnd(); resolve();
+        window._elAudioCtx = null;
+        window._elAudioSrc = null;
+        _onSpeakEnd();
+        resolve();
       };
       src.start(0);
     });
@@ -12043,24 +12017,5 @@ Please provide clinical guidance on management.`;
   }
 
 </script>
-
-<!-- ══ Mobile bottom navigation ══ -->
-<nav class="mobile-bottom-nav" id="mobileBottomNav">
-  <button class="mobile-nav-item active" onclick="showView('dashboard')">
-    <span class="mobile-nav-icon">🏠</span><span class="mobile-nav-label">Dashboard</span>
-  </button>
-  <button class="mobile-nav-item" onclick="showView('consult')">
-    <span class="mobile-nav-icon">🩺</span><span class="mobile-nav-label">Consult</span>
-  </button>
-  <button class="mobile-nav-item" onclick="showView('patients')">
-    <span class="mobile-nav-icon">👥</span><span class="mobile-nav-label">Patients</span>
-  </button>
-  <button class="mobile-nav-item" onclick="showView('prescription')">
-    <span class="mobile-nav-icon">💊</span><span class="mobile-nav-label">Rx</span>
-  </button>
-  <button class="mobile-nav-item" onclick="showView('settings')">
-    <span class="mobile-nav-icon">⚙️</span><span class="mobile-nav-label">Settings</span>
-  </button>
-</nav>
 </body>
 </html>
