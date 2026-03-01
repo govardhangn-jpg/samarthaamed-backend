@@ -132,7 +132,7 @@
 -->
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>SamarthaaMed — Clinical Intelligence Platform</title>
 <!-- EmailJS — browser-side email sending (no backend required) -->
   <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
@@ -2192,6 +2192,10 @@
         <div class="nav-item" onclick="showView('consult')">
           <span class="nav-icon">💬</span> AI Consultation
           <span class="nav-badge green">3</span>
+        </div>
+        <div class="nav-item" onclick="showView('emergency')" style="color:var(--red)">
+          <span class="nav-icon">🚨</span> Emergency AI
+          <span class="nav-badge" style="background:var(--red);color:#fff">!</span>
         </div>
         <div class="nav-item" onclick="showView('patients')">
           <span class="nav-icon">👥</span> Patients
@@ -4296,6 +4300,92 @@
         </div>
       </div>
 
+      <!-- ══════════════════════════════════════════════════
+           EMERGENCY AI CONSULTATION VIEW
+           ══════════════════════════════════════════════════ -->
+      <div class="view" id="view-emergency" style="overflow-y:auto;height:100%">
+        <div style="padding:20px;max-width:900px;margin:0 auto">
+
+          <!-- Header alert -->
+          <div style="background:var(--red-dim);border:1px solid var(--red);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
+            <span style="font-size:2rem">🚨</span>
+            <div>
+              <div style="font-weight:700;color:var(--red);font-size:1.1rem">Emergency AI Consultation</div>
+              <div style="font-size:0.82rem;color:var(--text2)">Rapid triage support · ACLS · ATLS · ICMR Emergency Protocols · Not a substitute for clinical judgment</div>
+            </div>
+          </div>
+
+          <!-- Quick action buttons -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px">
+            <button class="btn" onclick="emergencyQuickFill('chest-pain')" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red);padding:14px;flex-direction:column;gap:4px;height:auto">
+              <span style="font-size:1.5rem">🫀</span><span style="font-weight:600">Chest Pain / ACS</span>
+            </button>
+            <button class="btn" onclick="emergencyQuickFill('stroke')" style="background:var(--purple-dim,rgba(139,92,246,0.15));color:#a78bfa;border:1px solid #a78bfa;padding:14px;flex-direction:column;gap:4px;height:auto">
+              <span style="font-size:1.5rem">🧠</span><span style="font-weight:600">Stroke / Neuro</span>
+            </button>
+            <button class="btn" onclick="emergencyQuickFill('trauma')" style="background:var(--gold-dim,rgba(245,158,11,0.15));color:var(--gold);border:1px solid var(--gold);padding:14px;flex-direction:column;gap:4px;height:auto">
+              <span style="font-size:1.5rem">🩹</span><span style="font-weight:600">Trauma / ATLS</span>
+            </button>
+            <button class="btn" onclick="emergencyQuickFill('respiratory')" style="background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal);padding:14px;flex-direction:column;gap:4px;height:auto">
+              <span style="font-size:1.5rem">🫁</span><span style="font-weight:600">Respiratory</span>
+            </button>
+            <button class="btn" onclick="emergencyQuickFill('sepsis')" style="background:rgba(16,185,129,0.1);color:#10b981;border:1px solid #10b981;padding:14px;flex-direction:column;gap:4px;height:auto">
+              <span style="font-size:1.5rem">🦠</span><span style="font-weight:600">Sepsis / Shock</span>
+            </button>
+            <button class="btn" onclick="emergencyQuickFill('anaphylaxis')" style="background:rgba(249,115,22,0.1);color:#f97316;border:1px solid #f97316;padding:14px;flex-direction:column;gap:4px;height:auto">
+              <span style="font-size:1.5rem">💉</span><span style="font-weight:600">Anaphylaxis</span>
+            </button>
+          </div>
+
+          <!-- Input area -->
+          <div class="card" style="margin-bottom:16px">
+            <div class="card-header">
+              <div class="card-title">🩺 Clinical Presentation</div>
+            </div>
+            <div class="card-body">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px">
+                <div>
+                  <label style="font-size:0.78rem;color:var(--text3);font-weight:600;display:block;margin-bottom:4px">AGE / SEX</label>
+                  <input id="emAge" class="form-input" placeholder="e.g. 55M" style="width:100%">
+                </div>
+                <div>
+                  <label style="font-size:0.78rem;color:var(--text3);font-weight:600;display:block;margin-bottom:4px">VITALS</label>
+                  <input id="emVitals" class="form-input" placeholder="BP / HR / SpO2 / RR / Temp" style="width:100%">
+                </div>
+              </div>
+              <div style="margin-bottom:12px">
+                <label style="font-size:0.78rem;color:var(--text3);font-weight:600;display:block;margin-bottom:4px">CHIEF COMPLAINT & HISTORY</label>
+                <textarea id="emComplaint" class="form-input" rows="3" placeholder="Describe presenting complaint, onset, duration, associated symptoms..." style="width:100%;resize:vertical"></textarea>
+              </div>
+              <div style="margin-bottom:16px">
+                <label style="font-size:0.78rem;color:var(--text3);font-weight:600;display:block;margin-bottom:4px">RELEVANT HISTORY / MEDICATIONS</label>
+                <textarea id="emHistory" class="form-input" rows="2" placeholder="Past medical history, current medications, allergies..." style="width:100%;resize:vertical"></textarea>
+              </div>
+              <button class="btn btn-primary" style="width:100%;justify-content:center;background:var(--red);border-color:var(--red)" onclick="runEmergencyAI()">
+                🚨 Get Emergency AI Guidance
+              </button>
+            </div>
+          </div>
+
+          <!-- Response area -->
+          <div id="emResponseArea" style="display:none">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">🤖 AI Emergency Guidance</div>
+                <div style="font-size:0.75rem;color:var(--text3)">Based on ICMR · ACLS · ATLS protocols</div>
+              </div>
+              <div class="card-body">
+                <div id="emTypingIndicator" style="display:none;padding:12px;color:var(--text3);font-size:0.85rem">
+                  🔄 Analysing clinical presentation...
+                </div>
+                <div id="emResponseText" style="line-height:1.7;font-size:0.9rem;white-space:pre-wrap"></div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
       <div class="view" id="view-radiology" style="overflow-y:auto;height:100%">
         <div style="max-width:1400px;margin:0 auto;padding:24px 24px 80px">
 
@@ -5043,6 +5133,7 @@
     settings:  { title: 'Settings', sub: 'Configure SamarthaaMed platform preferences' },
     radiology:   { title: 'Radiology & Imaging Intelligence', sub: 'AI-powered radiology report analysis · ICMR imaging guidelines' },
     dentistry:   { title: 'Dentistry & Oral Medicine', sub: 'AI-powered dental diagnosis · Oral charting · Procedure planning · IDA & ICMR guidelines' },
+    emergency:   { title: 'Emergency AI Consultation', sub: 'Rapid triage · Critical decision support · ACLS & ATLS protocols' },
   };
 
 
@@ -10485,8 +10576,8 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
     const arrayBuffer = await response.arrayBuffer();
 
-    // AudioContext with resume() — required on iOS Safari + Android Chrome.
-    // Without resume() the context stays suspended and audio plays silently.
+    // AudioContext with resume() — required on iOS Safari & Android Chrome.
+    // Without this the context stays suspended and audio plays silently.
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) throw new Error('AudioContext not supported');
     const ctx = new AudioCtx();
@@ -10496,7 +10587,6 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     const gain    = ctx.createGain();
     gain.gain.value = 2.5;
     gain.connect(ctx.destination);
-
     const src = ctx.createBufferSource();
     src.buffer = decoded;
     src.connect(gain);
@@ -12015,6 +12105,75 @@ Please provide clinical guidance on management.`;
     if (ct) ct.textContent = `${PACS_DEMO_STUDIES.length} studies (demo)`;
     showToast('🎭','Demo mode active','Showing sample studies — connect Orthanc for real DICOM');
   }
+
+
+  // ══ Emergency AI Consultation ══════════════════════════════════════
+  function emergencyQuickFill(type) {
+    const presets = {
+      'chest-pain':  { complaint: 'Acute chest pain, crushing in nature, radiating to left arm. Onset 30 minutes ago. Associated diaphoresis and nausea. Pain 8/10.', history: 'Known hypertension, Type 2 DM, smoker.' },
+      'stroke':      { complaint: 'Sudden onset left-sided weakness and facial droop. Slurred speech. Last seen normal 1 hour ago. FAST positive.', history: 'Atrial fibrillation, on Warfarin.' },
+      'trauma':      { complaint: 'Road traffic accident. Multiple injuries. Altered consciousness. Airway partially compromised.', history: 'Unknown. Primary survey in progress.' },
+      'respiratory': { complaint: 'Acute severe breathlessness. Unable to speak in full sentences. SpO2 dropping despite oxygen. Wheeze present.', history: 'Known asthmatic. Albuterol used 3x today without relief.' },
+      'sepsis':      { complaint: 'High fever 39.8°C, hypotension BP 88/56, tachycardia HR 118, altered sensorium. Suspected source: urinary.', history: 'Elderly diabetic. On immunosuppressants.' },
+      'anaphylaxis': { complaint: 'Sudden onset urticaria, angioedema, hypotension and stridor following antibiotic injection 10 minutes ago.', history: 'No prior allergy history documented.' }
+    };
+    const p = presets[type];
+    if (!p) return;
+    const c = document.getElementById('emComplaint');
+    const h = document.getElementById('emHistory');
+    if (c) c.value = p.complaint;
+    if (h) h.value = p.history;
+    showToast('✅', 'Template loaded', 'Fill in age, vitals, then click Get Emergency AI Guidance');
+  }
+
+  async function runEmergencyAI() {
+    const age       = (document.getElementById('emAge')?.value || '').trim();
+    const vitals    = (document.getElementById('emVitals')?.value || '').trim();
+    const complaint = (document.getElementById('emComplaint')?.value || '').trim();
+    const history   = (document.getElementById('emHistory')?.value || '').trim();
+
+    if (!complaint) { showToast('⚠️', 'Missing info', 'Please enter the chief complaint'); return; }
+
+    const responseArea = document.getElementById('emResponseArea');
+    const typing       = document.getElementById('emTypingIndicator');
+    const respText     = document.getElementById('emResponseText');
+
+    responseArea.style.display = 'block';
+    typing.style.display = 'block';
+    respText.textContent = '';
+    responseArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    const systemPrompt = `You are Samarthaa Emergency, an AI clinical decision support assistant for emergency medicine in India.
+Follow ICMR, ACLS, ATLS, and WHO SEARO emergency protocols.
+Provide rapid, structured, actionable emergency guidance.
+Format your response clearly with these sections:
+1. IMMEDIATE ACTIONS (first 0-5 minutes)
+2. DIFFERENTIAL DIAGNOSIS (most likely first)
+3. INVESTIGATIONS (urgent, stat)
+4. TREATMENT PROTOCOL (drug doses in Indian generic names, Jan Aushadhi preferred)
+5. DISPOSITION & ESCALATION
+6. RED FLAGS to watch for
+Be concise, specific, and clinically actionable. Use Indian drug names and dosing.`;
+
+    const userMsg = `Patient: ${age || 'Age/sex not specified'}
+Vitals: ${vitals || 'Not provided'}
+Chief Complaint: ${complaint}
+History/Medications: ${history || 'Not provided'}
+
+Please provide emergency management guidance.`;
+
+    try {
+      const messages = [{ role: 'user', content: userMsg }];
+      const response = await callClaudeAI(messages, systemPrompt);
+      typing.style.display = 'none';
+      respText.textContent = response;
+    } catch(err) {
+      typing.style.display = 'none';
+      respText.style.color = 'var(--red)';
+      respText.textContent = '⚠️ Error: ' + err.message;
+    }
+  }
+  // ════════════════════════════════════════════════════════════════════
 
 </script>
 </body>
