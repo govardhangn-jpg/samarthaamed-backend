@@ -4349,7 +4349,7 @@
               <div style="font-size:0.8rem;color:var(--text2)">Rapid triage support · ACLS · ATLS · ICMR Emergency Protocols · Not a substitute for clinical judgment</div>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:20px">
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
             <button class="btn" onclick="emergencyQuickFill('chest-pain')" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red);padding:12px;flex-direction:column;gap:4px;height:auto;width:100%"><span style="font-size:1.4rem">🫀</span><span style="font-weight:600;font-size:0.82rem">Chest Pain/ACS</span></button>
             <button class="btn" onclick="emergencyQuickFill('stroke')" style="background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid #a78bfa;padding:12px;flex-direction:column;gap:4px;height:auto;width:100%"><span style="font-size:1.4rem">🧠</span><span style="font-weight:600;font-size:0.82rem">Stroke/Neuro</span></button>
             <button class="btn" onclick="emergencyQuickFill('trauma')" style="background:rgba(245,158,11,0.12);color:var(--gold);border:1px solid var(--gold);padding:12px;flex-direction:column;gap:4px;height:auto;width:100%"><span style="font-size:1.4rem">🩹</span><span style="font-weight:600;font-size:0.82rem">Trauma/ATLS</span></button>
@@ -12124,25 +12124,66 @@ Please provide clinical guidance on management.`;
     var complaint = (document.getElementById('emComplaint') ? document.getElementById('emComplaint').value : '').trim();
     var history   = (document.getElementById('emHistory') ? document.getElementById('emHistory').value : '').trim();
     if (!complaint) { showToast('⚠️','Missing info','Please describe the chief complaint'); return; }
+
     var area   = document.getElementById('emResponseArea');
     var typing = document.getElementById('emTypingIndicator');
     var resp   = document.getElementById('emResponseText');
     if (!area||!typing||!resp) return;
-    area.style.display   = 'block';
-    typing.style.display = 'block';
-    resp.textContent     = '';
-    resp.style.color     = '';
+
+    // Show loading immediately so user knows button worked
+    area.style.display    = 'block';
+    typing.style.display  = 'block';
+    typing.textContent    = '🔄 Connecting to AI... please wait';
+    resp.textContent      = '';
+    resp.style.color      = '';
     area.scrollIntoView({ behavior:'smooth', block:'start' });
+
     var sys = 'You are Samarthaa Emergency, an AI clinical decision support system for emergency medicine in India. Follow ICMR, ACLS, ATLS, and WHO SEARO protocols. Structure your response with these exact headings:\n1. IMMEDIATE ACTIONS (0-5 minutes)\n2. DIFFERENTIAL DIAGNOSIS\n3. URGENT INVESTIGATIONS\n4. TREATMENT PROTOCOL (use Indian generic drug names and doses)\n5. DISPOSITION & ESCALATION\n6. RED FLAGS\nBe concise, specific, and clinically actionable.';
     var msg  = 'Patient: ' + (age||'Not specified') + '\nVitals: ' + (vitals||'Not provided') + '\nChief Complaint: ' + complaint + '\nHistory/Medications: ' + (history||'Not provided') + '\n\nProvide emergency management guidance.';
+
     try {
-      var r = await callClaudeAI([{ role:'user', content:msg }], sys);
+      // Force config reload every time so key is always fresh
+      _configLoaded = false;
+      _configLoadPromise = null;
+      await _loadConfig();
+
+      typing.textContent = '🔄 Analysing clinical presentation...';
+
+      var apiKey = getApiKey();
+      if (!apiKey) {
+        throw new Error('API key not configured. Please ask your administrator to deploy netlify/functions/config.js and set the ANTHROPIC_API_KEY environment variable in Netlify.');
+      }
+
+      var response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 2048,
+          system: sys,
+          messages: [{ role:'user', content: msg }]
+        })
+      });
+
+      if (!response.ok) {
+        var err = await response.json().catch(function(){ return {}; });
+        throw new Error(err.error ? err.error.message : 'API error ' + response.status);
+      }
+
+      var data = await response.json();
       typing.style.display = 'none';
-      resp.textContent = r;
+      resp.textContent = data.content[0].text.trim();
+
     } catch(err) {
       typing.style.display = 'none';
       resp.style.color = 'var(--red)';
-      resp.textContent = 'Error: ' + err.message;
+      resp.textContent = '⚠️ ' + err.message;
+      console.error('[Emergency AI]', err);
     }
   }
   // ───────────────────────────────────────────────────────────────────────
