@@ -2028,6 +2028,96 @@
     }
   }
 
+
+  /* ══ Bottom navigation — hidden on desktop, shown on mobile ══ */
+  .mobile-bottom-nav { display: none; }
+
+  @media screen and (max-width: 768px) {
+    /* Bottom navigation */
+    .mobile-bottom-nav {
+      display: flex;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 60px;
+      background: var(--panel);
+      border-top: 1.5px solid var(--border);
+      z-index: 500;
+      box-shadow: 0 -2px 20px rgba(0,0,0,0.08);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+    }
+    .mobile-nav-item {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text3);
+      transition: color .15s;
+      padding: 6px 2px;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      position: relative;
+    }
+    .mobile-nav-item.active { color: var(--teal); }
+    .mobile-nav-item.active::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 50%;
+      transform: translateX(-50%);
+      width: 28px; height: 2px;
+      background: var(--teal);
+      border-radius: 0 0 2px 2px;
+    }
+    .mobile-nav-item:active { opacity: 0.55; }
+    .mobile-nav-icon  { font-size: 1.2rem; line-height: 1; }
+    .mobile-nav-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+
+    /* Toast and floating button above bottom nav */
+    .toast {
+      bottom: 72px !important;
+      left: 12px !important;
+      right: 12px !important;
+      width: auto !important;
+      max-width: none !important;
+    }
+    #floatingChatBtn {
+      bottom: 72px !important;
+      right: 14px !important;
+    }
+
+    /* Content padding so nothing hides behind bottom nav */
+    .content {
+      padding-bottom: 76px !important;
+    }
+  }
+
+  @media screen and (max-width: 480px) {
+    .mobile-bottom-nav { height: 56px; }
+    .mobile-nav-icon   { font-size: 1.1rem; }
+    .mobile-nav-label  { font-size: 0.57rem; }
+    .toast             { bottom: 66px !important; }
+    #floatingChatBtn   { bottom: 66px !important; }
+  }
+
+  @media screen and (max-width: 400px) {
+    .mobile-bottom-nav { height: 56px; }
+    .mobile-nav-label  { font-size: 0.54rem; }
+    .content           { padding-bottom: 68px !important; }
+  }
+
+  @media screen and (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
+    .mobile-bottom-nav  { height: 46px; }
+    .mobile-nav-icon    { font-size: 0.95rem; }
+    .mobile-nav-label   { display: none; }
+    .content            { padding-bottom: 54px !important; }
+    .toast              { bottom: 54px !important; }
+    #floatingChatBtn    { bottom: 54px !important; }
+  }
+
 </style>
 
 </head>
@@ -5299,6 +5389,31 @@
   </div>
   <div class="toast-bar"></div>
 </div>
+
+<!-- ══ Mobile bottom navigation ══ -->
+<nav class="mobile-bottom-nav" id="mobileBottomNav">
+  <button class="mobile-nav-item active" onclick="showView('dashboard')">
+    <span class="mobile-nav-icon">🏠</span>
+    <span class="mobile-nav-label">Dashboard</span>
+  </button>
+  <button class="mobile-nav-item" onclick="showView('consult')">
+    <span class="mobile-nav-icon">🩺</span>
+    <span class="mobile-nav-label">Consult</span>
+  </button>
+  <button class="mobile-nav-item" onclick="showView('patients')">
+    <span class="mobile-nav-icon">👥</span>
+    <span class="mobile-nav-label">Patients</span>
+  </button>
+  <button class="mobile-nav-item" onclick="showView('prescription')">
+    <span class="mobile-nav-icon">💊</span>
+    <span class="mobile-nav-label">Rx</span>
+  </button>
+  <button class="mobile-nav-item" onclick="showView('settings')">
+    <span class="mobile-nav-icon">⚙️</span>
+    <span class="mobile-nav-label">Settings</span>
+  </button>
+</nav>
+
 </body>
 </html>
     `;
