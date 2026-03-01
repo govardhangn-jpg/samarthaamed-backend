@@ -185,9 +185,8 @@ const Voice = (() => {
 
             const arrayBuffer = await response.arrayBuffer();
 
-            // MOBILE FIX: create fresh AudioContext and resume() before decoding.
-            // resume() is required on iOS Safari and Android Chrome — the context
-            // starts 'suspended' and audio silently fails without this call.
+            // resume() is mandatory on iOS Safari + Android Chrome —
+            // AudioContext always starts 'suspended' and silently does nothing without it
             audioContext = new (window.AudioContext || window.webkitAudioContext)();
             if (audioContext.state === 'suspended') {
                 await audioContext.resume();
