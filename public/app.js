@@ -5241,7 +5241,32 @@ Guidelines:
   }
 
   // ── Text-to-Speech: ElevenLabs → browser Web Speech API fallback ──
+  // ── DIAGNOSTIC OVERLAY ─────────────────────────────────────────
+  function _dbg(msg, color) {
+    color = color || '#fff';
+    let box = document.getElementById('_samDiag');
+    if (!box) {
+      box = document.createElement('div');
+      box.id = '_samDiag';
+      box.style.cssText = [
+        'position:fixed;bottom:0;left:0;right:0;z-index:99999',
+        'background:rgba(0,0,0,0.92);color:#fff;font-size:12px',
+        'font-family:monospace;padding:8px;max-height:40vh;overflow-y:auto',
+        'border-top:2px solid #f59e0b;pointer-events:none'
+      ].join(';');
+      document.body.appendChild(box);
+    }
+    const line = document.createElement('div');
+    line.style.cssText = 'padding:2px 0;border-bottom:1px solid #333;color:' + color;
+    line.textContent = new Date().toISOString().slice(11,23) + '  ' + msg;
+    box.appendChild(line);
+    box.scrollTop = box.scrollHeight;
+    console.log('[SAM-DIAG]', msg);
+  }
+
   async function speakText(text) {
+    _dbg('speakText() called. len=' + text.length);
+
     // Stop any ongoing speech
     voiceConsultation.synthesis.cancel();
     if (window._elCurrentAudio) {
@@ -5253,25 +5278,34 @@ Guidelines:
     updateVoiceStatus('AI Speaking…', text.substring(0, 100) + '…');
     animateWaveform(true);
 
-    // Stop mic while speaking
     if (voiceConsultation.isListening) {
       try { voiceConsultation.recognition.stop(); } catch(e) {}
     }
 
     await _loadConfig();
-    const elKey    = _SYSTEM_EL_API_KEY   || null;
-    const elVoice  = _SYSTEM_EL_VOICE_ID  || null;
-    const useEL    = elKey && elVoice && document.getElementById('elUseVoiceConsult')?.checked !== false;
+    const elKey   = _SYSTEM_EL_API_KEY  || null;
+    const elVoice = _SYSTEM_EL_VOICE_ID || null;
+    const cbEl    = document.getElementById('elUseVoiceConsult');
+    const cbChecked = cbEl ? cbEl.checked : 'element not found';
+    const useEL   = elKey && elVoice && cbEl?.checked !== false;
+
+    _dbg('config: elKey=' + (elKey ? 'SET('+elKey.slice(0,8)+'…)' : 'EMPTY') +
+         ' elVoice=' + (elVoice ? 'SET' : 'EMPTY') +
+         ' checkbox=' + cbChecked +
+         ' useEL=' + useEL, useEL ? '#4ade80' : '#f87171');
 
     if (useEL) {
       try {
+        _dbg('→ calling _speakElevenLabs…');
         await _speakElevenLabs(text, elKey, elVoice);
-        return; // ElevenLabs handled onend itself
+        _dbg('✓ _speakElevenLabs resolved OK', '#4ade80');
+        return;
       } catch(err) {
-        console.warn('ElevenLabs TTS failed, falling back to browser:', err.message);
+        _dbg('✗ ElevenLabs error: ' + err.message, '#f87171');
       }
     }
-    // Fallback: browser Web Speech API
+
+    _dbg('→ falling back to _speakBrowser');
     _speakBrowser(text);
   }
 
@@ -5279,6 +5313,8 @@ Guidelines:
     const model      = localStorage.getItem('el_model')      || 'eleven_multilingual_v2';
     const stability  = parseFloat(localStorage.getItem('el_stability'))  || 0.5;
     const similarity = parseFloat(localStorage.getItem('el_similarity')) || 0.85;
+
+    _dbg('EL fetch start. model=' + model + ' voice=' + voiceId.slice(0,8) + '…');
 
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
@@ -5290,86 +5326,88 @@ Guidelines:
       body: JSON.stringify({
         text: text,
         model_id: model,
-        voice_settings: {
-          stability: stability,
-          similarity_boost: similarity,
-          style: 0.25,
-          use_speaker_boost: true
-        }
+        voice_settings: { stability, similarity_boost: similarity, style: 0.25, use_speaker_boost: true }
       })
     });
 
+    _dbg('EL response: status=' + response.status + ' ok=' + response.ok,
+         response.ok ? '#4ade80' : '#f87171');
+
     if (!response.ok) {
       const errBody = await response.json().catch(() => ({}));
-      throw new Error(errBody?.detail?.message || `ElevenLabs error ${response.status}`);
+      throw new Error(errBody?.detail?.message || 'ElevenLabs error ' + response.status);
     }
 
-    const blob    = await response.blob();
-    const url     = URL.createObjectURL(blob);
-    const audio   = new Audio(url);
-    window._elCurrentAudio = audio;
+    const arrayBuffer = await response.arrayBuffer();
+    _dbg('EL audio bytes=' + arrayBuffer.byteLength);
 
-    // Return a promise that resolves when audio FINISHES (not just when it starts)
-    return new Promise((resolve, reject) => {
-      audio.onended = () => {
-        URL.revokeObjectURL(url);
-        window._elCurrentAudio = null;
+    // AudioContext with resume() — required on iOS/Android
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) {
+      _dbg('✗ AudioContext NOT supported!', '#f87171');
+      throw new Error('AudioContext not supported');
+    }
+
+    const ctx = new AudioCtx();
+    _dbg('AudioContext state before resume: ' + ctx.state,
+         ctx.state === 'running' ? '#4ade80' : '#fb923c');
+
+    if (ctx.state === 'suspended') {
+      await ctx.resume();
+      _dbg('AudioContext state after resume: ' + ctx.state,
+           ctx.state === 'running' ? '#4ade80' : '#f87171');
+    }
+
+    let decoded;
+    try {
+      decoded = await ctx.decodeAudioData(arrayBuffer);
+      _dbg('decoded OK. duration=' + decoded.duration.toFixed(1) + 's', '#4ade80');
+    } catch(e) {
+      _dbg('✗ decodeAudioData failed: ' + e.message, '#f87171');
+      ctx.close().catch(()=>{});
+      throw e;
+    }
+
+    const gain = ctx.createGain();
+    gain.gain.value = 2.5;
+    gain.connect(ctx.destination);
+
+    const src = ctx.createBufferSource();
+    src.buffer = decoded;
+    src.connect(gain);
+
+    window._elAudioCtx = ctx;
+    window._elAudioSrc = src;
+
+    _dbg('src.start(0) — audio should play now', '#4ade80');
+
+    return new Promise((resolve) => {
+      src.onended = () => {
+        _dbg('✓ audio playback ended', '#4ade80');
+        try { ctx.close(); } catch(e) {}
+        window._elAudioCtx = null;
+        window._elAudioSrc = null;
         _onSpeakEnd();
         resolve();
       };
-      audio.onerror = (e) => {
-        URL.revokeObjectURL(url);
-        window._elCurrentAudio = null;
-        _onSpeakEnd();
-        reject(new Error('Audio playback error'));
-      };
-      audio.play().catch(reject);
+      src.start(0);
     });
   }
 
   function _speakBrowser(text) {
-    const synth = window.speechSynthesis;
-    if (!synth) { _onSpeakEnd(); return; }
-
-    // iOS Safari bug: synth gets stuck — always cancel first, then wait before speaking
-    synth.cancel();
-
-    const doSpeak = () => {
-      const utterance  = new SpeechSynthesisUtterance(text);
-      utterance.lang   = voiceConsultation.currentLanguage || 'en-US';
-      utterance.rate   = 0.95;
-      utterance.pitch  = 1.0;
-      utterance.volume = 1.0;
-
-      // Pick best voice — getVoices() may be empty on first call on mobile
-      const voices = synth.getVoices();
-      const langBase = (voiceConsultation.currentLanguage || 'en').split('-')[0];
-      const best = voices.find(v => v.lang.startsWith(langBase) &&
-                    (v.name.includes('Google') || v.name.includes('Microsoft'))) ||
-                   voices.find(v => v.lang.startsWith(langBase)) ||
-                   voices.find(v => v.lang.startsWith('en'));
-      if (best) utterance.voice = best;
-
-      utterance.onend   = _onSpeakEnd;
-      utterance.onerror = (e) => {
-        // 'interrupted' is normal (user tapped mic) — don't log as error
-        if (e.error !== 'interrupted') console.warn('SpeechSynthesis error:', e.error);
-        _onSpeakEnd();
-      };
-
-      synth.speak(utterance);
-
-      // iOS watchdog: iOS stops synth after ~15s without warning
-      // Resume it every 10s to keep it alive
-      const watchdog = setInterval(() => {
-        if (!voiceConsultation.isSpeaking) { clearInterval(watchdog); return; }
-        if (synth.paused) synth.resume();
-      }, 10000);
-      utterance.onend = () => { clearInterval(watchdog); _onSpeakEnd(); };
-    };
-
-    // Small delay after cancel so the engine clears — critical on iOS and Android
-    setTimeout(doSpeak, 150);
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang  = voiceConsultation.currentLanguage;
+    utterance.rate  = 0.95;
+    utterance.pitch = 1.0;
+    utterance.volume = 1.0;
+    const voices = voiceConsultation.synthesis.getVoices();
+    const best   = voices.find(v =>
+      v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]) &&
+      (v.name.includes('Google') || v.name.includes('Microsoft'))
+    ) || voices.find(v => v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]));
+    if (best) utterance.voice = best;
+    utterance.onend = _onSpeakEnd;
+    voiceConsultation.synthesis.speak(utterance);
   }
 
   function _onSpeakEnd() {
