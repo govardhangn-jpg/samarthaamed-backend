@@ -5149,6 +5149,9 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
 
   // Toggle voice listening
   function toggleVoiceListening() {
+    // Unlock audio on every mic tap (user gesture — required by iOS/Android)
+    _unlockAudio();
+
     if (!voiceConsultation.recognition) {
       initializeVoiceRecognition();
       return;
@@ -5165,6 +5168,17 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
         console.error('Failed to start recognition:', e);
       }
     }
+  }
+
+  // Play silent audio to unlock browser audio for this session
+  function _unlockAudio() {
+    if (window._audioUnlocked) return;
+    window._audioUnlocked = true;
+    try {
+      const silent = new Audio('data:audio/mpeg;base64,SUQzBAAAAAABEVRYWFgAAAAtAAADY29tbWVudABCaWdTb3VuZEtpdCAtIG11c2ljIGZvciBldmVyeW9uZSEhAAA=');
+      silent.volume = 0.001;
+      silent.play().catch(() => {});
+    } catch(e) {}
   }
 
   // Process voice input with AI
@@ -5279,6 +5293,7 @@ Guidelines:
     const model      = localStorage.getItem('el_model')      || 'eleven_multilingual_v2';
     const stability  = parseFloat(localStorage.getItem('el_stability'))  || 0.5;
     const similarity = parseFloat(localStorage.getItem('el_similarity')) || 0.85;
+    const isAndroid  = /android/i.test(navigator.userAgent);
 
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
@@ -5304,12 +5319,24 @@ Guidelines:
       throw new Error(errBody?.detail?.message || `ElevenLabs error ${response.status}`);
     }
 
-    const blob    = await response.blob();
-    const url     = URL.createObjectURL(blob);
-    const audio   = new Audio(url);
+    // Use blob URL + HTMLAudioElement for all platforms
+    // (AudioContext blocked after async fetch on mobile; HTMLAudioElement works after mic grant)
+    const arrayBuffer = await response.arrayBuffer();
+    const blob  = new Blob([arrayBuffer], { type: 'audio/mpeg' });
+    const url   = URL.createObjectURL(blob);
+    const audio = new Audio(url);
+    audio.volume = 1.0;
     window._elCurrentAudio = audio;
 
-    // Return a promise that resolves when audio FINISHES (not just when it starts)
+    // iOS: resume AudioContext if one exists (belt-and-suspenders)
+    if (!isAndroid && window.AudioContext || window.webkitAudioContext) {
+      try {
+        const ctx = new (window.AudioContext || window.webkitAudioContext)();
+        if (ctx.state === 'suspended') await ctx.resume();
+        await ctx.close();
+      } catch(e) {}
+    }
+
     return new Promise((resolve, reject) => {
       audio.onended = () => {
         URL.revokeObjectURL(url);
@@ -5317,13 +5344,21 @@ Guidelines:
         _onSpeakEnd();
         resolve();
       };
-      audio.onerror = (e) => {
+      audio.onerror = () => {
         URL.revokeObjectURL(url);
         window._elCurrentAudio = null;
         _onSpeakEnd();
         reject(new Error('Audio playback error'));
       };
-      audio.play().catch(reject);
+      const playPromise = audio.play();
+      if (playPromise) {
+        playPromise.catch(err => {
+          // Autoplay blocked — resolve so caller falls through to browser TTS
+          URL.revokeObjectURL(url);
+          window._elCurrentAudio = null;
+          reject(err);
+        });
+      }
     });
   }
 
@@ -6223,7 +6258,8 @@ Generate a structured dental diagnosis and phased treatment plan. Return JSON on
 
   // ── Read-aloud helper callable from dental/radiology AI ──────────
   async function elReadAloud(text, context) {
-    const apiKey  = _SYSTEM_EL_API_KEY  || null;
+    _unlockAudio(); // unlock audio on user-triggered read-aloud
+   const apiKey  = _SYSTEM_EL_API_KEY  || null;
     const voiceId = _SYSTEM_EL_VOICE_ID || null;
 
     // Check the right checkbox for this context
