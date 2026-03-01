@@ -139,7 +139,6 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 <style>
-
   :root {
     /* Brick Red & White Color Scheme */
     --navy: #ffffff;           /* White background */
@@ -178,10 +177,9 @@
     font-family: var(--dm);
     background: var(--navy);
     color: var(--text1);
-    height: 100vh;
-    overflow: hidden;
+    min-height: 100vh;
+    overflow-x: hidden;
   }
-  html { height: 100vh; overflow: hidden; }
   /* SCROLLBAR */
   ::-webkit-scrollbar { width: 4px; height: 4px; }
   ::-webkit-scrollbar-track { background: var(--navy); }
@@ -270,7 +268,7 @@
     display: flex; 
     flex-direction: column; 
     overflow: hidden;
-    height: 100vh;
+    min-height: 0;
   }
 
   /* ── TOPBAR ── */
@@ -304,7 +302,7 @@
   .icon-btn .dot { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; background: var(--red); border: 1.5px solid var(--navy2); }
 
   /* ── CONTENT AREA ── */
-  .content { flex: 1; overflow-y: auto; display: block; min-height: 0; padding-bottom: 32px; }
+  .content { flex: 1; overflow-y: auto; display: block; min-height: 0; }
   .view { display: none; animation: fadeIn .25s ease; }
   .view.active { display: block; }
   .view.active.flex-view { display: flex; }
@@ -349,7 +347,6 @@
     display: flex; align-items: center; justify-content: space-between;
   }
   .card-title { font-family: var(--syne); font-size: 0.88rem; font-weight: 700; color: var(--text1); display: flex; align-items: center; gap: 8px; }
-  .card-
   .card-action { font-size: 0.75rem; color: var(--teal); cursor: pointer; font-weight: 500; }
   .card-action:hover { text-decoration: underline; }
 
@@ -427,7 +424,6 @@
   .vital-mini { background: var(--navy3); border: 1px solid var(--border2); border-radius: 6px; padding: 6px 10px; }
   .vital-mini .vlabel { font-size: 0.6rem; color: var(--text3); letter-spacing: 0.8px; text-transform: uppercase; }
   .vital-mini .vval { font-family: var(--mono); font-size: 0.9rem; color: var(--text1); margin-top: 2px; }
-  .consult-left-
   .symptom-tags { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
   .tag { background: var(--teal-dim); border: 1px solid rgba(0,212,180,0.25); color: var(--teal); font-size: 0.7rem; font-weight: 500; padding: 3px 9px; border-radius: 20px; cursor: default; }
   .tag.red { background: var(--red-dim); border-color: rgba(255,77,109,0.25); color: var(--red); }
@@ -509,7 +505,6 @@
   .r-tab { flex: 1; padding: 11px 6px; text-align: center; font-size: 0.7rem; font-weight: 600; color: var(--text3); cursor: pointer; transition: all .2s; border-bottom: 2px solid transparent; }
   .r-tab:hover { color: var(--text1); }
   .r-tab.active { color: var(--teal); border-bottom-color: var(--teal); background: var(--teal-dim); }
-  .consult-right-
 
   .rx-item {
     background: var(--navy3); border: 1px solid var(--border2);
@@ -709,7 +704,6 @@
   .scan-type-btn.active .s-name { color:var(--teal); }
   .imaging-result-panel { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; display:flex; flex-direction:column; }
   .imaging-result-header { padding:14px 18px; border-bottom:1px solid var(--border); background:var(--navy3); flex-shrink:0; }
-  .imaging-result-
   .finding-item { background:var(--navy3); border:1px solid var(--border2); border-radius:8px; padding:12px; margin-bottom:10px; }
   .finding-title { font-size:0.82rem; font-weight:700; color:var(--text1); margin-bottom:4px; display:flex; justify-content:space-between; align-items:center; }
   .finding-desc { font-size:0.77rem; color:var(--text2); line-height:1.5; }
@@ -733,10 +727,8 @@
   .analytics-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px; }
   .analytics-grid-3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; margin-bottom:16px; }
   .chart-card { background:var(--panel); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
-  .chart-card-body { padding: 14px 18px; }
   .chart-card-header { padding:14px 18px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
-  .chart-card-title  { font-size:0.88rem; font-weight:600; color:var(--text1); }
-  .bar-chart { display:flex; align-items:flex-end; gap:3px; height:130px; overflow:hidden; padding:4px 0; }
+  .bar-chart { display:flex; align-items:flex-end; gap:6px; height:130px; }
   .bar-col { flex:1; display:flex; flex-direction:column; align-items:center; gap:4px; height:100%; justify-content:flex-end; }
   .bar { width:100%; border-radius:4px 4px 0 0; min-height:4px; cursor:pointer; transition:filter .15s; }
   .bar:hover { filter:brightness(1.3); }
@@ -874,7 +866,6 @@
   .step-connector { flex: 1; height: 1px; background: var(--border2); margin: 0 6px; max-width: 40px; }
 
   /* Modal body */
-  .modal-
 
   /* Step panels */
   .step-panel { display: none; animation: fadeIn .2s ease; }
@@ -1313,489 +1304,729 @@
     gap: 16px;
   }
 
-  /* ══════════════════════════════════════════════════════
-     MOBILE HAMBURGER + OVERLAY + BOTTOM NAV
-     Hidden on desktop, shown on ≤ 900px
-  ══════════════════════════════════════════════════════ */
-  .mobile-menu-btn {
-    display: none;
-    align-items: center;
-    justify-content: center;
-    background: none;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    color: var(--text1);
-    font-size: 1.25rem;
-    cursor: pointer;
-    padding: 6px 10px;
-    flex-shrink: 0;
-    transition: all .2s;
-    line-height: 1;
-    -webkit-tap-highlight-color: transparent;
-    touch-action: manipulation;
-  }
-  .mobile-menu-btn:hover { border-color: var(--teal); color: var(--teal); }
+  /* Mobile responsive for login */
+  @media screen and (max-width: 768px) {
+    .login-box {
+      padding: 32px 24px;
+    }
 
-  /* Bottom nav — hidden on desktop */
-  .mobile-bottom-nav { display: none; }
+    .login-title {
+      font-size: 1.6rem;
+    }
 
-  /* Dimming overlay when sidebar is open on mobile */
-  .mobile-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    z-index: 999;
-    backdrop-filter: blur(3px);
-    -webkit-backdrop-filter: blur(3px);
-  }
-  .mobile-overlay.show { display: block; }
-
-  /* ══════════════════════════════════════════════════════
-     LAPTOP  ≤ 1280px  (tight screens, small 13" laptops)
-  ══════════════════════════════════════════════════════ */
-  @media screen and (max-width: 1280px) {
-    .stat-grid           { grid-template-columns: repeat(4, 1fr); gap: 12px; }
-    .spec-grid           { grid-template-columns: repeat(4, 1fr); }
-    .kpi-strip           { grid-template-columns: repeat(3, 1fr); gap: 10px; }
-    .analytics-grid-3    { grid-template-columns: repeat(2, 1fr); }
-    .consult-layout      { grid-template-columns: 260px 1fr 250px; }
+    .login-logo {
+      font-size: 3rem;
+    }
   }
 
-  /* ══════════════════════════════════════════════════════
-     TABLET  ≤ 1024px  (iPad landscape, small laptops)
-  ══════════════════════════════════════════════════════ */
+
+  /* ══════════════════════════════════════════════════════════
+     MOBILE RESPONSIVE STYLES
+     ══════════════════════════════════════════════════════════ */
+
   @media screen and (max-width: 1024px) {
-    /* App shell — narrow sidebar */
-    .app                 { grid-template-columns: 200px 1fr; }
-    .sidebar             { width: 200px; min-width: 200px; }
-
-    /* Core grids */
-    .grid-2              { grid-template-columns: 1fr; }
-    .grid-3              { grid-template-columns: repeat(2, 1fr); }
-    .grid-4              { grid-template-columns: repeat(2, 1fr); }
-
-    /* Stats */
-    .stat-grid           { grid-template-columns: repeat(2, 1fr); gap: 12px; }
-
-    /* Consultation — collapse right panel to tabs */
-    .consult-layout      { grid-template-columns: 240px 1fr; }
-    .consult-right       {
-      display: none;
-      position: fixed;
-      top: 0; right: 0; bottom: 0;
-      width: 280px;
-      z-index: 800;
-      background: var(--panel);
-      border-left: 1px solid var(--border2);
-      box-shadow: -4px 0 24px rgba(0,0,0,0.15);
-    }
-    .consult-right.tablet-open { display: flex; }
-    .consult-right-toggle {
-      display: inline-flex !important;
-    }
-
-    /* Specializations */
-    .spec-grid           { grid-template-columns: repeat(4, 1fr); }
-
-    /* Lab cards */
-    .lab-cards-grid      { grid-template-columns: repeat(3, 1fr); }
-
-    /* Imaging */
-    .imaging-grid        { grid-template-columns: 1fr; }
-    .imaging-result-panel{ width: 100%; max-width: 100%; }
-
-    /* Risk */
-    .risk-grid           { grid-template-columns: repeat(2, 1fr); }
-
-    /* Analytics */
-    .kpi-strip           { grid-template-columns: repeat(3, 1fr); }
-    .analytics-grid      { grid-template-columns: 1fr; }
-    .analytics-grid-3    { grid-template-columns: repeat(2, 1fr); }
-
-    /* Topbar search narrow */
-    .search-bar          { width: 180px; }
-
-    /* Settings */
-    .settings-view       { max-width: 100%; padding: 18px; }
-
-    /* Dashboard padding */
-    .dashboard           { padding: 18px; }
+    /* Tablet adjustments */
+    .grid-2 { grid-template-columns: 1fr; }
+    .grid-3 { grid-template-columns: repeat(2, 1fr); }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
   }
 
-  /* ══════════════════════════════════════════════════════
-     TABLET PORTRAIT  ≤ 900px  (iPad portrait, large phones)
-  ══════════════════════════════════════════════════════ */
-  @media screen and (max-width: 900px) {
-    /* ── Shell switches to full-width ── */
-    html, body { height: 100%; overflow: hidden; }
+  @media screen and (max-width: 768px) {
+    /* Ensure html and body allow scrolling */
+    html, body {
+      overflow-x: hidden !important;
+      overflow-y: auto !important;
+      height: auto !important;
+      min-height: 100vh !important;
+    }
 
+    /* Mobile layout */
     .app {
       grid-template-columns: 1fr;
-      grid-template-rows: 56px 1fr;
-      height: 100vh;
-      height: 100dvh;
-      overflow: hidden;
+      grid-template-rows: auto 1fr;
+      height: auto !important;
+      min-height: 100vh !important;
+      overflow: visible !important;
     }
 
-    /* ── Sidebar: off-canvas drawer ── */
+    /* Main content wrapper */
+    .main {
+      grid-column: 1;
+      overflow: visible !important;
+      display: flex;
+      flex-direction: column;
+      height: auto !important;
+      min-height: calc(100vh - 60px); /* Subtract topbar height */
+    }
+
+    /* Content area should scroll */
+    .content {
+      flex: 1;
+      overflow-y: visible !important;
+      overflow-x: hidden !important;
+      height: auto !important;
+      padding: 16px;
+      padding-bottom: 80px;
+    }
+
+    /* Hide sidebar by default on mobile */
     .sidebar {
       position: fixed;
       left: -280px;
-      top: 0; bottom: 0;
-      width: 270px;
+      top: 0;
+      bottom: 0;
       z-index: 1000;
-      transition: left 0.28s cubic-bezier(.4, 0, .2, 1);
-      overflow-y: auto;
-      box-shadow: none;
+      transition: left 0.3s ease;
+      box-shadow: 4px 0 20px rgba(0,0,0,0.5);
     }
+
     .sidebar.mobile-open {
       left: 0;
-      box-shadow: 8px 0 40px rgba(0, 0, 0, 0.25);
     }
 
-    /* ── Main fills full column ── */
+    /* Mobile overlay when sidebar is open */
+    .mobile-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 999;
+    }
+
+    .mobile-overlay.show {
+      display: block;
+    }
+
+    /* Adjust main content for mobile */
     .main {
       grid-column: 1;
-      grid-row: 2;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      height: 100%;
-      min-height: 0;
     }
 
-    /* ── Topbar ── */
-    .topbar          { height: 56px; padding: 0 14px; gap: 10px; flex-shrink: 0; }
-    .mobile-menu-btn { display: flex; }
-    .desktop-search  { display: none !important; }
-    .topbar-subtitle { display: none; }
-    .topbar-title    { font-size: 0.95rem; }
-    .icon-btn        { width: 38px; height: 38px; }
-
-    /* ── Scrollable content ── */
-    .content {
-      flex: 1;
-      min-height: 0;
-      overflow-y: auto;
-      overflow-x: hidden;
-      padding: 16px 16px 76px;
-      -webkit-overflow-scrolling: touch;
-      overscroll-behavior-y: contain;
+    /* Mobile topbar */
+    .topbar {
+      padding: 12px 16px;
+      gap: 12px;
     }
 
-    /* ── Bottom navigation ── */
-    .mobile-bottom-nav {
-      display: flex;
-      position: fixed;
-      bottom: 0; left: 0; right: 0;
-      height: 60px;
-      background: var(--panel);
-      border-top: 1.5px solid var(--border);
-      z-index: 500;
-      box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.08);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+    .topbar-left {
+      gap: 8px;
     }
-    .mobile-nav-item {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      gap: 3px;
+
+    .topbar-title {
+      font-size: 1rem;
+    }
+
+    .topbar-sub {
+      font-size: 0.7rem;
+    }
+
+    /* Mobile hamburger menu */
+    .mobile-menu-btn {
+      display: block !important;
       background: none;
       border: none;
+      color: var(--text1);
+      font-size: 1.5rem;
       cursor: pointer;
-      color: var(--text3);
-      transition: color .15s;
-      padding: 6px 2px;
-      -webkit-tap-highlight-color: transparent;
-      touch-action: manipulation;
-      position: relative;
-    }
-    .mobile-nav-item.active { color: var(--teal); }
-    .mobile-nav-item.active::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 50%;
-      transform: translateX(-50%);
-      width: 28px; height: 2px;
-      background: var(--teal);
-      border-radius: 0 0 2px 2px;
-    }
-    .mobile-nav-item:active { opacity: 0.55; }
-    .mobile-nav-icon  { font-size: 1.2rem; line-height: 1; }
-    .mobile-nav-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
-
-    /* ── Toast above bottom nav ── */
-    .toast {
-      bottom: 72px !important;
-      left: 12px !important;
-      right: 12px !important;
-      width: auto !important;
-      max-width: none !important;
+      padding: 8px;
+      margin-right: 8px;
     }
 
-    /* ── Floating Ask AI button above bottom nav ── */
-    #floatingChatBtn {
-      bottom: 72px !important;
-      right: 14px !important;
-      padding: 11px 16px !important;
-      font-size: 0.8rem !important;
+    /* Hide desktop search on very small screens */
+    .topbar-search {
+      max-width: 120px;
     }
 
-    /* ── Grids & cards ── */
-    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr !important; gap: 12px; }
-    .stat-grid  { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
-    .stat-card  { padding: 14px; }
-    .stat-card .value { font-size: 1.5rem; }
+    .topbar-search input {
+      font-size: 0.8rem;
+    }
 
-    /* ── View padding reset (content area provides padding) ── */
-    .dashboard,
-    .patients-view,
-    .risk-view,
-    .spec-view,
-    .lab-view,
-    .imaging-view,
-    .analytics-view,
-    .settings-view { padding: 0 !important; }
-    .settings-view { max-width: 100% !important; }
+    /* Topbar actions on mobile */
+    .topbar-actions {
+      gap: 8px;
+    }
 
-    /* ── Card adjustments ── */
-    .card-header { flex-wrap: wrap; gap: 8px; }
+    .topbar-btn {
+      padding: 6px 10px;
+      font-size: 0.75rem;
+    }
 
-    /* ── Consultation ── */
-    .consult-layout {
-      display: flex !important;
+    .action-icon {
+      width: 32px;
+      height: 32px;
+      font-size: 1rem;
+    }
+
+
+    /* Cards on mobile */
+    .card {
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .card-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    /* Grids to single column */
+    .grid-2, .grid-3, .grid-4 {
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    /* Stats grid */
+    .stats-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .stat-card {
+      padding: 16px;
+    }
+
+    .stat-value {
+      font-size: 1.8rem;
+    }
+
+    /* Dashboard urgent cards */
+    .urgent-grid {
+      grid-template-columns: 1fr;
+    }
+
+    /* Consultation view on mobile - CRITICAL FIXES */
+    #view-consult {
       flex-direction: column !important;
       height: auto !important;
+      min-height: auto !important;
       overflow: visible !important;
     }
+
+    .consult-view {
+      flex-direction: column !important;
+      height: auto !important;
+      min-height: auto !important;
+      overflow: visible !important;
+    }
+
     .consult-left {
       width: 100% !important;
       height: auto !important;
+      min-height: auto !important;
       max-height: none !important;
       border-right: none !important;
       border-bottom: 1px solid var(--border) !important;
       overflow: visible !important;
       flex: none !important;
     }
-    .consult-left-body    { max-height: 260px; overflow-y: auto; }
-    .consult-center       { min-height: 400px; }
-    .consult-right        {
-      display: none;
-      position: fixed;
-      top: 0; right: 0; bottom: 0;
-      width: 85vw; max-width: 320px;
-      z-index: 800;
-      background: var(--panel);
-      border-left: 1px solid var(--border2);
-      box-shadow: -6px 0 32px rgba(0, 0, 0, 0.2);
-    }
-    .consult-right.mobile-panel-open { display: flex; }
-    .consult-right-toggle { display: inline-flex !important; }
-    .consult-right-body   { max-height: none; flex: 1; overflow-y: auto; }
-    .patient-switcher     { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px; gap: 6px; }
-    .patient-chip         { flex-shrink: 0; }
-    .chat-messages        { min-height: 280px; }
 
-    /* ── Patients table ── */
-    .table-header         { flex-direction: column; align-items: flex-start; gap: 10px; }
-    .filter-row           { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; gap: 6px; width: 100%; }
-    .filter-btn           { flex-shrink: 0; font-size: 0.72rem; padding: 5px 12px; }
-    .table-wrap           { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); }
-    table                 { min-width: 560px; }
-
-    /* ── Specializations ── */
-    .spec-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px; }
-
-    /* ── Risk ── */
-    .risk-grid  { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
-    .risk-split { flex-direction: column !important; }
-
-    /* ── Lab ── */
-    .lab-cards-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-    .lab-input-row  { grid-template-columns: 2fr 1.2fr 1fr; gap: 6px; }
-
-    /* ── Imaging ── */
-    .imaging-grid   { grid-template-columns: 1fr !important; }
-    .scan-type-bar  { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 4px; }
-    .scan-type-btn  { flex-shrink: 0; }
-
-    /* ── Analytics ── */
-    .kpi-strip      { grid-template-columns: repeat(3, 1fr); gap: 8px; }
-    .analytics-grid { grid-template-columns: 1fr !important; }
-    .analytics-grid-3 { grid-template-columns: 1fr !important; }
-
-    /* ── Prescription ── */
-    .rx-dose-row    { grid-template-columns: 1fr 1fr; }
-    #view-prescription > div { padding: 0 !important; }
-
-    /* ── Settings ── */
-    #view-settings  { padding-bottom: 76px; }
-
-    /* ── Vitals input grid ── */
-    .vital-input-grid { grid-template-columns: repeat(2, 1fr); }
-
-    /* ── Form grids ── */
-    .form-grid-2, .form-grid-3 { grid-template-columns: 1fr !important; }
-    .form-group.span-2, .form-group.span-3 { grid-column: span 1 !important; }
-    .radio-group { flex-wrap: wrap; }
-
-    /* ── Modals: full width ── */
-    .modal-overlay > div,
-    .soap-box {
-      width: calc(100vw - 24px) !important;
-      max-width: none !important;
-      max-height: 90vh !important;
-      margin: 12px !important;
-      border-radius: 16px !important;
-    }
-    .modal-steps { overflow-x: auto; }
-    .step-label  { display: none; }
-
-    /* ── Voice modal: full screen ── */
-    #voiceConsultModal > div {
-      width: 100vw !important;
-      height: 100vh !important;
-      height: 100dvh !important;
-      max-width: none !important;
+    .consult-left-body {
       max-height: none !important;
-      border-radius: 0 !important;
-      margin: 0 !important;
+      overflow: visible !important;
+      height: auto !important;
     }
 
-    /* ── Login ── */
-    .login-container { padding: 16px; align-items: flex-start; padding-top: 40px; }
-    .login-box       { padding: 28px 20px; border-radius: 16px; width: 100%; }
-    .login-title     { font-size: 1.45rem; }
-    .login-logo      { font-size: 2.5rem; }
+    .consult-right {
+      width: 100% !important;
+      height: auto !important;
+      min-height: 400px !important;
+      max-height: none !important;
+      overflow: visible !important;
+      border-left: none !important;
+      flex: none !important;
+    }
 
-    /* ── Radiology / PACS ── */
-    #view-radiology { padding: 0; }
+    .consult-right-body {
+      max-height: none !important;
+      overflow: visible !important;
+      height: auto !important;
+    }
 
-    /* ── Sidebar footer: hide avatar text on small screens ── */
-    .sidebar-footer .avatar-info { display: block; } /* restore on tablet */
-  }
+    /* Patient switcher - horizontal scroll */
+    .patient-switcher {
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+      padding-bottom: 8px;
+    }
 
-  /* ══════════════════════════════════════════════════════
-     MOBILE  ≤ 640px  (phones)
-  ══════════════════════════════════════════════════════ */
-  @media screen and (max-width: 640px) {
-    /* Tighter content padding */
-    .content          { padding: 12px 12px 72px; }
+    .patient-chip {
+      flex-shrink: 0;
+    }
 
-    /* Topbar */
-    .topbar           { padding: 0 12px; gap: 8px; }
-    .topbar-title     { font-size: 0.88rem; }
-    .icon-btn         { width: 34px; height: 34px; font-size: 0.9rem; }
+    /* Chat on mobile */
+    .chat-messages {
+      max-height: none !important;
+      min-height: 300px;
+      height: auto !important;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+    }
 
-    /* Stats: 2-col on phone */
-    .stat-grid        { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .stat-card .value { font-size: 1.4rem; }
-    .stat-card .label { font-size: 0.72rem; }
+    .chat-input-area {
+      padding: 12px;
+    }
 
-    /* Specializations: 2-col */
-    .spec-grid        { grid-template-columns: repeat(2, 1fr) !important; gap: 8px; }
-    .spec-card .spec-icon { font-size: 1.4rem; }
+    .chat-tools {
+      flex-wrap: wrap;
+      gap: 6px;
+    }
 
-    /* Risk: 1-col */
-    .risk-grid        { grid-template-columns: 1fr !important; }
+    .chat-tool-btn {
+      font-size: 0.7rem;
+      padding: 6px 10px;
+    }
 
-    /* Lab: 2-col cards, 2-col input */
-    .lab-cards-grid   { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .lab-input-row    { grid-template-columns: 1fr 1fr; gap: 6px; }
-    .lab-ref-col      { display: none; } /* hide ref range col on phones */
+    /* Patient cards */
+    .patient-card {
+      padding: 12px;
+    }
 
-    /* Analytics KPI: 2-col */
-    .kpi-strip        { grid-template-columns: repeat(2, 1fr); gap: 8px; }
-    .kpi-num          { font-size: 1.3rem; }
+    /* Table on mobile */
+    .data-table {
+      font-size: 0.8rem;
+    }
 
-    /* Bottom nav */
-    .mobile-bottom-nav { height: 56px; }
-    .mobile-nav-icon   { font-size: 1.1rem; }
-    .mobile-nav-label  { font-size: 0.57rem; }
-
-    /* Toast */
-    .toast            { bottom: 66px !important; left: 10px !important; right: 10px !important; }
-    #floatingChatBtn  { bottom: 66px !important; right: 12px !important; }
-
-    /* Prescription dose row: 1-col */
-    .rx-dose-row      { grid-template-columns: 1fr; }
-
-    /* Vital input: 2-col */
-    .vital-input-grid { grid-template-columns: repeat(2, 1fr); }
-
-    /* Scan type buttons: horizontal scroll */
-    .scan-type-bar    { gap: 6px; }
-    .scan-type-btn    { padding: 8px 10px; }
-    .scan-type-btn .s-name { font-size: 0.72rem; }
-
-    /* Chat input area */
-    .chat-tools       { gap: 4px; }
-    .chat-tool-btn    { font-size: 0.67rem; padding: 4px 7px; }
-
-    /* Table: even more horizontal scroll room */
-    table             { min-width: 480px; }
     .data-table th,
-    .data-table td    { padding: 10px 12px; font-size: 0.78rem; }
-
-    /* Sidebar footer: hide avatar text */
-    .sidebar-footer .avatar-info { display: none; }
-
-    /* Modals */
-    .modal-overlay > div,
-    .soap-box {
-      width: calc(100vw - 16px) !important;
-      margin: 8px !important;
-      max-height: 92vh !important;
+    .data-table td {
+      padding: 8px 6px;
     }
-    .modal-header     { padding: 16px 16px 14px; }
-    .modal-footer     { padding: 12px 16px; }
+
+    /* Hide some table columns on mobile */
+    .data-table th:nth-child(3),
+    .data-table td:nth-child(3),
+    .data-table th:nth-child(4),
+    .data-table td:nth-child(4) {
+      display: none;
+    }
+
+    /* Modals on mobile */
+    .modal {
+      width: 95% !important;
+      max-width: 95% !important;
+      max-height: 90vh;
+      margin: 5vh auto;
+    }
+
+    .soap-box {
+      width: 95%;
+      max-width: 95%;
+      max-height: 90vh;
+      padding: 16px;
+    }
+
+    .soap-section {
+      padding: 12px;
+    }
+
+    /* Buttons on mobile */
+    .btn {
+      padding: 10px 16px;
+      font-size: 0.85rem;
+    }
+
+    .btn-sm {
+      padding: 6px 12px;
+      font-size: 0.75rem;
+    }
+
+    /* Filter buttons */
+    .filter-row {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .filter-btn {
+      font-size: 0.75rem;
+      padding: 6px 12px;
+    }
+
+    /* Spec cards */
+    .spec-grid {
+      grid-template-columns: repeat(2, 1fr);
+      gap: 12px;
+    }
+
+    .spec-card {
+      padding: 16px 12px;
+    }
+
+    .spec-icon {
+      font-size: 2rem;
+    }
+
+    .spec-name {
+      font-size: 0.85rem;
+    }
+
+    /* Lab items */
+    .lab-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 4px;
+    }
+
+    /* Rx items */
+    .rx-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 8px;
+    }
+
+    /* Imaging controls */
+    .scan-types {
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .scan-type-btn {
+      font-size: 0.75rem;
+      padding: 8px 12px;
+    }
+
+    /* Settings on mobile */
+    .settings-section {
+      padding: 16px;
+    }
+
+    .settings-row {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    /* Toast on mobile */
+    .toast {
+      max-width: 90%;
+      left: 5%;
+      right: 5%;
+    }
+
+    /* Form elements */
+    .form-input,
+    .form-select,
+    textarea {
+      font-size: 16px; /* Prevents zoom on iOS */
+    }
+
+    /* Radiology view */
+    #view-radiology > div {
+      padding: 16px !important;
+      padding-bottom: 60px !important;
+    }
+
+    /* Dashboard view */
+    #view-dashboard,
+    .dashboard {
+      height: auto !important;
+      min-height: auto !important;
+      overflow: visible !important;
+    }
+
+    /* Patients view */
+    #view-patients {
+      height: auto !important;
+      overflow: visible !important;
+    }
+
+    /* Settings view */
+    #view-settings {
+      height: auto !important;
+      overflow: visible !important;
+      padding-bottom: 60px;
+    }
+
+    /* Risk prediction view */
+    #view-risk {
+      height: auto !important;
+      overflow: visible !important;
+      padding-bottom: 60px;
+    }
+
+    /* Prescription view */
+    #view-prescription {
+      height: auto !important;
+      overflow: visible !important;
+      padding-bottom: 60px;
+    }
+
+    .prescription-builder {
+      height: auto !important;
+      overflow: visible !important;
+    }
+
+    .prescription-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    .rx-search-area {
+      position: relative !important;
+    }
+
+    .rx-suggestions {
+      position: relative !important;
+      max-height: 200px !important;
+    }
+
+    /* Labs view */
+    #view-labs {
+      height: auto !important;
+      overflow: visible !important;
+      padding-bottom: 60px;
+    }
+
+    .lab-view {
+      height: auto !important;
+      overflow: visible !important;
+    }
+
+    .lab-tabs {
+      overflow-x: auto !important;
+      flex-wrap: nowrap !important;
+      -webkit-overflow-scrolling: touch;
+      gap: 6px;
+    }
+
+    .lab-tab {
+      flex-shrink: 0 !important;
+      font-size: 0.75rem !important;
+      padding: 8px 12px !important;
+    }
+
+    .lab-panel {
+      height: auto !important;
+      overflow: visible !important;
+    }
+
+    .lab-cards-grid {
+      grid-template-columns: repeat(2, 1fr) !important;
+      gap: 12px !important;
+    }
+
+    .lab-entry-card {
+      min-height: auto !important;
+    }
+
+    /* Lab view header - stack on mobile */
+    #view-labs > .lab-view > div:first-child {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 16px !important;
+    }
+
+    #view-labs .form-select {
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+
+    #view-labs > .lab-view > div:first-child > div:last-child {
+      width: 100%;
+      flex-direction: column !important;
+      gap: 12px !important;
+    }
+
+    #view-labs .btn {
+      width: 100% !important;
+    }
+
+    /* Imaging view */
+    #view-imaging {
+      height: auto !important;
+      overflow: visible !important;
+      padding-bottom: 60px;
+    }
+
+    .imaging-container {
+      height: auto !important;
+      overflow: visible !important;
+    }
+
+    .imaging-split {
+      flex-direction: column !important;
+      height: auto !important;
+    }
+
+    .imaging-left,
+    .imaging-right {
+      width: 100% !important;
+      border: none !important;
+      height: auto !important;
+      min-height: auto !important;
+    }
+
+    .upload-area {
+      min-height: 200px !important;
+    }
+
+    .findings-area {
+      height: auto !important;
+      overflow: visible !important;
+    }
+
+    /* Analytics view */
+    #view-analytics {
+      height: auto !important;
+      overflow: visible !important;
+      padding-bottom: 60px;
+    }
+
+    /* Specializations view */
+    #view-specs {
+      height: auto !important;
+      overflow: visible !important;
+      padding-bottom: 60px;
+    }
+
+    /* Remove fixed heights from containers */
+    .consult-patient-info,
+    .consult-vitals,
+    .consult-details,
+    .tab-content {
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    /* Ensure scrollable areas work */
+    .consult-patient-details {
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    /* Force all flex containers to allow content flow */
+    .flex-view {
+      height: auto !important;
+      overflow: visible !important;
+    }
+
+    /* All cards should expand */
+    .card {
+      height: auto !important;
+      max-height: none !important;
+    }
+
+    .card-body {
+      height: auto !important;
+      max-height: none !important;
+      overflow: visible !important;
+    }
+
+    /* Patient info sections */
+    .patient-info-section {
+      height: auto !important;
+      overflow: visible !important;
+    }
+
+    /* Mini sections in consultation */
+    .vital-mini,
+    .symptom-section,
+    .history-section {
+      height: auto !important;
+      max-height: none !important;
+    }
+
+    /* Ensure all divs with flex display stack properly */
+    [style*="display:flex"] {
+      flex-wrap: wrap !important;
+    }
+
+    /* Fix any viewport height constraints */
+    [style*="height:100vh"],
+    [style*="height: 100vh"] {
+      height: auto !important;
+      min-height: 100vh !important;
+    }
+
+    [style*="calc(100vh"] {
+      height: auto !important;
+    }
+
+    /* Analytics charts */
+    .analytics-section {
+      padding: 12px;
+    }
+
+    /* Risk prediction */
+    .risk-card {
+      padding: 12px;
+    }
   }
 
-  /* ══════════════════════════════════════════════════════
-     SMALL PHONE  ≤ 400px
-  ══════════════════════════════════════════════════════ */
-  @media screen and (max-width: 400px) {
-    html              { font-size: 13px; }
-    .topbar-title     { font-size: 0.82rem; }
-    .stat-card .value { font-size: 1.25rem; }
-    .mobile-nav-label { font-size: 0.54rem; }
-    .spec-card        { padding: 12px 8px; }
-    .spec-card .spec-name { font-size: 0.72rem; }
-    .kpi-num          { font-size: 1.2rem; }
-    .content          { padding: 10px 10px 68px; }
+  @media screen and (max-width: 480px) {
+    /* Extra small mobile */
+    .topbar-title {
+      font-size: 0.9rem;
+    }
+
+    .stats-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .spec-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .patient-switcher {
+      gap: 8px;
+    }
+
+    .patient-chip {
+      min-width: 120px;
+    }
+
+    /* Vertical tabs on mobile */
+    .consult-right-tabs {
+      flex-direction: row;
+      overflow-x: auto;
+    }
+
+    .r-tab {
+      flex-shrink: 0;
+      writing-mode: horizontal-tb;
+      min-width: auto;
+      padding: 8px 16px;
+    }
+
+    /* Hide some less critical elements */
+    .topbar-sub {
+      display: none;
+    }
+
+    .card-action {
+      font-size: 0.75rem;
+    }
   }
 
-  /* ══════════════════════════════════════════════════════
-     LANDSCAPE MOBILE (short viewport)
-  ══════════════════════════════════════════════════════ */
-  @media screen and (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
-    .mobile-bottom-nav  { height: 46px; }
-    .mobile-nav-icon    { font-size: 0.95rem; }
-    .mobile-nav-label   { display: none; }
-    .content            { padding-bottom: 54px; }
-    .toast              { bottom: 54px !important; }
-    #floatingChatBtn    { bottom: 54px !important; }
-    .mobile-bottom-nav .mobile-nav-item.active::before { display: none; }
+  /* Landscape mobile */
+  @media screen and (max-width: 900px) and (orientation: landscape) {
+    .consult-view {
+      flex-direction: row;
+    }
+
+    .consult-left {
+      width: 40%;
+      border-right: 1px solid var(--border);
+      border-bottom: none;
+    }
+
+    .consult-right {
+      width: 60%;
+    }
   }
 
-  /* ══════════════════════════════════════════════════════
-     PRINT STYLES
-  ══════════════════════════════════════════════════════ */
-  @media print {
-    .sidebar, .topbar, .mobile-bottom-nav,
-    .mobile-menu-btn, #floatingChatBtn,
-    .chat-input-area, .btn, .action-btn { display: none !important; }
-    .app    { display: block; }
-    .main   { height: auto; overflow: visible; }
-    .content { overflow: visible; padding: 0; }
-    .view.active { display: block; }
+  /* Add mobile menu button (will be added via JS) */
+  .mobile-menu-btn {
+    display: none;
   }
 
-
-
+  @media screen and (max-width: 768px) {
+    .mobile-menu-btn {
+      display: block;
+    }
+  }
 
 </style>
 
@@ -1943,30 +2174,6 @@
   <!-- Mobile overlay for sidebar -->
   <div class="mobile-overlay" id="mobileOverlay" onclick="toggleMobileSidebar()"></div>
 
-  <!-- ══ MOBILE BOTTOM NAV ══ -->
-  <nav class="mobile-bottom-nav" id="mobileBottomNav">
-    <button class="mobile-nav-item active" onclick="mobileNav('dashboard',this)">
-      <span class="mobile-nav-icon">🏥</span>
-      <span class="mobile-nav-label">Dashboard</span>
-    </button>
-    <button class="mobile-nav-item" onclick="mobileNav('consult',this)">
-      <span class="mobile-nav-icon">🤖</span>
-      <span class="mobile-nav-label">Consult</span>
-    </button>
-    <button class="mobile-nav-item" onclick="mobileNav('patients',this)">
-      <span class="mobile-nav-icon">👥</span>
-      <span class="mobile-nav-label">Patients</span>
-    </button>
-    <button class="mobile-nav-item" onclick="mobileNav('labs',this)">
-      <span class="mobile-nav-icon">🔬</span>
-      <span class="mobile-nav-label">Labs</span>
-    </button>
-    <button class="mobile-nav-item" id="mobileMoreBtn" onclick="toggleMobileSidebar()">
-      <span class="mobile-nav-icon">☰</span>
-      <span class="mobile-nav-label">More</span>
-    </button>
-  </nav>
-
   <aside class="sidebar">
     <div class="sidebar-logo">
       <div class="logo-icon">🧬</div>
@@ -1979,45 +2186,42 @@
     <nav class="sidebar-nav">
       <div class="nav-section">
         <div class="nav-label">Clinical</div>
-        <div class="nav-item active" onclick="showView('dashboard');if(window.innerWidth<=900){var s=document.querySelector('.sidebar'),o=document.getElementById('mobileOverlay');if(s)s.classList.remove('mobile-open');if(o)o.classList.remove('show');}">
+        <div class="nav-item active" onclick="showView('dashboard')">
           <span class="nav-icon">⬡</span> Dashboard
         </div>
-        <div class="nav-item" onclick="showView('consult');if(window.innerWidth<=900){var s=document.querySelector('.sidebar'),o=document.getElementById('mobileOverlay');if(s)s.classList.remove('mobile-open');if(o)o.classList.remove('show');}">
+        <div class="nav-item" onclick="showView('consult')">
           <span class="nav-icon">💬</span> AI Consultation
           <span class="nav-badge green">3</span>
         </div>
-        <div class="nav-item" onclick="startEmergencyVoice()" style="background:rgba(220,38,38,0.1);color:var(--red);font-weight:700;border:1px solid rgba(220,38,38,0.2);margin:2px 0;">
-          <span class="nav-icon">🚨</span> Emergency Voice AI
-        </div>
-        <div class="nav-item" onclick="showView('patients');if(window.innerWidth<=900){var s=document.querySelector('.sidebar'),o=document.getElementById('mobileOverlay');if(s)s.classList.remove('mobile-open');if(o)o.classList.remove('show');}">
+        <div class="nav-item" onclick="showView('patients')">
           <span class="nav-icon">👥</span> Patients
         </div>
-        <div class="nav-item" onclick="showView('risk');if(window.innerWidth<=900){var s=document.querySelector('.sidebar'),o=document.getElementById('mobileOverlay');if(s)s.classList.remove('mobile-open');if(o)o.classList.remove('show');}">
+        <div class="nav-item" onclick="showView('risk')">
           <span class="nav-icon">📊</span> Risk Prediction
         </div>
-        <div class="nav-item" onclick="showView('specs');if(window.innerWidth<=900){var s=document.querySelector('.sidebar'),o=document.getElementById('mobileOverlay');if(s)s.classList.remove('mobile-open');if(o)o.classList.remove('show');}">
+        <div class="nav-item" onclick="showView('specs')">
           <span class="nav-icon">🔬</span> Specializations
         </div>
       </div>
       <div class="nav-section">
         <div class="nav-label">Tools</div>
-        <div class="nav-item" onclick="showView('prescription');if(window.innerWidth<=900){var s=document.querySelector('.sidebar'),o=document.getElementById('mobileOverlay');if(s)s.classList.remove('mobile-open');if(o)o.classList.remove('show');}">
+        <div class="nav-item" onclick="showView('prescription')">
           <span class="nav-icon">💊</span> Prescription
         </div>
-        <div class="nav-item" onclick="showView('labs');if(window.innerWidth<=900){var s=document.querySelector('.sidebar'),o=document.getElementById('mobileOverlay');if(s)s.classList.remove('mobile-open');if(o)o.classList.remove('show');}">
+        <div class="nav-item" onclick="showView('labs')">
           <span class="nav-icon">🧪</span> Lab Results
           <span class="nav-badge">5</span>
         </div>
-        <div id="navImagingAI" class="nav-item" onclick="showView('imaging');if(window.innerWidth<=900){var s=document.querySelector('.sidebar'),o=document.getElementById('mobileOverlay');if(s)s.classList.remove('mobile-open');if(o)o.classList.remove('show');}">
+        <div class="nav-item" onclick="showView('imaging')">
           <span class="nav-icon">🩻</span> Imaging AI
         </div>
       </div>
       <div class="nav-section">
         <div class="nav-label">Platform</div>
-        <div class="nav-item" onclick="showView('analytics');if(window.innerWidth<=900){var s=document.querySelector('.sidebar'),o=document.getElementById('mobileOverlay');if(s)s.classList.remove('mobile-open');if(o)o.classList.remove('show');}">
+        <div class="nav-item" onclick="showView('analytics')">
           <span class="nav-icon">📈</span> Analytics
         </div>
-        <div class="nav-item" onclick="showView('settings');if(window.innerWidth<=900){var s=document.querySelector('.sidebar'),o=document.getElementById('mobileOverlay');if(s)s.classList.remove('mobile-open');if(o)o.classList.remove('show');}">
+        <div class="nav-item" onclick="showView('settings')">
           <span class="nav-icon">⚙️</span> Settings
         </div>
       </div>
@@ -2481,9 +2685,6 @@
               </div>
 
               <div class="divider"></div>
-              <button class="btn" onclick="startEmergencyVoice()" style="width:100%;justify-content:center;margin-top:4px;margin-bottom:6px;background:rgba(220,38,38,0.1);color:var(--red);border:1px solid rgba(220,38,38,0.3);font-weight:700;">
-                🚨 Emergency Voice AI
-              </button>
               <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px" onclick="showView('consult')">
                 🔬 Start AI Consultation
               </button>
@@ -2603,7 +2804,7 @@
               <div class="chat-tools">
                 <span class="chat-tool-btn" onclick="chatAttachReport()">📎 Attach Report</span>
                 <span class="chat-tool-btn" onclick="chatVoiceInput(this)">🎤 Voice Input</span>
-                <span id="chatToolImagingBtn" class="chat-tool-btn" onclick="showView('imaging')">📊 Upload ECG</span>
+                <span class="chat-tool-btn" onclick="showView('imaging')">📊 Upload ECG</span>
                 <span class="chat-tool-btn" onclick="chatImportLabs()">🧪 Import Labs</span>
                 <span class="chat-tool-btn" onclick="generateSoapNote()">📝 Generate SOAP Note</span>
               </div>
@@ -2849,141 +3050,120 @@
       <!-- ── RISK PREDICTION VIEW ── -->
       <div class="view" id="view-risk">
         <div class="risk-view">
+          <div style="margin-bottom:20px">
+            <div class="section-title">Predictive Health Risk Engine</div>
+            <div class="section-sub">ML models predict chronic disease onset 6–18 months in advance using longitudinal patient data</div>
+          </div>
 
-          <!-- Header row -->
-          <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:18px">
-            <div>
-              <div class="section-title">🔮 Predictive Health Risk Engine</div>
-              <div class="section-sub">ML models predict chronic disease onset 6–18 months ahead · ICMR 2024 validated · Select a patient to view their risk profile</div>
+          <!-- Model cards -->
+          <div class="risk-grid">
+            <div class="risk-model-card">
+              <div class="bg-orb" style="background:var(--red)"></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span style="font-size:1.2rem">❤️</span>
+                <span class="pill red">MACE Model v3.1</span>
+              </div>
+              <div class="risk-model-title">Cardiac Event Prediction</div>
+              <div class="risk-model-accuracy" style="color:var(--red)">88%</div>
+              <div style="font-size:0.68rem;color:var(--text3);margin-bottom:4px">AUC-ROC · Deep Neural Net + ECG analysis</div>
+              <div class="risk-model-desc">Predicts MACE (MI, stroke, cardiac death) within 6–18 months using lipid trends, ECG features, troponin history, and TIMI inputs.</div>
+              <div class="risk-model-features">
+                <span class="feature-tag">Lipid trend</span>
+                <span class="feature-tag">ECG features</span>
+                <span class="feature-tag">TIMI inputs</span>
+                <span class="feature-tag">BP history</span>
+              </div>
             </div>
-            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-              <select id="riskPatientSelect" onchange="renderRiskPage(this.value)"
-                style="padding:9px 14px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.85rem;min-width:230px;cursor:pointer">
-                <option value="">— Select patient to analyse —</option>
-              </select>
-              <button class="btn btn-primary btn-sm" onclick="runAIRiskAnalysis()">🤖 AI Risk Analysis</button>
-              <button class="btn btn-ghost btn-sm" onclick="exportRiskReport()">⬇ Export</button>
+            <div class="risk-model-card">
+              <div class="bg-orb" style="background:var(--cyan)"></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span style="font-size:1.2rem">🩸</span>
+                <span class="pill" style="background:rgba(56,189,248,0.1);color:var(--cyan);border-color:rgba(56,189,248,0.2)">DM Model v2.4</span>
+              </div>
+              <div class="risk-model-title">Type 2 Diabetes Prediction</div>
+              <div class="risk-model-accuracy" style="color:var(--cyan)">91%</div>
+              <div style="font-size:0.68rem;color:var(--text3);margin-bottom:4px">AUC-ROC · XGBoost + LSTM ensemble</div>
+              <div class="risk-model-desc">Predicts T2DM onset using FBS trends, BMI trajectory, family history, diet score, and HbA1c progression over time.</div>
+              <div class="risk-model-features">
+                <span class="feature-tag">FBS trend</span>
+                <span class="feature-tag">BMI</span>
+                <span class="feature-tag">HbA1c trajectory</span>
+                <span class="feature-tag">Diet score</span>
+              </div>
+            </div>
+            <div class="risk-model-card">
+              <div class="bg-orb" style="background:var(--gold)"></div>
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+                <span style="font-size:1.2rem">🩺</span>
+                <span class="pill gold">HTN Model v2.0</span>
+              </div>
+              <div class="risk-model-title">Hypertension Onset</div>
+              <div class="risk-model-accuracy" style="color:var(--gold)">89%</div>
+              <div style="font-size:0.68rem;color:var(--text3);margin-bottom:4px">AUC-ROC · Random Forest + Time-series</div>
+              <div class="risk-model-desc">Predicts primary hypertension onset using BP readings over time, salt intake, stress scores, sleep quality, and physical activity.</div>
+              <div class="risk-model-features">
+                <span class="feature-tag">BP readings</span>
+                <span class="feature-tag">Salt intake</span>
+                <span class="feature-tag">Sleep quality</span>
+                <span class="feature-tag">Activity</span>
+              </div>
             </div>
           </div>
 
-          <!-- ══ Per-patient risk dashboard (hidden until selection) ══ -->
-          <div id="riskPatientDashboard" style="display:none;margin-bottom:20px">
-
-            <!-- Patient banner -->
-            <div id="riskBanner" style="background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px 20px;margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap"></div>
-
-            <!-- Four risk gauge tiles -->
-            <div id="riskGauges" style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px"></div>
-
-            <!-- Risk factors + Interventions side by side -->
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-              <div class="card">
-                <div class="card-header">
-                  <span class="card-title">⚠️ Identified Risk Factors</span>
-                  <span id="overallRiskBadge" class="pill teal" style="font-size:0.72rem">—</span>
-                </div>
-                <div class="card-body" id="riskFactorsList" style="padding-top:4px"></div>
-              </div>
-              <div class="card">
-                <div class="card-header"><span class="card-title">🛡️ Recommended Interventions</span></div>
-                <div class="card-body" id="riskInterventionsList" style="padding-top:4px"></div>
-              </div>
-            </div>
-
-            <!-- AI narrative panel -->
+          <!-- Patient risk profiles -->
+          <div class="grid-2">
             <div class="card">
               <div class="card-header">
-                <span class="card-title">🤖 AI Clinical Risk Narrative</span>
-                <span id="riskAIStatusBadge" class="pill" style="background:var(--navy3);color:var(--text3);font-size:0.72rem">Click AI Risk Analysis →</span>
+                <span class="card-title">📊 Patient Risk Profiles — Active Cases</span>
+                <span class="card-action" onclick="exportRiskReport()">Export Report</span>
               </div>
-              <div id="riskAINarrative" class="card-body" style="font-size:0.85rem;color:var(--text2);line-height:1.75;min-height:64px">
-                Click <strong>AI Risk Analysis</strong> above to generate a personalised clinical risk narrative for this patient.
-              </div>
-            </div>
-          </div>
-
-          <!-- ══ Overview panel (shown when no patient selected) ══ -->
-          <div id="riskOverviewPanel">
-
-            <!-- ML model info cards -->
-            <div class="risk-grid" style="margin-bottom:20px">
-              <div class="risk-model-card">
-                <div class="bg-orb" style="background:var(--red)"></div>
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                  <span style="font-size:1.2rem">❤️</span><span class="pill red">MACE Model v3.1</span>
-                </div>
-                <div class="risk-model-title">Cardiac Event Prediction</div>
-                <div class="risk-model-accuracy" style="color:var(--red)">88%</div>
-                <div style="font-size:0.68rem;color:var(--text3);margin-bottom:4px">AUC-ROC · Deep Neural Net + ECG analysis</div>
-                <div class="risk-model-desc">Predicts MACE (MI, stroke, cardiac death) within 6–18 months using lipid trends, ECG features, troponin history, and TIMI inputs.</div>
-                <div class="risk-model-features">
-                  <span class="feature-tag">Lipid trend</span><span class="feature-tag">ECG features</span>
-                  <span class="feature-tag">TIMI inputs</span><span class="feature-tag">BP history</span>
-                </div>
-              </div>
-              <div class="risk-model-card">
-                <div class="bg-orb" style="background:var(--cyan)"></div>
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                  <span style="font-size:1.2rem">🩸</span>
-                  <span class="pill" style="background:rgba(56,189,248,0.1);color:var(--cyan);border-color:rgba(56,189,248,0.2)">DM Model v2.4</span>
-                </div>
-                <div class="risk-model-title">Type 2 Diabetes Prediction</div>
-                <div class="risk-model-accuracy" style="color:var(--cyan)">91%</div>
-                <div style="font-size:0.68rem;color:var(--text3);margin-bottom:4px">AUC-ROC · XGBoost + LSTM ensemble</div>
-                <div class="risk-model-desc">Predicts T2DM onset using FBS trends, BMI trajectory, family history, diet score, and HbA1c progression over time.</div>
-                <div class="risk-model-features">
-                  <span class="feature-tag">FBS trend</span><span class="feature-tag">BMI</span>
-                  <span class="feature-tag">HbA1c trajectory</span><span class="feature-tag">Diet score</span>
-                </div>
-              </div>
-              <div class="risk-model-card">
-                <div class="bg-orb" style="background:var(--gold)"></div>
-                <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
-                  <span style="font-size:1.2rem">🩺</span><span class="pill gold">HTN Model v2.0</span>
-                </div>
-                <div class="risk-model-title">Hypertension Onset</div>
-                <div class="risk-model-accuracy" style="color:var(--gold)">89%</div>
-                <div style="font-size:0.68rem;color:var(--text3);margin-bottom:4px">AUC-ROC · Random Forest + Time-series</div>
-                <div class="risk-model-desc">Predicts primary hypertension onset using BP readings, salt intake, stress scores, sleep quality, and physical activity data.</div>
-                <div class="risk-model-features">
-                  <span class="feature-tag">BP readings</span><span class="feature-tag">Salt intake</span>
-                  <span class="feature-tag">Sleep quality</span><span class="feature-tag">Activity</span>
+              <div class="card-body">
+                <div style="display:flex;flex-direction:column;gap:10px">
+                  <div style="background:var(--navy3);border:1px solid var(--red);border-radius:8px;padding:12px 14px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                      <div><div style="font-weight:600;color:var(--text1)">Priya Krishnamurthy</div><div style="font-size:0.72rem;color:var(--text3)">52F · DM2, HTN</div></div>
+                      <span class="status-badge urgent">Critical Risk</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--red)">82%</div><div style="font-size:0.65rem;color:var(--text3)">Cardiac</div></div>
+                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--gold)">74%</div><div style="font-size:0.65rem;color:var(--text3)">CKD Prog.</div></div>
+                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--gold)">61%</div><div style="font-size:0.65rem;color:var(--text3)">Retinopathy</div></div>
+                    </div>
+                  </div>
+                  <div style="background:var(--navy3);border:1px solid var(--border2);border-radius:8px;padding:12px 14px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                      <div><div style="font-weight:600;color:var(--text1)">Ramesh Singh</div><div style="font-size:0.72rem;color:var(--text3)">67M · CAD, Post CABG</div></div>
+                      <span class="status-badge urgent">High Risk</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--gold)">67%</div><div style="font-size:0.65rem;color:var(--text3)">CKD Prog.</div></div>
+                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--gold)">52%</div><div style="font-size:0.65rem;color:var(--text3)">Cardiac RE</div></div>
+                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--teal)">28%</div><div style="font-size:0.65rem;color:var(--text3)">Stroke</div></div>
+                    </div>
+                  </div>
+                  <div style="background:var(--navy3);border:1px solid var(--border2);border-radius:8px;padding:12px 14px">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+                      <div><div style="font-weight:600;color:var(--text1)">Vikram Nair</div><div style="font-size:0.72rem;color:var(--text3)">44M · Prehypertension</div></div>
+                      <span class="status-badge waiting">Moderate Risk</span>
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--gold)">55%</div><div style="font-size:0.65rem;color:var(--text3)">HTN Onset</div></div>
+                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--teal)">31%</div><div style="font-size:0.65rem;color:var(--text3)">T2DM</div></div>
+                      <div style="text-align:center"><div style="font-family:var(--mono);font-size:1.3rem;font-weight:600;color:var(--teal)">18%</div><div style="font-size:0.65rem;color:var(--text3)">Cardiac</div></div>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <!-- All-patients risk table -->
-            <div class="card" style="margin-bottom:20px">
-              <div class="card-header">
-                <span class="card-title">📊 All Patients — Computed Risk Overview</span>
-                <span id="riskTableCount" class="pill teal">Loading…</span>
-              </div>
-              <div style="overflow-x:auto">
-                <table style="width:100%;border-collapse:collapse;font-size:0.82rem">
-                  <thead>
-                    <tr style="border-bottom:1px solid var(--border)">
-                      <th style="padding:12px 16px;text-align:left;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">Patient</th>
-                      <th style="padding:12px 10px;text-align:center;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">❤️ Cardiac</th>
-                      <th style="padding:12px 10px;text-align:center;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">🩸 Diabetes</th>
-                      <th style="padding:12px 10px;text-align:center;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">💉 HTN</th>
-                      <th style="padding:12px 10px;text-align:center;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">🩺 CKD</th>
-                      <th style="padding:12px 10px;text-align:center;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">Overall</th>
-                      <th style="padding:12px 10px;text-align:center;color:var(--text3);font-weight:600;font-size:0.7rem;text-transform:uppercase;letter-spacing:.7px">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody id="riskTableBody"></tbody>
-                </table>
-              </div>
-            </div>
-
-            <!-- Bottom: model perf + prediction windows -->
-            <div class="grid-2">
+            <!-- Model accuracy panel -->
+            <div style="display:flex;flex-direction:column;gap:16px">
               <div class="card">
                 <div class="card-header"><span class="card-title">🎯 Model Performance</span><span class="pill teal">Live Metrics</span></div>
                 <div class="card-body">
                   <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                     <div style="background:var(--navy3);border:1px solid var(--border2);border-radius:8px;padding:12px;text-align:center">
-                      <div style="font-family:var(--syne);font-size:2rem;font-weight:800;color:var(--cyan)">91%</div>
+                      <div style="font-family:var(--syne);font-size:2rem;font-weight:800;color:var(--teal)">91%</div>
                       <div style="font-size:0.7rem;color:var(--text3)">T2DM AUC-ROC</div>
                     </div>
                     <div style="background:var(--navy3);border:1px solid var(--border2);border-radius:8px;padding:12px;text-align:center">
@@ -3002,23 +3182,21 @@
                 </div>
               </div>
               <div class="card">
-                <div class="card-header"><span class="card-title">📅 Prediction Windows</span></div>
+                <div class="card-header"><span class="card-title">📅 Prediction Window</span></div>
                 <div class="card-body">
-                  <div style="font-size:0.82rem;color:var(--text2);line-height:2">
-                    🕐 <strong style="color:var(--text1)">6-month:</strong> Acute onset risks (MI, stroke, DKA)<br>
-                    🗓 <strong style="color:var(--text1)">12-month:</strong> Chronic progression (CKD, retinopathy)<br>
-                    📆 <strong style="color:var(--text1)">18-month:</strong> Lifestyle-preventable (T2DM, HTN onset)
+                  <div style="font-size:0.8rem;color:var(--text2);line-height:1.8">
+                    🕐 <strong style="color:var(--text1)">6-month window:</strong> Acute onset risks (MI, stroke, DKA)<br>
+                    🗓 <strong style="color:var(--text1)">12-month window:</strong> Chronic progression (CKD, retinopathy)<br>
+                    📆 <strong style="color:var(--text1)">18-month window:</strong> Lifestyle-preventable diseases (T2DM, HTN)
                   </div>
                   <div class="divider"></div>
-                  <div style="font-size:0.75rem;color:var(--text3)">Models retrained monthly on Indian clinical data. Last update: 20 Feb 2026.</div>
+                  <div style="font-size:0.75rem;color:var(--text3)">Models retrained monthly on new Indian clinical data. Last update: 20 Feb 2026.</div>
                 </div>
               </div>
             </div>
           </div>
-
         </div>
       </div>
-
 
       <!-- ── SPECIALIZATIONS VIEW ── -->
       <div class="view" id="view-specs">
@@ -3068,7 +3246,7 @@
               <div class="spec-name">Pediatrics</div>
               <div class="spec-cases">310K cases</div>
             </div>
-            <div id="specCardRadiology" class="spec-card" onclick="showView('radiology')">
+            <div class="spec-card" onclick="showView('radiology')">
               <div class="spec-icon">🩻</div>
               <div class="spec-name">Radiology & Imaging AI</div>
               <div class="spec-cases">95K cases</div>
@@ -3984,26 +4162,23 @@
           </div>
           <div class="settings-section">
             <div class="settings-section-header"><span style="font-size:1.1rem">🔑</span><div class="settings-section-title">AI Integration — Anthropic API Key</div></div>
-            <div class="settings-row" style="align-items:flex-start;gap:14px;padding:16px 18px">
+            <div class="settings-row" style="align-items:center;gap:14px;padding:16px 18px">
               <div class="settings-label">
                 <div class="settings-label-main">Anthropic API Key</div>
                 <div class="settings-label-sub">Powers all Claude AI features — AI Consultation, Radiology AI, Dental AI and more</div>
               </div>
-              <div style="display:flex;flex-direction:column;gap:8px;flex:1;max-width:460px">
-                <div style="display:flex;align-items:center;gap:8px">
-                  <input type="password" id="anthropicKeyInput"
-                    placeholder="sk-ant-api03-..."
-                    style="flex:1;padding:9px 12px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-family:var(--mono);font-size:0.82rem;outline:none;transition:border-color .2s"
-                    oninput="this.style.borderColor='var(--teal)'"
-                    onfocus="this.style.borderColor='var(--teal)'"
-                    onblur="this.style.borderColor='var(--border2)'"
-                  />
-                  <button onclick="saveAnthropicKeyManual()" class="btn btn-primary btn-sm">Save</button>
-                  <span id="anthropicKeyStatus" style="font-size:0.72rem;padding:4px 10px;border-radius:20px;font-weight:600;background:var(--navy3);color:var(--text3);white-space:nowrap">○ Not set</span>
+              <div style="display:flex;align-items:center;gap:10px;flex:1;max-width:460px">
+                <div style="display:flex;align-items:center;gap:8px;background:var(--navy3);border:1px solid var(--teal);border-radius:8px;padding:10px 16px;flex:1">
+                  <span style="font-size:1rem">🔒</span>
+                  <span style="font-family:var(--mono);font-size:0.8rem;color:var(--teal);letter-spacing:0.04em">sk-ant-•••••••••••••••••••••••••••</span>
                 </div>
-                <div style="font-size:0.71rem;color:var(--text3)">
-                  Get your key at <a href="https://console.anthropic.com" target="_blank" style="color:var(--teal)">console.anthropic.com</a>. Stored locally in your browser only.
-                </div>
+                <span id="anthropicKeyStatus" style="font-size:0.72rem;padding:4px 10px;border-radius:20px;font-weight:600;background:var(--teal-dim);color:var(--teal);white-space:nowrap">● System Configured</span>
+              </div>
+            </div>
+            <div class="settings-row" style="margin-top:0;padding:8px 18px 14px">
+              <div class="settings-label"></div>
+              <div style="font-size:0.71rem;color:var(--text3);flex:1;max-width:460px">
+                🛡️ This key is hardcoded and managed by an administrator. It cannot be changed from the UI.
               </div>
             </div>
           </div>
@@ -5177,14 +5352,6 @@
   }
 
   function showView(id) {
-    // Block access to restricted views for non-owners
-    if ((id === 'imaging' || id === 'radiology')) {
-      const code = localStorage.getItem('samarthaamed_invitation_code') || '';
-      if (!IMAGING_ALLOWED.includes(code)) {
-        showToast('🔒', 'Access Restricted', 'Imaging & Radiology features are available for owner accounts only.');
-        return;
-      }
-    }
     document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
     const v = document.getElementById('view-' + id);
@@ -5199,22 +5366,7 @@
     // Consult view is self-contained; all other views scroll via .content
     const content = document.querySelector('.content');
     if (content) content.scrollTop = 0;
-    // Sync mobile bottom nav active state
-    const mobileItems = document.querySelectorAll('.mobile-nav-item');
-    mobileItems.forEach(btn => btn.classList.remove('active'));
-    const mobileMatch = document.querySelector(`.mobile-nav-item[onclick*="${id}"]`);
-    if (mobileMatch) mobileMatch.classList.add('active');
     onViewChange(id);
-  }
-
-  // Mobile bottom nav tap handler — switches view and closes sidebar if open
-  function mobileNav(id, btn) {
-    showView(id);
-    // Close sidebar if it was open
-    const sidebar = document.querySelector('.sidebar');
-    const overlay = document.getElementById('mobileOverlay');
-    if (sidebar) sidebar.classList.remove('mobile-open');
-    if (overlay) overlay.classList.remove('show');
   }
 
   // Textarea auto-grow already handled inline
@@ -6936,48 +7088,18 @@ Rules:
   // ── PATIENT REGISTRY — single source of truth ──────────────────────────────
   let newPatientData = null;
 
-  // ── Patient persistence ──────────────────────────────────────────
-  const _DEMO_PATIENTS = [
-    { id: 'MM-2024-04521', name: 'Priya Krishnamurthy', key: 'PK', demo: true },
-    { id: 'MM-2023-01892', name: 'Ramesh Singh',        key: 'RS', demo: true },
-    { id: 'MM-2025-09341', name: 'Anita Mehta',         key: 'AM', demo: true },
-    { id: 'MM-2024-07234', name: 'Vikram Nair',         key: 'VN', demo: true },
-    { id: 'MM-2025-02218', name: 'Sunita Gupta',        key: 'SG', demo: true },
-    { id: 'MM-2025-08876', name: 'Nandini Bose',        key: 'NB', demo: true },
-    { id: 'MM-2026-03345', name: 'Deepak Kumar',        key: 'DK', demo: true },
-    { id: 'MM-2026-08876', name: 'Meena Iyer',          key: 'MI', demo: true },
-    { id: 'MM-2024-05512', name: 'Mohan Pillai',        key: 'MP', demo: true },
-    { id: 'MM-2025-11203', name: 'Karthik Reddy',       key: 'KR', demo: true },
+  const patientRegistry = [
+    { id: 'MM-2024-04521', name: 'Priya Krishnamurthy', key: 'PK' },
+    { id: 'MM-2023-01892', name: 'Ramesh Singh',        key: 'RS' },
+    { id: 'MM-2025-09341', name: 'Anita Mehta',         key: 'AM' },
+    { id: 'MM-2024-07234', name: 'Vikram Nair',         key: 'VN' },
+    { id: 'MM-2025-02218', name: 'Sunita Gupta',        key: 'SG' },
+    { id: 'MM-2025-08876', name: 'Nandini Bose',        key: 'NB' },
+    { id: 'MM-2026-03345', name: 'Deepak Kumar',        key: 'DK' },
+    { id: 'MM-2026-08876', name: 'Meena Iyer',          key: 'MI' },
+    { id: 'MM-2024-05512', name: 'Mohan Pillai',        key: 'MP' },
+    { id: 'MM-2025-11203', name: 'Karthik Reddy',       key: 'KR' },
   ];
-  const _LS_PATIENTS  = 'sm_patients_v1';   // registry entries
-  const _LS_PROFILES  = 'sm_profiles_v1';   // full patientProfiles data
-  const _LS_ROWS      = 'sm_rows_v1';       // table row data for restoration
-
-  function _lsGet(key) { try { return JSON.parse(localStorage.getItem(key) || 'null'); } catch(e) { return null; } }
-  function _lsSet(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch(e) {} }
-
-  // Live registry = registered patients (on top) + demo patients
-  const _savedPatients = _lsGet(_LS_PATIENTS) || [];
-  const patientRegistry = [..._savedPatients, ..._DEMO_PATIENTS];
-
-  // After patientProfiles is defined, merge in any saved profiles
-  function _restoreProfiles() {
-    const saved = _lsGet(_LS_PROFILES) || {};
-    Object.assign(patientProfiles, saved);
-  }
-
-  // Restore registered patients into the table + consultation chips
-  function restoreRegisteredPatients() {
-    const rows = _lsGet(_LS_ROWS) || [];
-    if (!rows.length) return;
-    rows.forEach(p => {
-      addPatientToTable(p);
-      const prof = patientProfiles[p.key];
-      if (prof) addPatientChipToConsult(p.key, p.fullName, prof.avatarColor);
-    });
-    updatePatientCount();
-    showToast('📂', 'Patients Restored', rows.length + ' registered patient' + (rows.length > 1 ? 's' : '') + ' reloaded');
-  }
 
   function syncAllPatientDropdowns() {
     const selects = [
@@ -7001,12 +7123,7 @@ Rules:
   function addToPatientRegistry(fname, lname, patientId) {
     const initials = (fname[0] || 'N') + (lname[0] || 'P');
     const uniqueKey = initials.toUpperCase() + '_' + Date.now().toString(36).toUpperCase();
-    const entry = { id: patientId, name: fname + ' ' + lname, key: uniqueKey };
-    patientRegistry.unshift(entry);
-    // Persist registry entry
-    const saved = _lsGet(_LS_PATIENTS) || [];
-    saved.unshift(entry);
-    _lsSet(_LS_PATIENTS, saved);
+    patientRegistry.unshift({ id: patientId, name: fname + ' ' + lname, key: uniqueKey });
     syncAllPatientDropdowns();
     refreshRiskPatientSelector();
     return uniqueKey;
@@ -7111,11 +7228,6 @@ Rules:
       };
       // Add chip to AI Consultation switcher bar
       addPatientChipToConsult(newKey, fullName, avatarColor);
-
-      // Persist profile to localStorage
-      const savedProfiles = _lsGet(_LS_PROFILES) || {};
-      savedProfiles[newKey] = patientProfiles[newKey];
-      _lsSet(_LS_PROFILES, savedProfiles);
     }
 
     // Show success screen
@@ -7126,10 +7238,6 @@ Rules:
     document.getElementById('step-panel-4').style.display = 'block';
 
     addPatientToTable(newPatientData);
-    // Persist row data for table restoration on next session
-    const savedRows = _lsGet(_LS_ROWS) || [];
-    savedRows.unshift(newPatientData);
-    _lsSet(_LS_ROWS, savedRows);
     updatePatientCount();
     showToast('✅', 'Patient Registered!', `${fullName} · ID: ${patientId}`);
   }
@@ -7548,354 +7656,79 @@ INVESTIGATIONS:
   }
 
   // 5. Risk Prediction - Patient Selection
-  // ══════════════════════════════════════════════════════════════════
-  // RISK PREDICTION ENGINE — fully dynamic, driven by patientProfiles
-  // ══════════════════════════════════════════════════════════════════
-
-  /* Compute risk percentages (0–100) from a patient profile object */
-  function _computeRisk(p) {
-    const meta      = p.meta || '';
-    const history   = (p.history  || []).join(' ').toLowerCase();
-    const complaints= (p.complaints || []).join(' ').toLowerCase();
-    const meds      = (p.meds || '').toLowerCase();
-    const vitals    = p.vitals || {};
-    const scoreArr  = p.scores  || [];
-
-    const ageM  = meta.match(/(\d+)([MF])/i);
-    const age   = ageM ? parseInt(ageM[1]) : 45;
-    const male  = ageM ? ageM[2].toUpperCase() === 'M' : true;
-
-    const bpM   = (vitals.bp || '').match(/(\d+)\/(\d+)/);
-    const sys   = bpM ? parseInt(bpM[1]) : 120;
-    const hr    = parseInt((vitals.hr  || '0').replace(/\D/g,'')) || 72;
-    const spo2  = parseInt((vitals.spo2|| '98').replace(/\D/g,'')) || 98;
-
-    const hasDM    = /diabet|dm type|t2dm|hba1c/i.test(history);
-    const hasHTN   = /hyperten|\bhtn\b/i.test(history) || sys >= 140;
-    const hasCAD   = /\bcad\b|coronary|cabg|\bmi\b|angina/i.test(history);
-    const hasCKD   = /\bckd\b|kidney|renal|nephro/i.test(history);
-    const hasSmoke = /smok|tobacco|bidi/i.test(history);
-    const hasDys   = /dyslipid|cholesterol/i.test(history);
-    const famCard  = /family.*heart|father.*mi|mother.*stroke/i.test(history);
-    const famDM    = /family.*diabet/i.test(history);
-    const famHTN   = /family.*htn|family.*hyper/i.test(history);
-    const hasCOPD  = /copd|asthma/i.test(history);
-
-    const heartS   = scoreArr.find(s => /heart score/i.test(s[0]));
-    const highHEART= heartS ? /\b[5-9]\b|10/.test(heartS[1]) : false;
-
-    // ── Cardiac (0-100) ──
-    let cardiac = 8;
-    if (age > 60)  cardiac += 18; else if (age > 50) cardiac += 10; else if (age > 40) cardiac += 5;
-    if (male)      cardiac += 7;
-    if (hasDM)     cardiac += 14;
-    if (hasHTN)    cardiac += 12;
-    if (hasDys)    cardiac += 10;
-    if (hasSmoke)  cardiac += 11;
-    if (hasCAD)    cardiac += 22;
-    if (famCard)   cardiac += 8;
-    if (highHEART) cardiac += 14;
-    if (hr > 100)  cardiac += 5;
-    if (/chest pain|dyspnea|diaphor/i.test(complaints)) cardiac += 8;
-    cardiac = Math.min(95, cardiac);
-
-    // ── Diabetes (0-100) ──
-    let diabetes = 7;
-    if (hasDM) { diabetes = 95; }
-    else {
-      if (age > 45)  diabetes += 14;
-      if (hasHTN)    diabetes += 8;
-      if (hasDys)    diabetes += 7;
-      if (famDM)     diabetes += 18;
-      if (hasSmoke)  diabetes += 5;
-      if (male)      diabetes += 4;
-      const bmiS = scoreArr.find(s => s[0] === 'BMI');
-      if (bmiS && parseFloat(bmiS[1]) > 27) diabetes += 12;
-      diabetes = Math.min(82, diabetes);
-    }
-
-    // ── Hypertension (0-100) ──
-    let htn = 7;
-    if (hasHTN) { htn = Math.max(88, sys > 160 ? 95 : 88); }
-    else {
-      if (sys > 130)  htn += 28; else if (sys > 120) htn += 14;
-      if (age > 50)   htn += 12;
-      if (male)       htn += 5;
-      if (hasDM)      htn += 9;
-      if (famHTN)     htn += 15;
-      if (hasSmoke)   htn += 7;
-      if (/headache|visual/i.test(complaints)) htn += 8;
-      htn = Math.min(82, htn);
-    }
-
-    // ── CKD progression (0-100) ──
-    let ckd = 5;
-    if (hasCKD)  ckd += 32;
-    if (hasDM)   ckd += 18;
-    if (hasHTN)  ckd += 13;
-    if (age > 60)ckd += 10;
-    if (hasCAD)  ckd += 7;
-    if (hasDM && hasHTN) ckd += 12;
-    ckd = Math.min(90, ckd);
-
-    // ── Overall weighted ──
-    const overall = Math.min(95, Math.round(cardiac*0.35 + diabetes*0.25 + htn*0.2 + ckd*0.2));
-    return { cardiac, diabetes, htn, ckd, overall };
-  }
-
-  function _riskColour(v) {
-    return v >= 65 ? 'var(--red)' : v >= 40 ? 'var(--gold)' : 'var(--teal)';
-  }
-  function _riskLabel(v) {
-    return v >= 65 ? 'Critical' : v >= 40 ? 'High' : v >= 20 ? 'Moderate' : 'Low';
-  }
-  function _riskPillCSS(v) {
-    if (v >= 65) return 'background:rgba(220,38,38,0.12);color:var(--red);border:1px solid rgba(220,38,38,0.3)';
-    if (v >= 40) return 'background:rgba(245,158,11,0.12);color:var(--gold);border:1px solid rgba(245,158,11,0.3)';
-    return 'background:var(--teal-dim);color:var(--teal);border:1px solid rgba(0,212,180,0.25)';
-  }
-
-  /* Build list of risk factors from the profile */
-  function _riskFactors(p, sc) {
-    const h = (p.history || []).join(' ');
-    const v = p.vitals || {};
-    const m = p.meta   || '';
-    const ageM = m.match(/(\d+)([MF])/i);
-    const age  = ageM ? parseInt(ageM[1]) : 45;
-    const sys  = parseInt((v.bp||'120').match(/(\d+)/)?.[1]||'120');
-    const spo2 = parseInt((v.spo2||'98').replace(/\D/g,''))||98;
-    const hr   = parseInt((v.hr||'72').replace(/\D/g,''))||72;
-    const items = [];
-
-    if (sc.cardiac  >= 65) items.push({ icon:'❤️', text:'High cardiac event probability — urgent cardiology review', sev:'red'  });
-    else if (sc.cardiac  >= 40) items.push({ icon:'❤️', text:'Elevated cardiac risk — routine cardiology assessment advised', sev:'gold' });
-    if (sc.ckd      >= 50) items.push({ icon:'🩺', text:'Significant CKD progression risk — nephrology referral', sev:'red'  });
-    if (sc.diabetes >= 40 && sc.diabetes < 95) items.push({ icon:'🩸', text:'Elevated T2DM risk — fasting glucose & HbA1c monitoring', sev:'gold' });
-    if (sc.diabetes === 95) items.push({ icon:'🩸', text:'Active Type 2 Diabetes — glycaemic control critical', sev:'red' });
-    if (sc.htn      >= 88) items.push({ icon:'💉', text:'Active hypertension — BP control essential', sev:'red'  });
-    else if (sc.htn >= 40) items.push({ icon:'💉', text:'Hypertension risk — home BP monitoring recommended', sev:'gold' });
-    if (sys > 160) items.push({ icon:'📈', text:'BP ' + v.bp + ' — Stage 3 hypertension, immediate action', sev:'red' });
-    else if (sys > 140) items.push({ icon:'📊', text:'BP ' + v.bp + ' — Stage 2 hypertension', sev:'gold' });
-    if (spo2 < 94)  items.push({ icon:'🫁', text:'SpO₂ ' + v.spo2 + ' — hypoxia, respiratory evaluation needed', sev:'red' });
-    if (hr > 100)   items.push({ icon:'💓', text:'HR ' + v.hr + ' — tachycardia, evaluate cause', sev:'gold' });
-    if (age > 60)   items.push({ icon:'👤', text:'Age ' + age + ' — age-related elevated baseline risk', sev:'gold' });
-    if (/smok/i.test(h))  items.push({ icon:'🚬', text:'Smoking history — significant modifiable risk factor', sev:'gold' });
-    if (/dyslipid|cholesterol/i.test(h)) items.push({ icon:'🧪', text:'Dyslipidaemia — statin review per ICMR 2024', sev:'gold' });
-    if (/family.*heart|father.*mi/i.test(h)) items.push({ icon:'🧬', text:'Family history of cardiac disease', sev:'gold' });
-    if (/family.*diabet/i.test(h)) items.push({ icon:'🧬', text:'Family history of diabetes', sev:'gold' });
-    if (!items.length) items.push({ icon:'✅', text:'No major risk factors identified from available data', sev:'teal' });
-    return items.slice(0, 8);
-  }
-
-  /* Build recommended interventions */
-  function _riskInterventions(p, sc) {
-    const ivs = [];
-    if (sc.cardiac >= 65) {
-      ivs.push('🫀 Urgent cardiology referral — stress ECG / echo / coronary angiography');
-      ivs.push('💊 Optimise antiplatelet + statin therapy per ICMR 2024 ACS protocol');
-    } else if (sc.cardiac >= 40) {
-      ivs.push('🫀 Cardiology review within 4 weeks — resting ECG + lipid panel');
-    }
-    if (sc.diabetes >= 40 && sc.diabetes < 95) {
-      ivs.push('🩸 FBS + HbA1c every 3 months — early DM prevention');
-      ivs.push('🥗 Low-GI diet + 150 min/week moderate exercise (NHP guidelines)');
-    }
-    if (sc.htn >= 40 && sc.htn < 88) {
-      ivs.push('📊 Home BP monitoring twice daily — DASH diet, salt <5 g/day');
-    }
-    if (sc.ckd >= 40) {
-      ivs.push('🩺 Nephrology review — eGFR + urine ACR every 6 months');
-      ivs.push('💧 Avoid nephrotoxic drugs; maintain adequate hydration');
-    }
-    const hist = (p.history||[]).join(' ').toLowerCase();
-    if (/smok/i.test(hist)) ivs.push('🚭 Smoking cessation counselling — NHP / AYUSH resources');
-    if (sc.overall >= 60)   ivs.push('📅 4-weekly follow-up due to high overall risk score');
-    else if (sc.overall >= 35) ivs.push('📅 3-monthly risk reassessment recommended');
-    else                    ivs.push('📅 Annual risk reassessment — maintain healthy lifestyle');
-    if (!ivs.length) ivs.push('✅ Continue current management — low risk profile');
-    return ivs.slice(0, 7);
-  }
-
-  // ── Main render: called when a patient is selected ──────────────
-  function renderRiskPage(key) {
-    const dashboard = document.getElementById('riskPatientDashboard');
-    const overview  = document.getElementById('riskOverviewPanel');
-    if (!key) {
-      dashboard.style.display = 'none';
-      overview.style.display  = '';
-      _renderRiskTable();
-      return;
-    }
-    const p = patientProfiles[key];
-    if (!p) return;
-    const sc = _computeRisk(p);
-
-    dashboard.style.display = '';
-    overview.style.display  = 'none';
-
-    // ── Patient banner ──
-    document.getElementById('riskBanner').innerHTML = `
-      <div style="width:46px;height:46px;border-radius:12px;background:${p.avatarColor||'var(--teal)'};display:flex;align-items:center;justify-content:center;font-size:1rem;font-weight:800;color:#fff;flex-shrink:0">${p.initials||'?'}</div>
-      <div style="flex:1;min-width:0">
-        <div style="font-family:var(--syne);font-size:1.05rem;font-weight:700;color:var(--text1)">${p.name}</div>
-        <div style="font-size:0.78rem;color:var(--text3);margin-top:2px">${p.meta}</div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${[['HR',p.vitals?.hr],['BP',p.vitals?.bp],['SpO₂',p.vitals?.spo2],['Temp',p.vitals?.temp]].map(([lbl,val])=>`
-        <div style="text-align:center;padding:7px 12px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px">
-          <div style="font-size:0.62rem;color:var(--text3);text-transform:uppercase;letter-spacing:.7px">${lbl}</div>
-          <div style="font-family:var(--mono);font-weight:600;font-size:0.82rem;color:var(--text1)">${val||'—'}</div>
-        </div>`).join('')}
-      </div>`;
-
-    // ── Gauge tiles ──
-    const gauges = [
-      { label:'Cardiac',     icon:'❤️', val:sc.cardiac  },
-      { label:'Diabetes',    icon:'🩸', val:sc.diabetes },
-      { label:'Hypertension',icon:'💉', val:sc.htn      },
-      { label:'CKD Prog.',   icon:'🩺', val:sc.ckd      },
-    ];
-    document.getElementById('riskGauges').innerHTML = gauges.map(g => `
-      <div style="background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;text-align:center;position:relative;overflow:hidden">
-        <div style="position:absolute;top:0;left:0;right:0;height:3px;background:${_riskColour(g.val)}"></div>
-        <div style="font-size:1.4rem;margin-bottom:6px">${g.icon}</div>
-        <div style="font-family:var(--syne);font-size:1.9rem;font-weight:800;color:${_riskColour(g.val)}">${g.val}%</div>
-        <div style="font-size:0.72rem;color:var(--text3);margin:3px 0 8px">${g.label} Risk</div>
-        <div style="height:5px;background:var(--navy3);border-radius:3px;overflow:hidden">
-          <div style="height:100%;width:${g.val}%;background:${_riskColour(g.val)};border-radius:3px"></div>
-        </div>
-        <div style="font-size:0.65rem;font-weight:700;margin-top:5px;color:${_riskColour(g.val)}">${_riskLabel(g.val)}</div>
-      </div>`).join('');
-
-    // ── Overall badge ──
-    const badge = document.getElementById('overallRiskBadge');
-    badge.textContent = _riskLabel(sc.overall) + ' — ' + sc.overall + '% overall';
-    badge.style.cssText = _riskPillCSS(sc.overall) + ';font-size:0.72rem';
-
-    // ── Risk factors ──
-    const factors = _riskFactors(p, sc);
-    document.getElementById('riskFactorsList').innerHTML = factors.map((f,i) => `
-      <div style="display:flex;align-items:flex-start;gap:10px;padding:8px 0;${i<factors.length-1?'border-bottom:1px solid var(--border)':''}">
-        <span style="font-size:0.95rem;flex-shrink:0;margin-top:1px">${f.icon}</span>
-        <span style="font-size:0.82rem;color:${f.sev==='red'?'var(--red)':f.sev==='gold'?'var(--gold)':'var(--teal)'}">${f.text}</span>
-      </div>`).join('');
-
-    // ── Interventions ──
-    const ivs = _riskInterventions(p, sc);
-    document.getElementById('riskInterventionsList').innerHTML = ivs.map((iv,i) => `
-      <div style="display:flex;align-items:flex-start;gap:8px;padding:8px 0;${i<ivs.length-1?'border-bottom:1px solid var(--border)':''}">
-        <span style="font-size:0.82rem;color:var(--text2)">${iv}</span>
-      </div>`).join('');
-
-    // Reset AI panel
-    const narr = document.getElementById('riskAINarrative');
-    const stat = document.getElementById('riskAIStatusBadge');
-    narr.innerHTML = 'Click <strong>AI Risk Analysis</strong> above to generate a personalised clinical risk narrative for this patient.';
-    stat.textContent = 'Click AI Risk Analysis →';
-    stat.style.cssText = 'background:var(--navy3);color:var(--text3);font-size:0.72rem';
-
-    showToast('🎯', 'Risk Profile Loaded', p.name + ' · ' + _riskLabel(sc.overall) + ' risk (' + sc.overall + '%)');
-  }
-
-  // ── All-patients table ──────────────────────────────────────────
-  function _renderRiskTable() {
-    const tbody   = document.getElementById('riskTableBody');
-    const countEl = document.getElementById('riskTableCount');
-    if (!tbody) return;
-    const keys = Object.keys(patientProfiles);
-    if (countEl) countEl.textContent = keys.length + ' patients';
-    tbody.innerHTML = keys.map((key, i) => {
-      const p  = patientProfiles[key];
-      const sc = _computeRisk(p);
-      return `<tr style="${i%2?'background:rgba(255,255,255,0.015)':''}">
-        <td style="padding:11px 16px">
-          <div style="display:flex;align-items:center;gap:10px">
-            <div style="width:30px;height:30px;border-radius:8px;background:${p.avatarColor||'var(--teal)'};display:flex;align-items:center;justify-content:center;font-size:0.65rem;font-weight:700;color:#fff;flex-shrink:0">${p.initials||'?'}</div>
-            <div>
-              <div style="font-weight:600;color:var(--text1);font-size:0.85rem">${p.name}</div>
-              <div style="font-size:0.7rem;color:var(--text3)">${p.meta.split('·')[0].trim()}</div>
+  function updateRiskPrediction(patientKey) {
+    const patient = patientProfiles[patientKey];
+    if (!patient) return;
+    
+    showToast('🎯', 'Risk Updated', `Showing predictions for ${patient.name}`);
+    
+    // Update risk view with patient's actual scores
+    const riskView = document.getElementById('view-risk');
+    if (riskView) {
+      // Update patient info display
+      let patientInfo = riskView.querySelector('.risk-patient-info');
+      if (!patientInfo) {
+        patientInfo = document.createElement('div');
+        patientInfo.className = 'risk-patient-info';
+        patientInfo.style.cssText = 'margin:24px;padding:16px;background:var(--panel);border:1px solid var(--border);border-radius:12px;';
+        // Insert after the selector
+        const selector = riskView.querySelector('.risk-patient-selector');
+        if (selector && selector.nextSibling) {
+          riskView.insertBefore(patientInfo, selector.nextSibling);
+        } else if (selector) {
+          selector.after(patientInfo);
+        } else {
+          riskView.insertBefore(patientInfo, riskView.firstChild);
+        }
+      }
+      
+      patientInfo.innerHTML = `
+        <h3 style="color:var(--teal);margin-bottom:12px">Risk Prediction: ${patient.name}</h3>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px">
+          ${patient.scores.map(score => `
+            <div style="padding:12px;background:var(--navy3);border-radius:8px">
+              <div style="font-size:0.75rem;color:var(--text3);margin-bottom:4px">${score[0]}</div>
+              <div style="font-size:1.2rem;font-weight:700;color:var(--${score[2] || 'teal'})">${score[1]}</div>
             </div>
-          </div>
-        </td>
-        <td style="padding:10px;text-align:center"><span style="font-family:var(--mono);font-weight:700;font-size:0.9rem;color:${_riskColour(sc.cardiac)}">${sc.cardiac}%</span></td>
-        <td style="padding:10px;text-align:center"><span style="font-family:var(--mono);font-weight:700;font-size:0.9rem;color:${_riskColour(sc.diabetes)}">${sc.diabetes}%</span></td>
-        <td style="padding:10px;text-align:center"><span style="font-family:var(--mono);font-weight:700;font-size:0.9rem;color:${_riskColour(sc.htn)}">${sc.htn}%</span></td>
-        <td style="padding:10px;text-align:center"><span style="font-family:var(--mono);font-weight:700;font-size:0.9rem;color:${_riskColour(sc.ckd)}">${sc.ckd}%</span></td>
-        <td style="padding:10px;text-align:center">
-          <span style="padding:3px 10px;border-radius:20px;font-size:0.72rem;font-weight:600;${_riskPillCSS(sc.overall)}">${_riskLabel(sc.overall)} &nbsp;${sc.overall}%</span>
-        </td>
-        <td style="padding:10px;text-align:center">
-          <button onclick="document.getElementById('riskPatientSelect').value='${key}';renderRiskPage('${key}')"
-            class="btn btn-ghost btn-sm" style="font-size:0.72rem;padding:5px 10px">Analyse →</button>
-        </td>
-      </tr>`;
-    }).join('');
-  }
-
-  // ── AI Risk Analysis (calls Claude) ────────────────────────────
-  async function runAIRiskAnalysis() {
-    const sel = document.getElementById('riskPatientSelect');
-    if (!sel || !sel.value) { showToast('⚠️', 'No Patient', 'Select a patient first'); return; }
-    const key = sel.value;
-    const p   = patientProfiles[key];
-    if (!p) return;
-    const sc  = _computeRisk(p);
-
-    const apiKey = getApiKey();
-    if (!apiKey) { showToast('⚠️', 'API Key', 'Enter your Anthropic key in Settings'); return; }
-
-    const statEl = document.getElementById('riskAIStatusBadge');
-    const narrEl = document.getElementById('riskAINarrative');
-    statEl.textContent = '⏳ Generating…';
-    statEl.style.cssText = 'background:var(--teal-dim);color:var(--teal);font-size:0.72rem';
-    narrEl.innerHTML = '<span style="color:var(--text3);font-style:italic">AI is analysing patient data…</span>';
-
-    const prompt = `You are a senior Indian physician reviewing ML-computed risk predictions.
-
-PATIENT: ${p.name}
-DETAILS: ${p.meta}
-VITALS: HR ${p.vitals?.hr||'—'} | BP ${p.vitals?.bp||'—'} | SpO₂ ${p.vitals?.spo2||'—'} | Temp ${p.vitals?.temp||'—'}
-COMPLAINTS: ${(p.complaints||[]).join(', ')||'None recorded'}
-HISTORY: ${(p.history||[]).join(', ')||'None'}
-MEDICATIONS: ${p.meds||'None'}
-CLINICAL SCORES: ${(p.scores||[]).map(s=>s[0]+': '+s[1]).join(' | ')||'None'}
-COMPUTED RISK: Cardiac ${sc.cardiac}% | Diabetes ${sc.diabetes}% | HTN ${sc.htn}% | CKD ${sc.ckd}% | Overall ${sc.overall}%
-
-Write a 3–4 sentence clinical risk narrative for the treating physician covering: (1) the primary risk concern and clinical reasoning, (2) the single most important immediate action, (3) 6-month prognosis outlook. Reference ICMR 2024 or NHP guidelines. Be direct, evidence-based, no bullet points.`;
-
-    try {
-      const text = await callClaudeAI([{ role:'user', content:prompt }],
-        'You are a senior Indian physician specialising in preventive medicine. Be concise, clinical, evidence-based.');
-      narrEl.innerHTML  = text.replace(/\n\n/g,'<br><br>').replace(/\n/g,' ');
-      statEl.textContent = '✅ AI Analysis Complete';
-      statEl.style.cssText = 'background:var(--teal-dim);color:var(--teal);font-size:0.72rem';
-    } catch(err) {
-      narrEl.innerHTML  = '<span style="color:var(--red)">AI analysis failed: ' + err.message + '</span>';
-      statEl.textContent = '❌ Error';
-      statEl.style.cssText = 'background:var(--red-dim);color:var(--red);font-size:0.72rem';
+          `).join('')}
+        </div>
+      `;
     }
   }
 
-  // ── Patient selector helpers (called from registry/login hooks) ─
-  function addRiskPatientSelector() { _populateRiskSelect(); _renderRiskTable(); }
-  function refreshRiskPatientSelector() { _populateRiskSelect(); }
+  // Add patient selector to Risk view — builds from patientProfiles (includes newly registered)
+  function addRiskPatientSelector() {
+    const riskView = document.getElementById('view-risk');
+    if (!riskView) return;
+    
+    let selector = riskView.querySelector('.risk-patient-selector');
+    if (!selector) {
+      selector = document.createElement('div');
+      selector.className = 'risk-patient-selector';
+      selector.style.cssText = 'margin:24px;';
+      selector.innerHTML = `
+        <label style="display:block;margin-bottom:8px;font-size:0.85rem;color:var(--text2)">Select Patient:</label>
+        <select onchange="updateRiskPrediction(this.value)" style="width:100%;max-width:400px;padding:10px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.85rem">
+          <option value="">— Select patient —</option>
+        </select>
+      `;
+      riskView.insertBefore(selector, riskView.firstChild);
+    }
+    // Always repopulate so newly registered patients appear
+    refreshRiskPatientSelector();
+  }
 
-  function _populateRiskSelect() {
-    const sel = document.getElementById('riskPatientSelect');
+  function refreshRiskPatientSelector() {
+    const sel = document.querySelector('.risk-patient-selector select');
     if (!sel) return;
     const prev = sel.value;
-    sel.innerHTML = '<option value="">— Select patient to analyse —</option>' +
+    sel.innerHTML = '<option value="">— Select patient —</option>' +
       Object.keys(patientProfiles).map(key => {
-        const p  = patientProfiles[key];
-        const sc = _computeRisk(p);
-        return `<option value="${key}">${p.name} · ${p.meta.split('·')[0].trim()} — ${_riskLabel(sc.overall)} (${sc.overall}%)</option>`;
+        const p = patientProfiles[key];
+        return `<option value="${key}">${p.name} · ${p.meta.split('·')[0].trim()}</option>`;
       }).join('');
-    if (prev) { sel.value = prev; }
+    if (prev) sel.value = prev;
   }
-
-  // Legacy alias kept for any remaining callers
-  function updateRiskPrediction(k) { renderRiskPage(k); }
-
 
   // 6. Language Support
   const translations = {
@@ -8279,18 +8112,14 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
      LOGIN & AUTHENTICATION SYSTEM (Invitation Only)
      ══════════════════════════════════════════════════════════ */
 
-  // ── User credentials — email + password (SHA-256) enforced at login ──
+   // Valid invitation codes with organization, role, and doctor name
   const validInvitations = {
-    'INV-2026-OWNER-001':          { name: 'Rekha Jayaram',       org: 'SAMARTHAA MED',    role: 'Owner',             email: 'rekhajayaram20@samarthaa.med',    pwHash: '57588ec20cf0a244671c7d7f0961b414d8e1234c0a5b3a1f4cca0067aa2b506b' },
-    'INV-2026-OWNER-002':          { name: 'Govardhanswamy GN',   org: 'SAMARTHAA MED',    role: 'Owner',             email: 'govardhangn@samarthaa.med',        pwHash: '57588ec20cf0a244671c7d7f0961b414d8e1234c0a5b3a1f4cca0067aa2b506b' },
-    'INV-2026-FAMILY-001':         { name: 'Dr. Prasad N',        org: 'Fortis Healthcare', role: 'Internal Medicine', email: 'dr.prasad@samarthaa.med',          pwHash: '57588ec20cf0a244671c7d7f0961b414d8e1234c0a5b3a1f4cca0067aa2b506b' },
-    'INV-2026-FAMILY-002':         { name: 'Dr. Punya N Raj',     org: 'Apollo Hospitals', role: 'General Medicine',  email: 'dr.punya_n_raj@samarthaa.med',     pwHash: '57588ec20cf0a244671c7d7f0961b414d8e1234c0a5b3a1f4cca0067aa2b506b' },
-    'INV-2026-MEDPARTNER-001':     { name: 'Dr. Nagendra Prasad', org: 'Max Healthcare',   role: 'Emergency Medicine',email: 'dr.nagendra_prasad@samarthaa.med', pwHash: '57588ec20cf0a244671c7d7f0961b414d8e1234c0a5b3a1f4cca0067aa2b506b' },
-    'INV-2026-DENTALPARTNER-001':  { name: 'Dr. Tarulatha',       org: 'Max Healthcare',   role: 'Dental Surgeon',    email: 'dr.tarulatha@samarthaa.med',       pwHash: '57588ec20cf0a244671c7d7f0961b414d8e1234c0a5b3a1f4cca0067aa2b506b' },
-    // ── New users ──
-    'INV-2026-DEMO-GEN-001':       { name: 'Demo User',           org: 'SAMARTHAA MED',    role: 'General Medicine',  email: 'demo@samarthaa.med',               pwHash: '905ec7560b8960ac78981cec526f18596fe1f62d83b0a28309887faeb7aa21dd' },
-    'INV-2026-DENTAL-SUJAY-001':   { name: 'Sujay',               org: 'SAMARTHAA MED',    role: 'Dental Surgeon',    email: 'sujay@samarthaa.med',              pwHash: '863415326c9f8705d80007a60e19f0b948f085a1ad7574abb53226df724a139c' },
-    'INV-2026-DEMO-BOPANNA-001':   { name: 'Bopanna',             org: 'SAMARTHAA MED',    role: 'General Medicine',  email: 'bopanna@samarthaa.med',            pwHash: '7b14d69e81aa8af0cb8b100827d469f161ca42b0db58bea73e36b780bf80bf4f' },
+    'INV-2026-OWNER-001': { name: 'Rekha Jayaram', org: 'SAMARTHAA MED', role: 'OWNER', email: 'rekhajayaram20@samarthaa.med' },
+    'INV-2026-OWNER-002': { name: 'Govardhanswamy GN', org: 'SAMARTHAA MED', role: 'Owner', email: 'govardhangn@samarthaa.med' },
+    'INV-2026-FAMILY-001': { name: 'Dr. Prasad N', org: 'Fortis Healthcare', role: 'Internal Medicine', email: 'dr.prasad@samarthaa.med' },
+    'INV-2026-FAMILY-002': { name: 'Dr. Punya N Raj', org: 'Apollo Hospitals', role: 'General Medicine', email: 'dr.punya_n_raj@samarthaa.med' },
+    'INV-2026-MEDPARTNER-001': { name: 'Dr. Nagendra Prasad', org: 'Max Healthcare', role: 'Emergency Medicine', email: 'dr.nagendra_prasad@samarthaa.med' },
+    'INV-2026-DENTALPARTNER-001': { name: 'Dr. Tarulatha', org: 'Max Healthcare', role: 'Dental Surgeon', email: 'dr.tarulatha@samarthaa.med' },
   };
 
   // Store invitation requests (in production, this would be a database)
@@ -8300,25 +8129,33 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
   function checkExistingSession() {
     const sessionToken = localStorage.getItem('samarthaamed_session');
     const sessionExpiry = localStorage.getItem('samarthaamed_session_expiry');
-
+    
     if (sessionToken && sessionExpiry) {
       const expiryDate = new Date(sessionExpiry);
       const now = new Date();
-
+      
       if (now < expiryDate) {
+        // Valid session exists
         const loginScreen = document.getElementById('loginScreen');
-        const mainApp     = document.getElementById('mainApp');
+        const mainApp = document.getElementById('mainApp');
+        
+        // Hide login screen
         if (loginScreen) loginScreen.style.display = 'none';
+        
+        // Show main app - CSS handles the layout
         if (mainApp) {
           mainApp.style.display = 'grid';
           mainApp.style.opacity = '1';
-          setTimeout(() => { initializeApp(); }, 100);
+          
+          // Initialize app
+          setTimeout(() => {
+            initializeApp();
+          }, 100);
         }
-        // Start backend watcher — first poll happens immediately and will
-        // kick this session if another device has since logged in.
-        _startSessionWatcher();
+        
         return true;
       } else {
+        // Session expired
         clearSession();
         return false;
       }
@@ -8347,242 +8184,53 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
     loginError.style.display = 'none';
     
     // Simulate authentication delay
-    setTimeout(async () => {
-      // 1. Validate invitation code exists
+    setTimeout(() => {
+      // Validate invitation code
       if (!validInvitations[invitationCode]) {
         showLoginError('Invalid invitation code. Please check and try again.');
         resetLoginButton();
         return;
       }
-
+      
       const invitation = validInvitations[invitationCode];
 
-      // 2. Enforce minimum password length
+      // Validate password minimum length
       if (password.length < 6) {
         showLoginError('Password must be at least 6 characters.');
         resetLoginButton();
         return;
       }
-
-      // 3. Enforce email match
-      if (email.toLowerCase() !== invitation.email.toLowerCase()) {
-        showLoginError('Email address does not match this invitation code.');
-        resetLoginButton();
-        return;
-      }
-
-      // 4. Enforce password match (SHA-256 comparison)
-      if (invitation.pwHash) {
-        const msgBuffer = new TextEncoder().encode(password);
-        const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-        const hashHex = Array.from(new Uint8Array(hashBuffer))
-          .map(b => b.toString(16).padStart(2, '0')).join('');
-        if (hashHex !== invitation.pwHash) {
-          showLoginError('Incorrect password. Please try again.');
-          resetLoginButton();
-          return;
-        }
-      }
-
+      
       // Authentication successful
-      await authenticateUser(invitationCode, email, invitation, rememberMe);
-
+      authenticateUser(invitationCode, email, invitation, rememberMe);
+      
     }, 1500); // Simulate network delay
   }
 
-  // ── Backend session enforcement ─────────────────────────────────
-  // All session state lives in a Cloudflare Worker KV store.
-  // Every device, browser, and tab hits the same backend — true
-  // cross-device single-session enforcement.
-  //
-  // ⚠️  SETUP REQUIRED: Deploy the Cloudflare Worker from session-backend/
-  // then replace the URL below with your worker's URL.
-  const SESSION_BACKEND_URL = 'https://samarthaa-session.govardhangn.workers.dev';
-
-  // Device fingerprint sent to backend so the session status page
-  // shows which device each user is logged in from.
-  const _deviceInfo = (() => {
-    const ua  = navigator.userAgent;
-    const mob = /iPhone|iPad|iPod/i.test(ua) ? 'iOS' :
-                /Android/i.test(ua)          ? 'Android' :
-                /Mac/i.test(ua)              ? 'Mac' :
-                /Windows/i.test(ua)          ? 'Windows' : 'Unknown';
-    const br  = /Chrome/i.test(ua) && !/Edge/i.test(ua) ? 'Chrome' :
-                /Safari/i.test(ua) && !/Chrome/i.test(ua) ? 'Safari' :
-                /Firefox/i.test(ua) ? 'Firefox' :
-                /Edge/i.test(ua)    ? 'Edge' : 'Browser';
-    return `${mob} / ${br}`;
-  })();
-
-  let _sessionPollTimer     = null;
-  let _sessionPollFails     = 0;   // consecutive network failures
-  const _MAX_POLL_FAILS     = 3;   // tolerate 3 failures before kicking (handles brief offline)
-  let _storageListenerAdded = false;
-
-  // ── Backend API calls ─────────────────────────────────────────
-  async function _backendRegisterSession(invitationCode, token, expiryDays) {
-    const res = await fetch(`${SESSION_BACKEND_URL}/session/register`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ invitationCode, token, device: _deviceInfo, expiryDays }),
-    });
-    if (!res.ok) throw new Error(`Register failed: ${res.status}`);
-    return res.json();
-  }
-
-  async function _backendValidateSession(invitationCode, token) {
-    const res = await fetch(`${SESSION_BACKEND_URL}/session/validate`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ invitationCode, token }),
-    });
-    if (!res.ok) throw new Error(`Validate failed: ${res.status}`);
-    return res.json();
-  }
-
-  async function _backendLogoutSession(invitationCode, token) {
-    await fetch(`${SESSION_BACKEND_URL}/session/logout`, {
-      method:  'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ invitationCode, token }),
-    }).catch(() => {});  // best-effort — don't block UI on network failure
-  }
-
-  // ── Session watcher ───────────────────────────────────────────
-  // Polls backend every 20s. If the backend says the token is no
-  // longer valid, immediately shows the kick overlay.
-  // Also listens to localStorage storage event for instant kick
-  // within the same browser (sub-second, no polling delay).
-  function _startSessionWatcher() {
-    // Layer 1: storage event — instant kick in same browser
-    if (!_storageListenerAdded) {
-      window.addEventListener('storage', (e) => {
-        if (e.key === 'samarthaamed_session' && !e.newValue) {
-          // Another tab in this browser cleared the session
-          _handleSessionKick('signed_out_elsewhere');
-        }
-      });
-      _storageListenerAdded = true;
-    }
-
-    // Layer 2: backend poll — catches cross-device / cross-browser logins
-    if (_sessionPollTimer) clearInterval(_sessionPollTimer);
-    _sessionPollFails = 0;
-
-    // Validate once immediately on start, then every 20s
-    _pollBackend();
-    _sessionPollTimer = setInterval(_pollBackend, 20000);
-  }
-
-  async function _pollBackend() {
-    const code  = localStorage.getItem('samarthaamed_invitation_code');
-    const token = localStorage.getItem('samarthaamed_session');
-    if (!code || !token) return;
-
-    try {
-      const result = await _backendValidateSession(code, token);
-      _sessionPollFails = 0;  // reset on success
-      if (!result.valid) {
-        _handleSessionKick(result.reason || 'invalid');
-      }
-    } catch (err) {
-      // Network error — be tolerant, don't kick on brief connectivity loss
-      _sessionPollFails++;
-      console.warn(`Session poll failed (${_sessionPollFails}/${_MAX_POLL_FAILS}):`, err.message);
-      if (_sessionPollFails >= _MAX_POLL_FAILS) {
-        // Prolonged network failure — fall back to local expiry check only
-        const expiry = localStorage.getItem('samarthaamed_session_expiry');
-        if (expiry && new Date() > new Date(expiry)) {
-          _handleSessionKick('session_expired');
-        }
-      }
-    }
-  }
-
-  function _stopSessionWatcher() {
-    if (_sessionPollTimer) { clearInterval(_sessionPollTimer); _sessionPollTimer = null; }
-  }
-
-  function _handleSessionKick(reason) {
-    // Guard: don't show twice
-    if (document.getElementById('sessionKickOverlay')) return;
-    _stopSessionWatcher();
-
-    // Clear local session — but do NOT call backend logout here;
-    // this session was already displaced server-side.
-    localStorage.removeItem('samarthaamed_session');
-    localStorage.removeItem('samarthaamed_session_expiry');
-    localStorage.removeItem('samarthaamed_user_name');
-    localStorage.removeItem('samarthaamed_user_email');
-    localStorage.removeItem('samarthaamed_user_org');
-    localStorage.removeItem('samarthaamed_user_role');
-    localStorage.removeItem('samarthaamed_invitation_code');
-    sessionStorage.clear();
-
-    const isExpired  = reason === 'session_expired';
-    const isDisplace = reason === 'session_displaced' || reason === 'no_session';
-
-    const icon    = isExpired ? '⏰' : '🔐';
-    const title   = isExpired ? 'Session Expired' : 'Session Ended';
-    const message = isExpired
-      ? 'Your session has expired. Please sign in again to continue.'
-      : 'Your account was signed in from another device or browser. This session has been ended to protect your account.';
-    const sub     = isExpired
-      ? ''
-      : '<p style="color:#64748b;font-size:0.8rem;margin:0 0 28px;">Only one active session is allowed per user.</p>';
-
-    const overlay = document.createElement('div');
-    overlay.id = 'sessionKickOverlay';
-    overlay.style.cssText = [
-      'position:fixed','top:0','left:0','right:0','bottom:0',
-      'background:rgba(10,14,26,0.97)','z-index:99999',
-      'display:flex','flex-direction:column',
-      'align-items:center','justify-content:center',
-      'font-family:var(--syne,sans-serif)','padding:32px','text-align:center'
-    ].join(';');
-    overlay.innerHTML = `
-      <div style="font-size:3rem;margin-bottom:20px;">${icon}</div>
-      <h2 style="color:#e2e8f0;margin:0 0 12px;font-size:1.4rem;">${title}</h2>
-      <p style="color:#94a3b8;margin:0 0 8px;font-size:0.95rem;max-width:380px;line-height:1.6;">${message}</p>
-      ${sub}
-      <button onclick="location.reload()" style="
-        padding:14px 32px;background:#0d9488;color:#fff;border:none;
-        border-radius:10px;font-size:1rem;font-weight:600;cursor:pointer;
-        font-family:inherit;letter-spacing:0.02em;">
-        Sign In Again
-      </button>
-    `;
-    document.body.appendChild(overlay);
-  }
-
-  async function authenticateUser(invitationCode, email, invitation, rememberMe) {
+  function authenticateUser(invitationCode, email, invitation, rememberMe) {
+    // Generate session token
     const sessionToken = generateSessionToken();
-    const expiryDays   = rememberMe ? 30 : 1;
-    const expiryDate   = new Date();
+    
+    // Set session expiry
+    const expiryDays = rememberMe ? 30 : 1;
+    const expiryDate = new Date();
     expiryDate.setDate(expiryDate.getDate() + expiryDays);
-
-    // Save locally first so the app works even if backend is unreachable
-    localStorage.setItem('samarthaamed_session',         sessionToken);
-    localStorage.setItem('samarthaamed_session_expiry',  expiryDate.toISOString());
-    localStorage.setItem('samarthaamed_user_name',       invitation.name);
-    localStorage.setItem('samarthaamed_user_email',      email);
-    localStorage.setItem('samarthaamed_user_org',        invitation.org);
-    localStorage.setItem('samarthaamed_user_role',       invitation.role);
+    
+    // Store session with doctor name
+    localStorage.setItem('samarthaamed_session', sessionToken);
+    localStorage.setItem('samarthaamed_session_expiry', expiryDate.toISOString());
+    localStorage.setItem('samarthaamed_user_name', invitation.name);
+    localStorage.setItem('samarthaamed_user_email', email);
+    localStorage.setItem('samarthaamed_user_org', invitation.org);
+    localStorage.setItem('samarthaamed_user_role', invitation.role);
     localStorage.setItem('samarthaamed_invitation_code', invitationCode);
-
-    // Register with backend — this atomically invalidates any other active
-    // session for this user on any device/browser worldwide.
-    try {
-      await _backendRegisterSession(invitationCode, sessionToken, expiryDays);
-    } catch (err) {
-      // Backend unreachable — still allow login, session watcher will
-      // enforce once connectivity is restored.
-      console.warn('Session backend unreachable on login:', err.message);
-      showToast('⚠️', 'Offline Mode', 'Logged in locally. Cross-device session enforcement will resume when online.');
-    }
-
+    
+    // Show success and redirect
     showToast('✅', 'Login Successful', `Welcome, ${invitation.name}!`);
-    setTimeout(() => { showMainApp(); }, 800);
+    
+    setTimeout(() => {
+      showMainApp();
+    }, 800);
   }
 
   function generateSessionToken() {
@@ -8627,44 +8275,8 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
         
         // Initialize any required components
         initializeApp();
-        // Start single-session watcher — kicks this tab if user logs in elsewhere
-        _startSessionWatcher();
-        // Restore registered patients into table
-        setTimeout(restoreRegisteredPatients, 600);
       }, 50);
     }, 500);
-  }
-
-  // ── Feature-level access control ────────────────────────────────
-  // Imaging AI (view-imaging) and Radiology (view-radiology) are
-  // restricted to owner accounts only.
-  const IMAGING_ALLOWED = ['INV-2026-OWNER-001', 'INV-2026-OWNER-002'];
-
-  function applyFeaturePermissions() {
-    const code = localStorage.getItem('samarthaamed_invitation_code') || '';
-    const hasAccess = IMAGING_ALLOWED.includes(code);
-
-    // Elements to hide for non-owners
-    const restricted = [
-      'navImagingAI',         // Sidebar: Imaging AI nav item
-      'specCardRadiology',    // Specializations: Radiology & Imaging AI card
-      'chatToolImagingBtn',   // Consult chat: Upload ECG button
-      'view-imaging',         // The Imaging AI view itself
-      'view-radiology',       // The Radiology view itself
-    ];
-
-    restricted.forEach(id => {
-      const el = document.getElementById(id);
-      if (el) el.style.display = hasAccess ? '' : 'none';
-    });
-
-    // If a non-owner somehow lands on a restricted view, redirect to dashboard
-    if (!hasAccess) {
-      const active = document.querySelector('.view.active');
-      if (active && (active.id === 'view-imaging' || active.id === 'view-radiology')) {
-        showView('dashboard');
-      }
-    }
   }
 
   function initializeApp() {
@@ -8673,10 +8285,7 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
     if (dashboard) {
       dashboard.classList.add('active');
     }
-
-    // Apply feature-level permissions based on invitation code
-    applyFeaturePermissions();
-
+    
     // Add logout button to sidebar
     addLogoutButton();
     
@@ -8709,12 +8318,6 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
   }
 
   function clearSession() {
-    _stopSessionWatcher();
-    const code  = localStorage.getItem('samarthaamed_invitation_code');
-    const token = localStorage.getItem('samarthaamed_session');
-    // Tell backend this session is voluntarily ending — frees up the slot
-    // so the same user can log in on another device without the kick overlay
-    if (code && token) _backendLogoutSession(code, token);
     localStorage.removeItem('samarthaamed_session');
     localStorage.removeItem('samarthaamed_session_expiry');
     localStorage.removeItem('samarthaamed_user_name');
@@ -9106,14 +8709,10 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
 
   // Check session on page load
   document.addEventListener('DOMContentLoaded', function() {
-    // Always merge saved profiles into patientProfiles on load
-    _restoreProfiles();
     if (!checkExistingSession()) {
+      // No valid session, show login screen
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('mainApp').style.display = 'none';
-    } else {
-      // Valid session — restore registered patients to table after UI renders
-      setTimeout(restoreRegisteredPatients, 500);
     }
   });
 
@@ -9220,17 +8819,14 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
     if (_configLoadPromise) return _configLoadPromise;
     _configLoadPromise = fetch('/api/config')
       .then(r => {
-        // If we get HTML back (no serverless function deployed), treat as no config
+        // Guard: if server returns HTML (404 page), r.json() will throw a confusing error
         const ct = r.headers.get('content-type') || '';
         if (!ct.includes('application/json')) {
-          _configLoaded = true;
-          _updatePacsBadge();
-          return; // no backend config — user can set key in Settings
+          throw new Error('Config endpoint returned non-JSON (' + r.status + '). Deploy netlify/functions/config.js');
         }
         return r.json();
       })
       .then(cfg => {
-        if (!cfg) return; // no config available (static deploy)
         const ak = cfg.anthropicKey       || '';
         const ek = cfg.elevenLabsKey      || '';
         const ev = cfg.elevenLabsVoiceId  || '';
@@ -9238,16 +8834,12 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
         if (ak) _vault.set('smak', ak);
         if (ek) _vault.set('elak', ek);
         if (ev) _vault.set('elvi', ev);
-        // Just store whether Orthanc is configured — proxy handles credentials
         _orthancBase = (cfg.orthancUrl || '').replace(/\/$/, '');
         _configLoaded = true;
         _updatePacsBadge();
+        console.log('[SamarthaaMed] Config loaded. EL key:', ek ? 'SET' : 'MISSING', 'Voice ID:', ev ? 'SET' : 'MISSING');
       })
-      .catch(() => {
-        // /api/config not available — static deploy mode, silently continue
-        _configLoaded = true;
-        _updatePacsBadge();
-      });
+      .catch(err => console.error('[SamarthaaMed] Failed to load config:', err.message));
     return _configLoadPromise;
   }
 
@@ -9334,14 +8926,7 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
   }
 
   // Kick off immediately
-  _loadConfig().then(() => {
-    // After config loads, update the key input status in Settings
-    const status = document.getElementById('anthropicKeyStatus');
-    if (status && _anthropicApiKey) {
-      status.textContent = '✅ Active';
-      status.style.cssText = 'font-size:0.72rem;padding:4px 10px;border-radius:20px;font-weight:600;background:var(--teal-dim);color:var(--teal);white-space:nowrap';
-    }
-  });
+  _loadConfig();
 
   function getApiKey() {
     if (_anthropicApiKey) return _anthropicApiKey;
@@ -9353,31 +8938,8 @@ Write a 3–4 sentence clinical risk narrative for the treating physician coveri
   }
 
   // LOCKED — key is system-configured; UI cannot change it
-  function saveAnthropicKeyManual() {
-    const input = document.getElementById('anthropicKeyInput');
-    const status = document.getElementById('anthropicKeyStatus');
-    if (!input) return;
-    const key = input.value.trim();
-    if (!key || !key.startsWith('sk-ant-')) {
-      if (status) {
-        status.textContent = '✗ Invalid key';
-        status.style.cssText = 'font-size:0.72rem;padding:4px 10px;border-radius:20px;font-weight:600;background:var(--red-dim);color:var(--red);white-space:nowrap';
-      }
-      return;
-    }
-    _anthropicApiKey = key;
-    _vault.set('smak', key);
-    _configLoaded = true;
-    input.value = '';
-    input.placeholder = 'sk-ant-•••••••• (saved)';
-    if (status) {
-      status.textContent = '✅ Saved';
-      status.style.cssText = 'font-size:0.72rem;padding:4px 10px;border-radius:20px;font-weight:600;background:var(--teal-dim);color:var(--teal);white-space:nowrap';
-    }
-    showToast('✅', 'API Key Saved', 'Claude AI features are now active');
-  }
-  function saveAnthropicKey() { saveAnthropicKeyManual(); }
-  function toggleAnthropicKeyVisibility() { /* no-op */ }
+  function saveAnthropicKey()         { /* no-op: key is system-configured */ }
+  function toggleAnthropicKeyVisibility() { /* no-op: key is system-configured */ }
   function restoreAnthropicKey()      {
     const stored = _vault.get('smak');
     if (stored) _anthropicApiKey = stored;
@@ -10590,7 +10152,7 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
     active: false,
     recognition: null,
     synthesis: window.speechSynthesis,
-    currentLanguage: 'en-IN',
+    currentLanguage: 'en-US',
     conversationHistory: [],
     isListening: false,
     isSpeaking: false,
@@ -10598,174 +10160,22 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
   };
 
   // Start voice consultation
-  // ══════════════════════════════════════════════════════════════
-  // EMERGENCY VOICE AI — no patient registration required
-  // ══════════════════════════════════════════════════════════════
-  let _emergencyMode = false;
-  let _emergencyContext = {};
-
-  function startEmergencyVoice() {
-    // Show quick triage form before launching voice
-    const overlay = document.createElement('div');
-    overlay.id = 'emergencyTriageOverlay';
-    overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.75);display:flex;align-items:center;justify-content:center;z-index:10001;padding:20px;';
-    overlay.innerHTML = `
-      <div style="background:var(--panel);border-radius:18px;width:100%;max-width:480px;overflow:hidden;box-shadow:0 24px 80px rgba(220,38,38,0.3);border:2px solid rgba(220,38,38,0.4);">
-        <!-- Red header -->
-        <div style="background:linear-gradient(135deg,var(--red),#991b1b);padding:20px 24px;display:flex;align-items:center;gap:12px;">
-          <span style="font-size:2rem;animation:pulse 1s infinite;">🚨</span>
-          <div>
-            <div style="font-family:var(--syne);font-size:1.25rem;font-weight:800;color:#fff;">Emergency Voice AI</div>
-            <div style="font-size:0.78rem;color:rgba(255,255,255,0.8);margin-top:2px;">Rapid AI consultation — no patient registration needed</div>
-          </div>
-        </div>
-        <!-- Quick triage inputs -->
-        <div style="padding:22px 24px 16px;">
-          <p style="font-size:0.82rem;color:var(--text3);margin:0 0 16px;">Enter what you know. All fields optional — speak the rest aloud once the session starts.</p>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
-            <div>
-              <label style="font-size:0.72rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px;">Age</label>
-              <input id="emAge" type="number" placeholder="e.g. 55" min="0" max="120"
-                style="width:100%;padding:9px 12px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.9rem;outline:none;box-sizing:border-box;"
-                onfocus="this.style.borderColor='var(--red)'" onblur="this.style.borderColor='var(--border2)'">
-            </div>
-            <div>
-              <label style="font-size:0.72rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px;">Sex</label>
-              <select id="emSex"
-                style="width:100%;padding:9px 12px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.9rem;outline:none;box-sizing:border-box;cursor:pointer;"
-                onfocus="this.style.borderColor='var(--red)'" onblur="this.style.borderColor='var(--border2)'">
-                <option value="">Unknown</option>
-                <option value="Male">Male</option>
-                <option value="Female">Female</option>
-              </select>
-            </div>
-          </div>
-          <div style="margin-bottom:12px;">
-            <label style="font-size:0.72rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px;">Chief Complaint / Presenting Problem</label>
-            <input id="emComplaint" type="text" placeholder="e.g. Chest pain with radiation to left arm, 30 mins"
-              style="width:100%;padding:9px 12px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.9rem;outline:none;box-sizing:border-box;"
-              onfocus="this.style.borderColor='var(--red)'" onblur="this.style.borderColor='var(--border2)'"
-              onkeydown="if(event.key==='Enter') _launchEmergencyVoice()">
-          </div>
-          <div style="margin-bottom:16px;">
-            <label style="font-size:0.72rem;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:0.6px;display:block;margin-bottom:4px;">Known Vitals / Allergies (optional)</label>
-            <input id="emVitals" type="text" placeholder="e.g. BP 180/110, HR 115, Penicillin allergy"
-              style="width:100%;padding:9px 12px;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;color:var(--text1);font-size:0.9rem;outline:none;box-sizing:border-box;"
-              onfocus="this.style.borderColor='var(--red)'" onblur="this.style.borderColor='var(--border2)'">
-          </div>
-          <div style="display:flex;gap:10px;">
-            <button onclick="document.getElementById('emergencyTriageOverlay').remove()" 
-              style="flex:1;padding:12px;background:var(--navy3);color:var(--text2);border:1px solid var(--border2);border-radius:8px;cursor:pointer;font-weight:600;font-size:0.9rem;">
-              Cancel
-            </button>
-            <button onclick="_launchEmergencyVoice()"
-              style="flex:2;padding:12px;background:var(--red);color:#fff;border:none;border-radius:8px;cursor:pointer;font-weight:700;font-size:0.95rem;box-shadow:0 4px 16px rgba(220,38,38,0.4);">
-              🎤 Start Emergency Session
-            </button>
-          </div>
-        </div>
-      </div>`;
-    document.body.appendChild(overlay);
-    // Focus chief complaint
-    setTimeout(() => document.getElementById('emComplaint')?.focus(), 200);
-  }
-
-  function _launchEmergencyVoice() {
-    const age       = document.getElementById('emAge')?.value?.trim() || '';
-    const sex       = document.getElementById('emSex')?.value || '';
-    const complaint = document.getElementById('emComplaint')?.value?.trim() || '';
-    const vitals    = document.getElementById('emVitals')?.value?.trim() || '';
-    document.getElementById('emergencyTriageOverlay')?.remove();
-
-    _emergencyMode = true;
-    _emergencyContext = { age, sex, complaint, vitals };
-
-    // Launch the standard voice modal but in emergency mode
-    startVoiceConsultation(true);
-  }
-
-  function _buildEmergencySystemPrompt(ctx) {
-    const who = [ctx.age && (ctx.age + ' yr'), ctx.sex].filter(Boolean).join(' ') || 'Unknown age/sex';
-    const complaint = ctx.complaint || 'not yet stated';
-    const vitals = ctx.vitals || 'not yet measured';
-    return `You are Samarthaa, an emergency AI clinical decision-support assistant helping an Indian doctor in a time-critical situation.
-
-EMERGENCY PATIENT (UNREGISTERED):
-Patient: ${who}
-Presenting: ${complaint}
-Vitals known: ${vitals}
-
-CRITICAL RULES FOR EMERGENCY MODE:
-1. This is a real emergency — be fast, decisive, and direct.
-2. Lead with the most critical action first (ABCDE approach, STEMI protocol, sepsis bundle etc.).
-3. Replies must be 1–3 short spoken sentences MAXIMUM. No preamble.
-4. Cite ICMR 2024, NHP, or WHO emergency protocols when applicable.
-5. If patient details are unknown, make clinically safe assumptions and state them.
-6. Flag red-flag symptoms immediately (STEMI, stroke, anaphylaxis, sepsis).
-7. Match the language the doctor speaks (English/Hindi/Kannada etc.).
-8. Never refuse to answer due to missing information — work with what you have.`;
-  }
-
-  function _getEmergencyContext() {
-    const ctx = _emergencyContext;
-    const who = [ctx.age && (ctx.age + ' yr'), ctx.sex].filter(Boolean).join(' ') || 'Unknown';
-    return `EMERGENCY — UNREGISTERED PATIENT: ${who} | Presenting: ${ctx.complaint || 'not yet stated'} | Vitals: ${ctx.vitals || 'not yet measured'}`;
-  }
-
-  function _clearEmergencyMode() {
-    _emergencyMode = false;
-    _emergencyContext = {};
-  }
-
-  function startVoiceConsultation(emergencyMode) {
-    // ── iOS / Android audio unlock ──────────────────────────────────
-    // Mobile browsers require a user-gesture to unlock the audio subsystem.
-    // We trigger a silent utterance here (inside the tap handler) to unlock it
-    // before any async AI response tries to speak.
-    try {
-      const unlock = new SpeechSynthesisUtterance('');
-      unlock.volume = 0;
-      window.speechSynthesis.cancel();
-      window.speechSynthesis.speak(unlock);
-    } catch(e) {}
-
-    // ── Pre-load voices (iOS returns empty list until this event fires) ──
-    if (window.speechSynthesis.getVoices().length === 0) {
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.onvoiceschanged = null; // only once
-      };
-    }
+  function startVoiceConsultation() {
     // Show voice consultation modal
     const modal = document.createElement('div');
     modal.id = 'voiceConsultModal';
     modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.85);display:flex;align-items:center;justify-content:center;z-index:10000;padding:20px;';
     
-    // Determine display info (emergency vs normal)
-    const isEmergency = emergencyMode === true || _emergencyMode;
-    let patientName, patientMeta, headerBg, headerIcon, headerTitle;
-    if (isEmergency) {
-      const ctx = _emergencyContext;
-      const who = [ctx.age && (ctx.age + ' yr'), ctx.sex].filter(Boolean).join(' ') || 'Unknown patient';
-      patientName = '🚨 EMERGENCY — ' + who;
-      patientMeta = ctx.complaint ? ctx.complaint : 'Speak symptoms aloud to begin';
-      headerBg = 'linear-gradient(135deg,rgba(220,38,38,0.15),var(--panel))';
-      headerIcon = '🚨';
-      headerTitle = 'Emergency Voice AI';
-    } else {
-      patientName = document.querySelector('.consult-patient-name')?.textContent || 'Patient';
-      patientMeta = document.querySelector('.consult-patient-meta')?.textContent || '';
-      headerBg = 'linear-gradient(135deg,var(--teal-dim),var(--panel))';
-      headerIcon = '🎤';
-      headerTitle = 'Voice Consultation';
-    }
+    const patientName = document.querySelector('.consult-patient-name')?.textContent || 'Patient';
+    const patientMeta = document.querySelector('.consult-patient-meta')?.textContent || '';
     
     modal.innerHTML = `
       <div style="background:var(--panel);border-radius:16px;max-width:900px;width:100%;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.3);">
         <!-- Header -->
-        <div style="padding:24px;border-bottom:1px solid var(--border);background:${headerBg};">
+        <div style="padding:24px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--teal-dim),var(--panel));">
           <div style="display:flex;justify-content:space-between;align-items:center;">
             <div>
-              <h2 style="margin:0;color:var(--text1);font-size:1.5rem;font-family:var(--syne);">${headerIcon} ${headerTitle}</h2>
+              <h2 style="margin:0;color:var(--text1);font-size:1.5rem;font-family:var(--syne);">🎤 Voice Consultation</h2>
               <p style="margin:4px 0 0 0;color:var(--text3);font-size:0.85rem;">${patientName} • ${patientMeta}</p>
             </div>
             <button onclick="endVoiceConsultation()" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red);padding:10px 20px;border-radius:8px;cursor:pointer;font-weight:600;">
@@ -10794,7 +10204,6 @@ CRITICAL RULES FOR EMERGENCY MODE:
 
             <!-- Language Selector -->
             <select id="voiceLangSelect" onchange="changeVoiceLanguage(this.value)" style="padding:10px 16px;border-radius:8px;border:1px solid var(--border2);background:var(--panel);color:var(--text1);font-size:0.9rem;cursor:pointer;">
-              <option value="en-IN" selected>🇮🇳 English (India)</option>
               <option value="en-US">🇺🇸 English (US)</option>
               <option value="en-GB">🇬🇧 English (UK)</option>
               <option value="hi-IN">🇮🇳 Hindi</option>
@@ -10855,393 +10264,138 @@ CRITICAL RULES FOR EMERGENCY MODE:
     document.body.appendChild(modal);
     initializeVoiceRecognition();
     voiceConsultation.active = true;
-
-    // Auto-start: give mobile browsers more time to settle after audio unlock
+    
+    // Auto-start listening
     setTimeout(() => {
-      if (_sttMicGranted || !_isMobile) {
-        toggleVoiceListening();
-      } else {
-        // On mobile wait for mic permission to resolve first
-        setTimeout(toggleVoiceListening, 800);
-      }
-    }, _isIOS ? 1200 : 600);
+      toggleVoiceListening();
+    }, 500);
   }
 
-  // ── Speech Recognition — mobile-robust implementation ────────────
-  // Key mobile facts:
-  //   iOS Safari: does NOT support continuous=true; recognition stops after
-  //               each utterance and must be restarted manually.
-  //   Android Chrome: supports continuous but throws on rapid restart.
-  //   Both: a failed/errored instance must be discarded and recreated.
-
-  const _isMobile  = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-  const _isIOS     = /iPhone|iPad|iPod/i.test(navigator.userAgent);
-  const _isAndroid = /Android/i.test(navigator.userAgent);
-  let   _sttRestartTimer  = null;   // debounce auto-restart
-  let   _sttErrorCount    = 0;      // consecutive errors — bail after 3
-  let   _sttMicGranted    = false;  // microphone permission already granted
-
-  // Medical vocab hint list for SpeechGrammarList injection
-  const _medTerms = [
-    'hypertension','hypotension','tachycardia','bradycardia','dyspnea','dyspnoea',
-    'myocardial','infarction','angina','palpitations','arrhythmia','fibrillation',
-    'diabetes','hyperglycemia','hypoglycemia','insulin','metformin','HbA1c',
-    'creatinine','eGFR','proteinuria','nephropathy','dialysis',
-    'pneumonia','bronchitis','wheezing','crepitations','rhonchi','spirometry',
-    'hemoglobin','platelet','leukocyte','CBC','ESR','CRP',
-    'echocardiography','electrocardiogram','ECG','troponin','BNP',
-    'statin','amlodipine','atenolol','ramipril','losartan','aspirin','clopidogrel',
-    'ICMR','comorbidity','polypharmacy','contraindicated','auscultation',
-    'systolic','diastolic','SpO2','saturation','respiratory rate',
-  ];
-
-  // Accumulate rapid consecutive finals before sending to AI (fixes Android fragmentation)
-  let _sttAccumulator = '';
-  let _sttAccumTimer  = null;
-
-  // ── Android STT correction via Claude ────────────────────────────
-  // Web Speech API on Android frequently mishears medical terms.
-  // This sends the raw transcript to Claude with a tiny max_tokens
-  // budget for a fast find-and-fix pass before displaying to the user.
-  let _correctionInFlight = false;
-
-  async function _correctMedicalTerms(rawText) {
-    // Only run on Android, skip if very short or correction already running
-    if (!_isAndroid || rawText.length < 4 || _correctionInFlight) return rawText;
-
-    try {
-      _correctionInFlight = true;
-      await _loadConfig();
-      const apiKey = getApiKey();
-      if (!apiKey) return rawText;
-
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true'
-        },
-        body: JSON.stringify({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 120,
-          system: 'You are a medical transcription corrector. The user will give you a voice transcript from Android speech recognition that may have misheared medical, clinical or anatomical terms. Correct ONLY medical/clinical terminology errors caused by mishearing. Do NOT change meaning, grammar, or non-medical words. Return ONLY the corrected text with no explanation.',
-          messages: [{ role: 'user', content: rawText }]
-        })
-      });
-
-      if (!response.ok) return rawText;
-      const data = await response.json();
-      const corrected = data.content?.[0]?.text?.trim();
-      return (corrected && corrected.length > 0) ? corrected : rawText;
-
-    } catch(e) {
-      console.warn('STT correction error:', e);
-      return rawText;
-    } finally {
-      _correctionInFlight = false;
+  // Initialize speech recognition
+  function initializeVoiceRecognition() {
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    
+    if (!SpeechRecognition) {
+      showToast('⚠️', 'Not Supported', 'Voice recognition is not supported in this browser. Try Chrome or Edge.');
+      return;
     }
-  }
 
-  // Build a fresh SpeechRecognition instance (required after errors on mobile)
-  function _createRecognition() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) return null;
+    voiceConsultation.recognition = new SpeechRecognition();
+    voiceConsultation.recognition.continuous = true;
+    voiceConsultation.recognition.interimResults = true;
+    voiceConsultation.recognition.lang = voiceConsultation.currentLanguage;
+    voiceConsultation.recognition.maxAlternatives = 3;
 
-    const r = new SR();
-    r.continuous      = _isIOS ? false : true;
-    r.interimResults  = true;
-    r.maxAlternatives = _isMobile ? 3 : 1;
-    r.lang            = voiceConsultation.currentLanguage;
-
-    // Inject medical grammar hint (improves clinical term accuracy on Chrome Android)
-    try {
-      const SGL = window.SpeechGrammarList || window.webkitSpeechGrammarList;
-      if (SGL) {
-        const gl = new SGL();
-        gl.addFromString('#JSGF V1.0; grammar med; public <term> = ' + _medTerms.join(' | ') + ';', 1);
-        r.grammars = gl;
-      }
-    } catch(e) {}
-
-    r.onstart = () => {
-      _sttErrorCount = 0;
+    voiceConsultation.recognition.onstart = () => {
       voiceConsultation.isListening = true;
       updateVoiceStatus('Listening...', 'Speak now');
       animateWaveform(true);
-      const btn = document.getElementById('voiceMicBtn');
-      if (btn) { btn.style.background = 'var(--red)'; btn.style.transform = 'scale(1.1)'; }
+      document.getElementById('voiceMicBtn').style.background = 'var(--red)';
+      document.getElementById('voiceMicBtn').style.transform = 'scale(1.1)';
     };
 
-    r.onresult = (event) => {
-      let interim = '';
+    voiceConsultation.recognition.onresult = (event) => {
+      let interimTranscript = '';
+      let finalTranscript = '';
+
       for (let i = event.resultIndex; i < event.results.length; i++) {
-        const result = event.results[i];
-        if (result.isFinal) {
-          const best = _pickBestAlternative(result);
-          // Skip very low confidence results (background noise on mobile)
-          if (best.confidence > 0 && best.confidence < 0.25) continue;
-          if (best.transcript.trim().length < 2) continue;
-          // Accumulate finals and wait for a natural pause before sending to AI.
-          // Fixes Android fragmenting one sentence into multiple rapid isFinal events.
-          _sttAccumulator += best.transcript.trim() + ' ';
-          if (_sttAccumTimer) clearTimeout(_sttAccumTimer);
-          _sttAccumTimer = setTimeout(async () => {
-            const combined = _sttAccumulator.trim();
-            _sttAccumulator = '';
-            _sttAccumTimer  = null;
-            if (combined.length > 2) {
-              // Show raw transcript immediately so user sees something
-              addToVoiceTranscript('user', combined);
-              // On Android: correct medical terms via Claude before sending to AI
-              const finalText = _isAndroid
-                ? await _correctMedicalTerms(combined)
-                : combined;
-              // If correction changed the text, update the last user transcript bubble
-              if (finalText !== combined) {
-                const transcriptDiv = document.getElementById('voiceTranscript');
-                if (transcriptDiv) {
-                  // Find last user bubble — it's the last div with flex-end justify
-                  const allMsgs = transcriptDiv.querySelectorAll('div[style*="flex-end"]');
-                  const lastMsg = allMsgs[allMsgs.length - 1];
-                  if (lastMsg) {
-                    const textEl = lastMsg.querySelector('div[style*="font-size:0.9rem"]');
-                    if (textEl) textEl.textContent = finalText;
-                  }
-                }
-              }
-              processVoiceInput(finalText);
-            }
-          }, _isMobile ? 1200 : 600);
+        const transcript = event.results[i][0].transcript;
+        if (event.results[i].isFinal) {
+          finalTranscript += transcript;
         } else {
-          interim += result[0].transcript;
+          interimTranscript += transcript;
         }
       }
-      if (interim) updateVoiceStatus('Listening...', interim);
-    };
 
-    r.onerror = (event) => {
-      const err = event.error;
-      console.warn('STT error:', err);
-      if (err === 'not-allowed' || err === 'service-not-allowed') {
-        _sttMicGranted = false;
-        showToast('⚠️', 'Microphone Blocked', 'Allow microphone access in your browser settings, then try again.');
-        voiceConsultation.isListening = false;
-        voiceConsultation.autoListen  = false;
-        _setMicBtnIdle();
-        return;
+      if (interimTranscript) {
+        updateVoiceStatus('Listening...', interimTranscript);
       }
-      if (err === 'no-speech') { updateVoiceStatus('Tap mic to speak', 'No speech detected'); return; }
-      if (err === 'aborted')   { return; }
-      if (err === 'network')   { updateVoiceStatus('Network error', 'Check connection & retry'); }
-      _sttErrorCount++;
-      if (_sttErrorCount >= 3) {
-        updateVoiceStatus('Mic unavailable', 'Tap mic to retry');
-        voiceConsultation.isListening = false;
-        _setMicBtnIdle();
-        _sttErrorCount = 0;
+
+      if (finalTranscript) {
+        addToVoiceTranscript('user', finalTranscript);
+        processVoiceInput(finalTranscript);
       }
     };
 
-    r.onend = () => {
+    voiceConsultation.recognition.onerror = (event) => {
+      console.error('Voice recognition error:', event.error);
+      if (event.error === 'no-speech') {
+        updateVoiceStatus('No speech detected', 'Please speak clearly');
+      } else if (event.error === 'not-allowed') {
+        showToast('⚠️', 'Microphone Access Denied', 'Please allow microphone access');
+        voiceConsultation.isListening = false;
+      }
+    };
+
+    voiceConsultation.recognition.onend = () => {
       voiceConsultation.isListening = false;
-      _setMicBtnIdle();
+      document.getElementById('voiceMicBtn').style.background = 'var(--teal)';
+      document.getElementById('voiceMicBtn').style.transform = 'scale(1)';
+      animateWaveform(false);
+      
+      // Auto-restart if auto-listen is enabled and not speaking
       if (voiceConsultation.autoListen && !voiceConsultation.isSpeaking && voiceConsultation.active) {
-        if (_sttRestartTimer) clearTimeout(_sttRestartTimer);
-        _sttRestartTimer = setTimeout(() => {
-          if (!voiceConsultation.isSpeaking && voiceConsultation.active && voiceConsultation.autoListen) {
-            if (_isIOS) voiceConsultation.recognition = _createRecognition();
-            _startRecognition();
+        setTimeout(() => {
+          if (!voiceConsultation.isSpeaking && voiceConsultation.active) {
+            voiceConsultation.recognition.start();
           }
-        }, _isIOS ? 400 : 300);
-      } else if (!voiceConsultation.isSpeaking) {
-        updateVoiceStatus('Tap mic to speak', 'Microphone is off');
+        }, 1000);
+      } else {
+        updateVoiceStatus('Stopped', 'Click microphone to continue');
       }
     };
-
-    return r;
   }
 
-  // Pick the recognition alternative with best combined score.
-  // Boosts alternatives that contain known medical terms even if slightly
-  // lower raw confidence -- fixes "dyspnea" losing to "this new" on mobile.
-  function _pickBestAlternative(result) {
-    const medSet = new Set(_medTerms.map(function(t){ return t.toLowerCase(); }));
-    function score(alt) {
-      var words = alt.transcript.toLowerCase().split(/\s+/);
-      var hits  = words.filter(function(w){ return medSet.has(w); }).length;
-      return (alt.confidence || 0.5) * (1 + hits * 0.3);
-    }
-    var best = result[0], bestScore = score(result[0]);
-    for (var j = 1; j < result.length; j++) {
-      var s = score(result[j]);
-      if (s > bestScore) { bestScore = s; best = result[j]; }
-    }
-    return best;
-  }
-  function _setMicBtnIdle() {
-    animateWaveform(false);
-    const btn = document.getElementById('voiceMicBtn');
-    if (btn) { btn.style.background = 'var(--teal)'; btn.style.transform = 'scale(1)'; }
-  }
-
-  // Safe start — handles "already started" InvalidStateError on Android
-  function _startRecognition() {
-    if (!voiceConsultation.recognition) voiceConsultation.recognition = _createRecognition();
-    if (!voiceConsultation.recognition) {
-      showToast('⚠️', 'Not Supported', 'Speech recognition requires Chrome on Android or Safari on iOS.');
-      return;
-    }
-    if (voiceConsultation.isListening) return; // already running
-    try {
-      voiceConsultation.recognition.start();
-    } catch (e) {
-      if (e.name === 'InvalidStateError') {
-        // Instance stuck — recreate and retry once
-        voiceConsultation.recognition = _createRecognition();
-        setTimeout(() => {
-          try { voiceConsultation.recognition.start(); } catch(e2) { console.warn('STT start retry failed:', e2); }
-        }, 250);
-      } else {
-        console.warn('STT start error:', e);
-      }
-    }
-  }
-
-  function initializeVoiceRecognition() {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
-      showToast('⚠️', 'Not Supported', 'Use Chrome (Android) or Safari (iOS) for voice recognition.');
-      return;
-    }
-    voiceConsultation.recognition = _createRecognition();
-
-    // On mobile, request mic permission explicitly first so the user sees
-    // the permission prompt before we call recognition.start()
-    if (_isMobile && !_sttMicGranted) {
-      navigator.mediaDevices?.getUserMedia({ audio: true })
-        .then(stream => {
-          _sttMicGranted = true;
-          // Release the stream immediately — we only needed it for the permission prompt
-          stream.getTracks().forEach(t => t.stop());
-        })
-        .catch(err => {
-          console.warn('Mic permission denied:', err);
-          showToast('🎤', 'Microphone Access Needed', 'Please allow microphone access when prompted.');
-        });
-    }
-  }
-
-  // Toggle voice listening (called by the mic button)
+  // Toggle voice listening
   function toggleVoiceListening() {
     if (!voiceConsultation.recognition) {
       initializeVoiceRecognition();
-      setTimeout(_startRecognition, 300);
       return;
     }
+
     if (voiceConsultation.isListening) {
-      // Manual stop — disable auto-listen too
+      voiceConsultation.recognition.stop();
       voiceConsultation.autoListen = false;
-      const tog = document.getElementById('autoListenToggle');
-      if (tog) tog.checked = false;
-      if (_sttRestartTimer) { clearTimeout(_sttRestartTimer); _sttRestartTimer = null; }
-      try { voiceConsultation.recognition.stop(); } catch(e) {}
-      updateVoiceStatus('Tap mic to speak', 'Microphone is off');
+      document.getElementById('autoListenToggle').checked = false;
     } else {
-      voiceConsultation.autoListen = true;
-      const tog = document.getElementById('autoListenToggle');
-      if (tog) tog.checked = true;
-      _startRecognition();
+      try {
+        voiceConsultation.recognition.start();
+      } catch (e) {
+        console.error('Failed to start recognition:', e);
+      }
     }
   }
 
   // Process voice input with AI
-  // ── Voice input queue ── prevents overlapping AI responses ─────
-  // Problem: user speaks sentence 1, pauses, speaks sentence 2 before
-  // AI has finished responding to sentence 1 → both responses play at once.
-  // Fix: a simple FIFO queue + busy flag. New inputs wait until the current
-  // response has fully finished speaking before being processed.
-  const _voiceQueue = [];      // inputs waiting to be processed
-  let   _voiceBusy  = false;   // true while AI is processing OR speaking
-
-  // ── Android AudioContext unlock ────────────────────────────────────
-  // Android Chrome suspends AudioContext until a user gesture. Unlock it
-  // on the first tap anywhere so ElevenLabs audio plays immediately.
-  (function _unlockAudioContext() {
-    if (!/Android/i.test(navigator.userAgent)) return;
-    const unlock = async () => {
-      try {
-        const ctx = new (window.AudioContext || window.webkitAudioContext)();
-        await ctx.resume();
-        ctx.close();
-        console.log('✅ AudioContext unlocked on Android');
-      } catch(e) {}
-      document.removeEventListener('touchstart', unlock);
-      document.removeEventListener('touchend',   unlock);
-      document.removeEventListener('click',      unlock);
-    };
-    document.addEventListener('touchstart', unlock, { once: true, passive: true });
-    document.addEventListener('touchend',   unlock, { once: true, passive: true });
-    document.addEventListener('click',      unlock, { once: true, passive: true });
-  })();
-
-  function processVoiceInput(text) {
-    // Always stop the mic immediately — prevents capturing AI voice as input
-    if (voiceConsultation.isListening) {
-      try { voiceConsultation.recognition.stop(); } catch(e) {}
-    }
-    if (_voiceBusy) {
-      // Already handling a response — queue this input
-      _voiceQueue.push(text);
-      updateVoiceStatus('Queued…', `"${text.substring(0, 50)}"`);
-      return;
-    }
-    _runVoiceInput(text);
-  }
-
-  async function _runVoiceInput(text) {
-    _voiceBusy = true;
-
-    // Cancel any speech still playing (e.g. user interrupts mid-sentence)
-    _cancelAllSpeech();
-
+  async function processVoiceInput(text) {
     updateVoiceStatus('Processing…', 'AI is thinking…');
     const apiKey = getApiKey();
     if (!apiKey) {
       updateVoiceStatus('API Key Missing', 'Enter Anthropic key in Settings');
-      _finishVoiceTurn();
       return;
     }
-
     // Build multi-turn context from voice history
     const history = voiceConsultation.conversationHistory.slice(-10)
       .map(m => ({ role: m.type === 'user' ? 'user' : 'assistant', content: m.text }));
-    if (!history.length || history[history.length - 1].role !== 'user') {
+    if (!history.length || history[history.length-1].role !== 'user') {
       history.push({ role: 'user', content: text });
     }
+    // Ensure alternating roles
     const msgs = [];
     for (const m of history) {
-      if (msgs.length && msgs[msgs.length - 1].role === m.role) {
-        msgs[msgs.length - 1].content += ' ' + m.content;
+      if (msgs.length && msgs[msgs.length-1].role === m.role) {
+        msgs[msgs.length-1].content += ' ' + m.content;
       } else { msgs.push(m); }
     }
-
-    let systemPrompt;
-    if (_emergencyMode) {
-      systemPrompt = _buildEmergencySystemPrompt(_emergencyContext);
-    } else {
-      const patientCtx = getActivePatientContext();
-      systemPrompt = `You are Samarthaa, an AI clinical decision-support assistant speaking aloud to an Indian doctor during a patient consultation. ${patientCtx}\nRules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empathetic. Cite ICMR 2024 or NHP guidelines when relevant. Match the language the doctor speaks (English/Hindi/Kannada etc.). No bullet points — this is spoken.`;
-    }
-
+    const patientCtx = getActivePatientContext();
+    const systemPrompt = `You are Samarthaa, an AI clinical decision-support assistant speaking aloud to an Indian doctor during a patient consultation. ${patientCtx}
+Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empathetic. Cite ICMR 2024 or NHP guidelines when relevant. Match the language the doctor speaks (English/Hindi/Kannada etc.). No bullet points — this is spoken.`;
     try {
       const raw = await callClaudeAI(msgs, systemPrompt);
       const aiResponse = raw.replace(/<[^>]+>/g, '').trim();
       addToVoiceTranscript('ai', aiResponse);
       speakText(aiResponse);
-      // _voiceBusy is cleared in _onSpeakEnd once speech finishes
-    } catch (err) {
+    } catch(err) {
       console.error('Voice AI error:', err);
       updateVoiceStatus('Error', err.message);
       const fallback = generateFallbackResponse ? generateFallbackResponse(text) : 'I could not process that. Please try again.';
@@ -11250,34 +10404,6 @@ CRITICAL RULES FOR EMERGENCY MODE:
     }
   }
 
-  // Called by _onSpeakEnd after speech finishes — process next queued input or resume mic
-  function _finishVoiceTurn() {
-    _voiceBusy = false;
-    if (_voiceQueue.length > 0) {
-      const next = _voiceQueue.shift();
-      _runVoiceInput(next);   // process next item immediately, mic stays off
-    } else {
-      // Nothing queued — resume mic
-      updateVoiceStatus('Ready', 'Your turn to speak');
-      if (voiceConsultation.autoListen && voiceConsultation.active) {
-        setTimeout(() => {
-          if (!voiceConsultation.isListening && voiceConsultation.active) {
-            if (_isIOS) voiceConsultation.recognition = _createRecognition();
-            _startRecognition();
-          }
-        }, _isIOS ? 600 : 400);
-      }
-    }
-  }
-
-  // Hard-cancel all audio immediately
-  function _cancelAllSpeech() {
-    window.speechSynthesis.cancel();
-    if (window._elCurrentAudio) { window._elCurrentAudio.pause(); window._elCurrentAudio = null; }
-    if (window._elAudioCtx)     { window._elAudioCtx.close().catch(() => {}); window._elAudioCtx = null; }
-    if (window._iosSpeakKeepAlive) { clearInterval(window._iosSpeakKeepAlive); window._iosSpeakKeepAlive = null; }
-    voiceConsultation.isSpeaking = false;
-  }
   // Fallback response generator (when AI is unavailable)
   function generateFallbackResponse(input) {
     const lowerInput = input.toLowerCase();
@@ -11297,43 +10423,36 @@ CRITICAL RULES FOR EMERGENCY MODE:
 
   // ── Text-to-Speech: ElevenLabs → browser Web Speech API fallback ──
   async function speakText(text) {
-    // Cancel anything currently playing before starting new speech
-    _cancelAllSpeech();
+    // Stop any in-flight audio
+    if (window._elAudioSrc) { try { window._elAudioSrc.stop(); } catch(e) {} window._elAudioSrc = null; }
+    if (window._elAudioCtx) { try { window._elAudioCtx.close(); } catch(e) {} window._elAudioCtx = null; }
+    if (window._elCurrentAudio) { window._elCurrentAudio.pause(); window._elCurrentAudio = null; }
+    if (window.speechSynthesis && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
+
     voiceConsultation.isSpeaking = true;
     updateVoiceStatus('AI Speaking…', text.substring(0, 100) + '…');
     animateWaveform(true);
 
-    // iOS Safari bug: speechSynthesis pauses after ~15s if the page is in background.
-    // Keep-alive: resume() every 10s while speaking.
-    if (window._iosSpeakKeepAlive) clearInterval(window._iosSpeakKeepAlive);
-    window._iosSpeakKeepAlive = setInterval(() => {
-      if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.pause();
-        window.speechSynthesis.resume();
-      } else {
-        clearInterval(window._iosSpeakKeepAlive);
-        window._iosSpeakKeepAlive = null;
-      }
-    }, 10000);
-
-    // Stop mic while speaking
     if (voiceConsultation.isListening) {
       try { voiceConsultation.recognition.stop(); } catch(e) {}
     }
 
-    const elKey   = _vault.get('elak') || localStorage.getItem('elak');
-    const elVoice = _vault.get('elvi') || localStorage.getItem('elvi');
-    const useEL   = elKey && elVoice && document.getElementById('elUseVoiceConsult')?.checked !== false;
+    // Read keys from _vault (populated by _loadConfig from /api/config)
+    // Ensure config is loaded (keys come from /api/config → netlify function)
+    await _loadConfig();
+    const elKey   = _vault.get('elak') || '';
+    const elVoice = _vault.get('elvi') || '';
+    const useEL   = !!(elKey && elVoice &&
+                    document.getElementById('elUseVoiceConsult')?.checked !== false);
 
     if (useEL) {
       try {
         await _speakElevenLabs(text, elKey, elVoice);
-        return; // ElevenLabs handled onend itself
+        return;
       } catch(err) {
-        console.warn('ElevenLabs TTS failed, falling back to browser:', err.message);
+        console.warn('ElevenLabs failed, falling back to browser TTS:', err.message);
       }
     }
-    // Fallback: browser Web Speech API
     _speakBrowser(text);
   }
 
@@ -11342,119 +10461,84 @@ CRITICAL RULES FOR EMERGENCY MODE:
     const stability  = parseFloat(localStorage.getItem('el_stability'))  || 0.5;
     const similarity = parseFloat(localStorage.getItem('el_similarity')) || 0.85;
 
-    const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
+    const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
       method: 'POST',
       headers: {
-        'xi-api-key': apiKey,
+        'xi-api-key':   apiKey,
         'Content-Type': 'application/json',
-        'Accept': 'audio/mpeg'
+        'Accept':       'audio/mpeg'
       },
       body: JSON.stringify({
-        text: text,
-        model_id: model,
-        voice_settings: {
-          stability: stability,
-          similarity_boost: similarity,
-          style: 0.25,
-          use_speaker_boost: true
-        }
+        text, model_id: model,
+        voice_settings: { stability, similarity_boost: similarity, style: 0.25, use_speaker_boost: true }
       })
     });
 
     if (!response.ok) {
       const errBody = await response.json().catch(() => ({}));
-      throw new Error(errBody?.detail?.message || `ElevenLabs error ${response.status}`);
+      throw new Error(errBody?.detail?.message || 'ElevenLabs HTTP ' + response.status);
     }
 
-    const blob    = await response.blob();
-    const url     = URL.createObjectURL(blob);
-    const audio   = new Audio(url);
-    audio.volume  = 1.0;
-    window._elCurrentAudio = audio;
+    const arrayBuffer = await response.arrayBuffer();
 
-    // Amplify using Web Audio API GainNode
-    // On Android: AudioContext may be suspended — resume() it first
-    try {
-      const actx = new (window.AudioContext || window.webkitAudioContext)();
-      // Resume suspended context (required on Android after no recent user gesture)
-      if (actx.state === 'suspended') await actx.resume();
-      const src  = actx.createMediaElementSource(audio);
-      const gain = actx.createGain();
-      gain.gain.value = 1.5;
-      src.connect(gain);
-      gain.connect(actx.destination);
-      window._elAudioCtx = actx;
-    } catch(e) { /* fallback: native volume only */ }
+    // AudioContext with resume() — mandatory on iOS Safari + Android Chrome.
+    // The context starts 'suspended' on mobile and audio plays silently without resume().
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtx) throw new Error('AudioContext not supported');
 
-    const _cleanupAudio = () => {
-      URL.revokeObjectURL(url);
-      window._elCurrentAudio = null;
-      if (window._elAudioCtx) { window._elAudioCtx.close().catch(()=>{}); window._elAudioCtx = null; }
-      _onSpeakEnd();
-    };
+    const ctx = new AudioCtx();
+    if (ctx.state === 'suspended') await ctx.resume();
 
-    audio.onended = _cleanupAudio;
-    audio.onerror = _cleanupAudio;
+    const decoded  = await ctx.decodeAudioData(arrayBuffer);
+    const gain     = ctx.createGain();
+    gain.gain.value = 2.5;
+    gain.connect(ctx.destination);
 
-    // On Android, play() can fail silently or throw — handle both
-    try {
-      await audio.play();
-    } catch(playErr) {
-      console.warn('ElevenLabs audio.play() failed on Android:', playErr.message);
-      // play() blocked — fall through to browser TTS
-      _cleanupAudio();
-      throw new Error('audio.play() blocked: ' + playErr.message);
-    }
+    const src = ctx.createBufferSource();
+    src.buffer = decoded;
+    src.connect(gain);
+    window._elAudioCtx = ctx;
+    window._elAudioSrc = src;
+
+    return new Promise((resolve) => {
+      src.onended = () => {
+        try { ctx.close(); } catch(e) {}
+        window._elAudioCtx = null;
+        window._elAudioSrc = null;
+        _onSpeakEnd();
+        resolve();
+      };
+      src.start(0);
+    });
   }
 
   function _speakBrowser(text) {
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang   = voiceConsultation.currentLanguage;
-    utterance.rate   = 0.95;
-    utterance.pitch  = 1.0;
+    utterance.lang  = voiceConsultation.currentLanguage;
+    utterance.rate  = 0.95;
+    utterance.pitch = 1.0;
     utterance.volume = 1.0;
-
-    utterance.onend   = _onSpeakEnd;
-    utterance.onerror = (e) => {
-      if (e.error !== 'interrupted' && e.error !== 'canceled') {
-        console.warn('SpeechSynthesis error:', e.error);
-      }
-      _onSpeakEnd();
-    };
-
-    function _pickVoiceAndSpeak() {
-      const voices = window.speechSynthesis.getVoices();
-      const lang0  = voiceConsultation.currentLanguage.split('-')[0];
-      const best   = voices.find(v => v.lang.startsWith(lang0) && (v.name.includes('Google') || v.name.includes('Microsoft')))
-                  || voices.find(v => v.lang.startsWith(lang0));
-      if (best) utterance.voice = best;
-      window.speechSynthesis.cancel(); // clear queue before speaking
-      window.speechSynthesis.speak(utterance);
-    }
-
-    // On mobile, getVoices() may return [] on first call — wait for the event
-    if (window.speechSynthesis.getVoices().length > 0) {
-      _pickVoiceAndSpeak();
-    } else {
-      window.speechSynthesis.onvoiceschanged = () => {
-        window.speechSynthesis.onvoiceschanged = null;
-        _pickVoiceAndSpeak();
-      };
-      // Safety fallback: speak even if event never fires (some Android browsers)
-      setTimeout(() => {
-        if (voiceConsultation.isSpeaking && !window.speechSynthesis.speaking) {
-          _pickVoiceAndSpeak();
-        }
-      }, 800);
-    }
+    const voices = voiceConsultation.synthesis.getVoices();
+    const best   = voices.find(v =>
+      v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]) &&
+      (v.name.includes('Google') || v.name.includes('Microsoft'))
+    ) || voices.find(v => v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]));
+    if (best) utterance.voice = best;
+    utterance.onend = _onSpeakEnd;
+    voiceConsultation.synthesis.speak(utterance);
   }
 
   function _onSpeakEnd() {
-    if (window._iosSpeakKeepAlive) { clearInterval(window._iosSpeakKeepAlive); window._iosSpeakKeepAlive = null; }
     voiceConsultation.isSpeaking = false;
     animateWaveform(false);
-    // Drain queue or resume mic — centralised in _finishVoiceTurn
-    _finishVoiceTurn();
+    updateVoiceStatus('Ready', 'Your turn to speak');
+    if (voiceConsultation.autoListen && voiceConsultation.active) {
+      setTimeout(() => {
+        if (!voiceConsultation.isListening && voiceConsultation.active) {
+          toggleVoiceListening();
+        }
+      }, 500);
+    }
   }
 
   // Add message to transcript
@@ -11529,16 +10613,10 @@ CRITICAL RULES FOR EMERGENCY MODE:
   // Change voice language
   function changeVoiceLanguage(lang) {
     voiceConsultation.currentLanguage = lang;
-    const wasListening = voiceConsultation.isListening;
-    // Stop current instance and recreate with new language
     if (voiceConsultation.recognition) {
-      try { voiceConsultation.recognition.stop(); } catch(e) {}
+      voiceConsultation.recognition.lang = lang;
+      showToast('🌐', 'Language Changed', `Now using ${lang}`);
     }
-    voiceConsultation.recognition = _createRecognition();
-    if (wasListening && voiceConsultation.active) {
-      setTimeout(_startRecognition, 400);
-    }
-    showToast('🌐', 'Language Changed', `Now listening in ${lang}`);
   }
 
   // Clear voice history
@@ -11643,7 +10721,6 @@ CRITICAL RULES FOR EMERGENCY MODE:
 
   // End voice consultation
   function endVoiceConsultation() {
-    _clearEmergencyMode();
     if (confirm('End voice consultation session?')) {
       voiceConsultation.active = false;
       

@@ -5241,51 +5241,36 @@ Guidelines:
   }
 
   // ── Text-to-Speech: ElevenLabs → browser Web Speech API fallback ──
-  // ── Diagnostic logger — writes into the voice transcript (visible in modal)
-  function _vdbg(msg, ok) {
-    console.log('[VOICE-DBG]', msg);
-    const t = document.getElementById('voiceTranscript');
-    if (!t) return;
-    const d = document.createElement('div');
-    d.style.cssText = 'font-size:10px;font-family:monospace;padding:2px 6px;margin:1px 0;border-radius:3px;color:#fff;background:' +
-      (ok === false ? '#7f1d1d' : ok === true ? '#14532d' : '#1e3a5f');
-    d.textContent = String(new Date()).slice(16,24) + '  ' + msg;
-    t.appendChild(d);
-    t.scrollTop = t.scrollHeight;
-  }
-
   async function speakText(text) {
-    _vdbg('speakText() len=' + text.length);
-    voiceConsultation.synthesis.cancel();
+    // Stop any in-flight audio
+    if (window._elAudioSrc) { try { window._elAudioSrc.stop(); } catch(e) {} window._elAudioSrc = null; }
+    if (window._elAudioCtx) { try { window._elAudioCtx.close(); } catch(e) {} window._elAudioCtx = null; }
     if (window._elCurrentAudio) { window._elCurrentAudio.pause(); window._elCurrentAudio = null; }
+    if (window.speechSynthesis && window.speechSynthesis.speaking) window.speechSynthesis.cancel();
 
     voiceConsultation.isSpeaking = true;
     updateVoiceStatus('AI Speaking…', text.substring(0, 100) + '…');
     animateWaveform(true);
-    if (voiceConsultation.isListening) { try { voiceConsultation.recognition.stop(); } catch(e) {} }
+
+    if (voiceConsultation.isListening) {
+      try { voiceConsultation.recognition.stop(); } catch(e) {}
+    }
 
     await _loadConfig();
-    const elKey   = _SYSTEM_EL_API_KEY  || null;
-    const elVoice = _SYSTEM_EL_VOICE_ID || null;
-    const cbEl    = document.getElementById('elUseVoiceConsult');
-    const useEL   = !!(elKey && elVoice && cbEl?.checked !== false);
-
-    _vdbg('elKey=' + (elKey ? 'SET('+elKey.slice(0,6)+')' : 'MISSING') +
-          '  elVoice=' + (elVoice ? 'SET' : 'MISSING') +
-          '  checkbox=' + (cbEl ? cbEl.checked : 'NO-ELEMENT') +
-          '  useEL=' + useEL, useEL);
+    // Use _vault if available (index.html), else fall back to _SYSTEM vars (app.js standalone)
+    const elKey   = (typeof _vault !== 'undefined' ? _vault.get('elak') : null) || _SYSTEM_EL_API_KEY  || '';
+    const elVoice = (typeof _vault !== 'undefined' ? _vault.get('elvi') : null) || _SYSTEM_EL_VOICE_ID || '';
+    const useEL   = !!(elKey && elVoice &&
+                    document.getElementById('elUseVoiceConsult')?.checked !== false);
 
     if (useEL) {
       try {
-        _vdbg('-> calling ElevenLabs');
         await _speakElevenLabs(text, elKey, elVoice);
-        _vdbg('ElevenLabs finished OK', true);
         return;
       } catch(err) {
-        _vdbg('ElevenLabs FAILED: ' + err.message, false);
+        console.warn('ElevenLabs failed, falling back to browser TTS:', err.message);
       }
     }
-    _vdbg('-> _speakBrowser fallback');
     _speakBrowser(text);
   }
 
@@ -5294,53 +5279,50 @@ Guidelines:
     const stability  = parseFloat(localStorage.getItem('el_stability'))  || 0.5;
     const similarity = parseFloat(localStorage.getItem('el_similarity')) || 0.85;
 
-    _vdbg('EL fetch  voice=' + voiceId.slice(0,8));
     const response = await fetch('https://api.elevenlabs.io/v1/text-to-speech/' + voiceId, {
       method: 'POST',
-      headers: { 'xi-api-key': apiKey, 'Content-Type': 'application/json', 'Accept': 'audio/mpeg' },
-      body: JSON.stringify({ text, model_id: model,
+      headers: {
+        'xi-api-key':   apiKey,
+        'Content-Type': 'application/json',
+        'Accept':       'audio/mpeg'
+      },
+      body: JSON.stringify({
+        text, model_id: model,
         voice_settings: { stability, similarity_boost: similarity, style: 0.25, use_speaker_boost: true }
       })
     });
 
-    _vdbg('EL status=' + response.status, response.ok);
     if (!response.ok) {
-      const e = await response.json().catch(() => ({}));
-      throw new Error(e?.detail?.message || 'EL HTTP ' + response.status);
+      const errBody = await response.json().catch(() => ({}));
+      throw new Error(errBody?.detail?.message || 'ElevenLabs HTTP ' + response.status);
     }
 
     const arrayBuffer = await response.arrayBuffer();
-    _vdbg('EL bytes=' + arrayBuffer.byteLength, arrayBuffer.byteLength > 1000);
 
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
-    if (!AudioCtx) throw new Error('No AudioContext');
+    if (!AudioCtx) throw new Error('AudioContext not supported');
 
     const ctx = new AudioCtx();
-    _vdbg('AudioCtx state=' + ctx.state, ctx.state === 'running');
-    if (ctx.state === 'suspended') {
-      await ctx.resume();
-      _vdbg('after resume=' + ctx.state, ctx.state === 'running');
-    }
+    if (ctx.state === 'suspended') await ctx.resume();
 
-    const decoded = await ctx.decodeAudioData(arrayBuffer);
-    _vdbg('decoded dur=' + decoded.duration.toFixed(1) + 's', true);
-
-    const gain = ctx.createGain();
+    const decoded  = await ctx.decodeAudioData(arrayBuffer);
+    const gain     = ctx.createGain();
     gain.gain.value = 2.5;
     gain.connect(ctx.destination);
+
     const src = ctx.createBufferSource();
     src.buffer = decoded;
     src.connect(gain);
     window._elAudioCtx = ctx;
     window._elAudioSrc = src;
 
-    _vdbg('src.start(0) — PLAYING NOW', true);
     return new Promise((resolve) => {
       src.onended = () => {
-        _vdbg('audio ended', true);
         try { ctx.close(); } catch(e) {}
-        window._elAudioCtx = null; window._elAudioSrc = null;
-        _onSpeakEnd(); resolve();
+        window._elAudioCtx = null;
+        window._elAudioSrc = null;
+        _onSpeakEnd();
+        resolve();
       };
       src.start(0);
     });
@@ -5348,20 +5330,20 @@ Guidelines:
 
   function _speakBrowser(text) {
     const synth = window.speechSynthesis;
-    if (!synth) { _vdbg('no speechSynthesis!', false); _onSpeakEnd(); return; }
-    synth.cancel();
+    if (!synth) { _onSpeakEnd(); return; }
+    if (synth.speaking) synth.cancel();
     setTimeout(() => {
-      const u = new SpeechSynthesisUtterance(text);
-      u.lang = voiceConsultation.currentLanguage || 'en-US';
-      u.rate = 0.95; u.pitch = 1.0; u.volume = 1.0;
-      const voices = synth.getVoices();
-      const base   = (u.lang).split('-')[0];
-      const best   = voices.find(v => v.lang.startsWith(base) && (v.name.includes('Google') || v.name.includes('Microsoft')))
-                  || voices.find(v => v.lang.startsWith(base));
+      const u    = new SpeechSynthesisUtterance(text);
+      u.lang     = voiceConsultation.currentLanguage || 'en-US';
+      u.rate     = 0.95; u.pitch = 1.0; u.volume = 1.0;
+      const voices  = synth.getVoices();
+      const base    = u.lang.split('-')[0];
+      const best    = voices.find(v => v.lang.startsWith(base) &&
+                        (v.name.includes('Google') || v.name.includes('Microsoft')))
+                   || voices.find(v => v.lang.startsWith(base));
       if (best) u.voice = best;
-      _vdbg('browser TTS speak  voices=' + voices.length + (best ? '  voice=' + best.name : '  NO MATCH'));
-      u.onend   = () => { _vdbg('browserTTS ended', true); _onSpeakEnd(); };
-      u.onerror = (e) => { _vdbg('browserTTS error=' + e.error, false); _onSpeakEnd(); };
+      u.onend   = _onSpeakEnd;
+      u.onerror = _onSpeakEnd;
       synth.speak(u);
     }, 150);
   }
