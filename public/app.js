@@ -5242,55 +5242,37 @@ Guidelines:
 
   // ── Text-to-Speech: ElevenLabs → browser Web Speech API fallback ──
   async function speakText(text) {
-    // Stop any in-flight audio first
-    _stopCurrentAudio();
+    // Stop any ongoing speech
+    voiceConsultation.synthesis.cancel();
+    if (window._elCurrentAudio) {
+      window._elCurrentAudio.pause();
+      window._elCurrentAudio = null;
+    }
 
     voiceConsultation.isSpeaking = true;
     updateVoiceStatus('AI Speaking…', text.substring(0, 100) + '…');
     animateWaveform(true);
 
+    // Stop mic while speaking
     if (voiceConsultation.isListening) {
       try { voiceConsultation.recognition.stop(); } catch(e) {}
     }
 
     await _loadConfig();
-    const elKey   = _SYSTEM_EL_API_KEY  || null;
-    const elVoice = _SYSTEM_EL_VOICE_ID || null;
-    const useEL   = elKey && elVoice &&
-                    document.getElementById('elUseVoiceConsult')?.checked !== false;
+    const elKey    = _SYSTEM_EL_API_KEY   || null;
+    const elVoice  = _SYSTEM_EL_VOICE_ID  || null;
+    const useEL    = elKey && elVoice && document.getElementById('elUseVoiceConsult')?.checked !== false;
 
     if (useEL) {
       try {
         await _speakElevenLabs(text, elKey, elVoice);
-        return;
+        return; // ElevenLabs handled onend itself
       } catch(err) {
-        console.warn('ElevenLabs failed, using browser TTS:', err.message);
+        console.warn('ElevenLabs TTS failed, falling back to browser:', err.message);
       }
     }
+    // Fallback: browser Web Speech API
     _speakBrowser(text);
-  }
-
-  // Stop whatever is currently playing without triggering _onSpeakEnd
-  function _stopCurrentAudio() {
-    if (window._elCurrentAudio) {
-      window._elCurrentAudio.onended = null;
-      window._elCurrentAudio.onerror = null;
-      try { window._elCurrentAudio.pause(); } catch(e) {}
-      window._elCurrentAudio = null;
-    }
-    if (window._elAudioSrc) {
-      window._elAudioSrc.onended = null;
-      try { window._elAudioSrc.stop(); } catch(e) {}
-      window._elAudioSrc = null;
-    }
-    if (window._elAudioCtx) {
-      try { window._elAudioCtx.close(); } catch(e) {}
-      window._elAudioCtx = null;
-    }
-    // Cancel browser TTS ONLY with a delay — immediate cancel+speak breaks iOS/Android
-    if (window.speechSynthesis && window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
-    }
   }
 
   async function _speakElevenLabs(text, apiKey, voiceId) {
@@ -5301,14 +5283,19 @@ Guidelines:
     const response = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voiceId}`, {
       method: 'POST',
       headers: {
-        'xi-api-key':   apiKey,
+        'xi-api-key': apiKey,
         'Content-Type': 'application/json',
-        'Accept':       'audio/mpeg'
+        'Accept': 'audio/mpeg'
       },
       body: JSON.stringify({
-        text,
+        text: text,
         model_id: model,
-        voice_settings: { stability, similarity_boost: similarity, style: 0.25, use_speaker_boost: true }
+        voice_settings: {
+          stability: stability,
+          similarity_boost: similarity,
+          style: 0.25,
+          use_speaker_boost: true
+        }
       })
     });
 
@@ -5317,67 +5304,72 @@ Guidelines:
       throw new Error(errBody?.detail?.message || `ElevenLabs error ${response.status}`);
     }
 
-    const arrayBuffer = await response.arrayBuffer();
+    const blob    = await response.blob();
+    const url     = URL.createObjectURL(blob);
+    const audio   = new Audio(url);
+    window._elCurrentAudio = audio;
 
-    // AudioContext approach — works on iOS + Android once mic permission is granted
-    // resume() is MANDATORY: context starts suspended on mobile and play() silently fails
-    const AudioCtx  = window.AudioContext || window.webkitAudioContext;
-    const ctx       = new AudioCtx();
-
-    if (ctx.state === 'suspended') {
-      await ctx.resume();
-    }
-
-    const decoded   = await ctx.decodeAudioData(arrayBuffer);
-    const gainNode  = ctx.createGain();
-    gainNode.gain.value = 2.5;
-    gainNode.connect(ctx.destination);
-
-    const src = ctx.createBufferSource();
-    src.buffer = decoded;
-    src.connect(gainNode);
-
-    window._elAudioCtx = ctx;
-    window._elAudioSrc = src;
-
-    return new Promise((resolve) => {
-      src.onended = () => {
-        try { ctx.close(); } catch(e) {}
-        window._elAudioCtx = null;
-        window._elAudioSrc = null;
+    // Return a promise that resolves when audio FINISHES (not just when it starts)
+    return new Promise((resolve, reject) => {
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        window._elCurrentAudio = null;
         _onSpeakEnd();
         resolve();
       };
-      src.start(0);
+      audio.onerror = (e) => {
+        URL.revokeObjectURL(url);
+        window._elCurrentAudio = null;
+        _onSpeakEnd();
+        reject(new Error('Audio playback error'));
+      };
+      audio.play().catch(reject);
     });
   }
 
   function _speakBrowser(text) {
-    // iOS/Android bug: calling cancel() then speak() in the same tick silently drops it.
-    // Use a short delay after cancel to let the engine reset.
+    const synth = window.speechSynthesis;
+    if (!synth) { _onSpeakEnd(); return; }
+
+    // iOS Safari bug: synth gets stuck — always cancel first, then wait before speaking
+    synth.cancel();
+
     const doSpeak = () => {
       const utterance  = new SpeechSynthesisUtterance(text);
-      utterance.lang   = voiceConsultation.currentLanguage;
+      utterance.lang   = voiceConsultation.currentLanguage || 'en-US';
       utterance.rate   = 0.95;
       utterance.pitch  = 1.0;
       utterance.volume = 1.0;
-      const voices = voiceConsultation.synthesis.getVoices();
-      const best   = voices.find(v =>
-        v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]) &&
-        (v.name.includes('Google') || v.name.includes('Microsoft'))
-      ) || voices.find(v => v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]));
+
+      // Pick best voice — getVoices() may be empty on first call on mobile
+      const voices = synth.getVoices();
+      const langBase = (voiceConsultation.currentLanguage || 'en').split('-')[0];
+      const best = voices.find(v => v.lang.startsWith(langBase) &&
+                    (v.name.includes('Google') || v.name.includes('Microsoft'))) ||
+                   voices.find(v => v.lang.startsWith(langBase)) ||
+                   voices.find(v => v.lang.startsWith('en'));
       if (best) utterance.voice = best;
+
       utterance.onend   = _onSpeakEnd;
-      utterance.onerror = _onSpeakEnd;  // always exit speaking state on error too
-      window.speechSynthesis.speak(utterance);
+      utterance.onerror = (e) => {
+        // 'interrupted' is normal (user tapped mic) — don't log as error
+        if (e.error !== 'interrupted') console.warn('SpeechSynthesis error:', e.error);
+        _onSpeakEnd();
+      };
+
+      synth.speak(utterance);
+
+      // iOS watchdog: iOS stops synth after ~15s without warning
+      // Resume it every 10s to keep it alive
+      const watchdog = setInterval(() => {
+        if (!voiceConsultation.isSpeaking) { clearInterval(watchdog); return; }
+        if (synth.paused) synth.resume();
+      }, 10000);
+      utterance.onend = () => { clearInterval(watchdog); _onSpeakEnd(); };
     };
 
-    if (window.speechSynthesis.speaking) {
-      window.speechSynthesis.cancel();
-      setTimeout(doSpeak, 250);  // wait for cancel to clear before new utterance
-    } else {
-      doSpeak();
-    }
+    // Small delay after cancel so the engine clears — critical on iOS and Android
+    setTimeout(doSpeak, 150);
   }
 
   function _onSpeakEnd() {
