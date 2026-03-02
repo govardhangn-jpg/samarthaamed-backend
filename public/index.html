@@ -4757,7 +4757,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.9' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.0' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -10117,31 +10117,31 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
   // AND creates+resumes an AudioContext so ElevenLabs AudioContext works too.
   var _iosAudioUnlocked = false;
   function _iosUnlockAudio() {
-    // Unlock Web Speech Synthesis (for browser TTS)
+    // Speak a near-silent utterance within the gesture to unlock iOS audio session.
+    // MUST NOT call synth.cancel() — it breaks the session on iOS 16+.
     var synth = window.speechSynthesis;
-    if (synth) {
-      var silent = new SpeechSynthesisUtterance('');
-      silent.volume = 0;
-      silent.rate   = 10; // speak instantly
-      synth.cancel();
-      synth.speak(silent);
+    if (synth && !window._synthUnlocked) {
+      var s = new SpeechSynthesisUtterance(' ');
+      s.volume = 0.01;
+      s.rate   = 10;
+      s.onend  = function() { window._synthUnlocked = true; };
+      synth.speak(s);
     }
-    // Unlock AudioContext (for ElevenLabs / audio playback)
+    // Unlock AudioContext for ElevenLabs
     try {
-      if (!window._iosAudioCtxUnlocked) {
-        var AudioCtx = window.AudioContext || window.webkitAudioContext;
-        var ctx = new AudioCtx();
-        var buf = ctx.createBuffer(1, 1, 22050);
-        var src = ctx.createBufferSource();
-        src.buffer = buf;
-        src.connect(ctx.destination);
-        src.start(0);
-        src.onended = function() { ctx.close(); };
-        window._iosAudioCtxUnlocked = true;
-        window._elAudioCtx = null; // reset so _speakElevenLabs creates fresh one
+      if (!window._audioCtxUnlocked) {
+        var AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) {
+          var c = new AC();
+          var b = c.createBuffer(1, 1, 22050);
+          var src = c.createBufferSource();
+          src.buffer = b; src.connect(c.destination); src.start(0);
+          src.onended = function() { c.close(); };
+          window._audioCtxUnlocked = true;
+          window._elAudioCtx = null;
+        }
       }
     } catch(e) {}
-    _iosAudioUnlocked = true;
   }
 
   // Process voice input with AI
@@ -10288,76 +10288,40 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
   function _speakBrowser(text) {
     var synth = voiceConsultation.synthesis;
-    // iOS Safari: cancel stuck speech, then wait one tick before speaking
-    // (calling speak() in the same tick as cancel() silences iOS)
-    synth.cancel();
-    var utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang   = voiceConsultation.currentLanguage;
-    utterance.rate   = 0.92;
-    utterance.pitch  = 1.0;
-    utterance.volume = 1.0;
 
-    // iOS Safari: getVoices may be empty on first call - retry
-    function doSpeak() {
-      var voices = synth.getVoices();
-      var best = voices.find(function(v) {
-        return v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]) &&
-               (v.name.includes('Google') || v.name.includes('Microsoft'));
-      }) || voices.find(function(v) {
-        return v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]);
-      });
-      if (best) utterance.voice = best;
-      utterance.onend   = _onSpeakEnd;
-      utterance.onerror = function(e) {
-        console.warn('SpeechSynthesis error:', e.error);
-        _onSpeakEnd(); // ensure loop continues even on error
-      };
-      // Speak the utterance - use single utterance (iOS queue is unreliable)
-      // If text is long, truncate to 220 chars to avoid iOS cutoff
-      if (text.length > 220) {
-        var mid = text.lastIndexOf('. ', 200);
-        if (mid < 60) mid = text.lastIndexOf(' ', 200);
-        if (mid < 60) mid = 200;
-        utterance = new SpeechSynthesisUtterance(text.substring(0, mid + 1));
-        utterance.lang = voiceConsultation.currentLanguage;
-        utterance.rate = 0.92;
-        if (best) utterance.voice = best;
-        utterance.onend = _onSpeakEnd;
-        utterance.onerror = function(e) { console.warn('TTS error:', e.error); _onSpeakEnd(); };
-      }
-      synth.speak(utterance);
-    }
+    // Truncate to 200 chars — iOS silently drops longer utterances
+    var str = text.length > 200
+      ? text.substring(0, text.lastIndexOf(' ', 190) || 190)
+      : text;
 
-    // iOS Safari: wait one tick after cancel() before speaking
-    setTimeout(function() {
-      // iOS Safari sometimes pauses synth — resume it first
-      if (synth.paused) {
-        try { synth.resume(); } catch(e) {}
-      }
-      var voices = synth.getVoices();
-      if (voices.length > 0) {
-        doSpeak();
-      } else {
-        synth.onvoiceschanged = function() { synth.onvoiceschanged = null; doSpeak(); };
-        setTimeout(doSpeak, 400);
-      }
-    }, 80);
+    var utt = new SpeechSynthesisUtterance(str);
+    utt.lang   = voiceConsultation.currentLanguage || 'en-US';
+    utt.rate   = 0.9;
+    utt.volume = 1.0;
+    utt.onend  = _onSpeakEnd;
+    utt.onerror = function(e) { console.warn('TTS:', e.error); _onSpeakEnd(); };
+
+    // Pick best local voice
+    var voices = synth.getVoices();
+    var lang = (voiceConsultation.currentLanguage || 'en-US').split('-')[0];
+    var best = voices.find(function(v){ return v.lang.startsWith(lang) && v.localService; })
+            || voices.find(function(v){ return v.lang.startsWith(lang); })
+            || voices.find(function(v){ return v.lang.startsWith('en'); });
+    if (best) utt.voice = best;
+
+    // *** DO NOT call synth.cancel() — it kills the iOS audio session
+    //     unlocked by _iosUnlockAudio() on the mic tap gesture.
+    // *** DO NOT use setTimeout — any delay breaks the iOS gesture chain.
+    synth.speak(utt);
   }
 
   function _onSpeakEnd() {
     voiceConsultation.isSpeaking = false;
     animateWaveform(false);
-    updateVoiceStatus('Your turn', 'Speak now — listening will restart');
+    updateVoiceStatus('Your turn', 'Speak now…');
     if (voiceConsultation.autoListen && voiceConsultation.active) {
       setTimeout(function() {
         if (!voiceConsultation.isListening && voiceConsultation.active && !voiceConsultation.isSpeaking) {
-          // Pre-unlock audio for the NEXT AI response before mic starts
-          var synth = window.speechSynthesis;
-          if (synth) {
-            var s = new SpeechSynthesisUtterance('');
-            s.volume = 0; s.rate = 10;
-            synth.speak(s);
-          }
           try {
             voiceConsultation.recognition.start();
             voiceConsultation.isListening = true;
