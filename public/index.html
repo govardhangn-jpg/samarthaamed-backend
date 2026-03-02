@@ -2232,6 +2232,61 @@
     }
   }
   /* ──────────────────────────────────────────────────────────────── */
+
+  /* ── LAB RESULTS & ANALYTICS PRECISE MOBILE FIXES ───────────────── */
+  @media screen and (max-width: 900px) {
+
+    /* ── LAB RESULTS ─────────────────────────────────────── */
+    .lab-view { padding: 14px !important; }
+
+    /* Header: stack select + button vertically */
+    .lab-view > div:first-child { flex-direction: column !important; align-items: flex-start !important; }
+    .lab-view > div:first-child > div:last-child { flex-direction: column !important; width: 100% !important; gap: 8px !important; }
+    #labPatientSelect { width: 100% !important; }
+    .lab-view .btn-primary { width: 100% !important; justify-content: center !important; }
+
+    /* Lab tabs: horizontal scroll, don't wrap */
+    .lab-tabs { flex-wrap: nowrap !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; padding-bottom: 6px !important; scrollbar-width: none !important; }
+    .lab-tabs::-webkit-scrollbar { display: none !important; }
+    .lab-tab { flex-shrink: 0 !important; white-space: nowrap !important; padding: 7px 12px !important; font-size: 0.75rem !important; }
+
+    /* Lab cards: 2 columns instead of 4 */
+    .lab-cards-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+
+    /* Grid-2 (chart + legend): stack vertically, remove fixed 380px */
+    .grid-2 { grid-template-columns: 1fr !important; }
+
+    /* ── ANALYTICS ────────────────────────────────────────── */
+    .analytics-view { padding: 14px !important; }
+
+    /* Header: stack vertically */
+    .analytics-view > div:first-child { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
+    .analytics-view > div:first-child > div:last-child { width: 100% !important; flex-direction: column !important; }
+    .analytics-view .form-select { width: 100% !important; }
+    .analytics-view .btn { width: 100% !important; justify-content: center !important; }
+
+    /* KPI strip: 2 columns on mobile (was 5) */
+    .kpi-strip { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
+    .kpi-num { font-size: 1.6rem !important; }
+    .kpi-lbl { font-size: 0.72rem !important; }
+    .kpi-chg { font-size: 0.68rem !important; }
+
+    /* Analytics grid: single column (was 2) */
+    .analytics-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
+
+    /* Charts: constrain width */
+    .chart-card canvas { max-width: 100% !important; }
+    .chart-card { overflow: hidden !important; }
+
+  }
+
+  @media screen and (max-width: 480px) {
+    /* Tiny phones: 1 column for lab cards */
+    .lab-cards-grid { grid-template-columns: 1fr !important; }
+    /* KPI: also 1 column */
+    .kpi-strip { grid-template-columns: 1fr 1fr !important; }
+  }
+  /* ────────────────────────────────────────────────────────────────── */
 </style>
 
 </head>
@@ -5284,7 +5339,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v3.4' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v3.5' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
