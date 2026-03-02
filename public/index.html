@@ -1332,674 +1332,9 @@
     .grid-4 { grid-template-columns: repeat(2, 1fr); }
   }
 
-  @media screen and (max-width: 768px) {
-    /* Ensure html and body allow scrolling */
-    html, body {
-      overflow-x: hidden !important;
-      overflow-y: auto !important;
-      height: auto !important;
-      min-height: 100vh !important;
-    }
+    /* removed conflicting 768px block */
 
-    /* Mobile layout */
-    .app {
-      grid-template-columns: 1fr;
-      grid-template-rows: auto 1fr;
-      height: auto !important;
-      min-height: 100vh !important;
-      overflow: visible !important;
-    }
-
-    /* Main content wrapper */
-    .main {
-      grid-column: 1;
-      overflow: visible !important;
-      display: flex;
-      flex-direction: column;
-      height: auto !important;
-      min-height: calc(100vh - 60px); /* Subtract topbar height */
-    }
-
-    /* Content area should scroll */
-    .content {
-      flex: 1;
-      overflow-y: visible !important;
-      overflow-x: hidden !important;
-      height: auto !important;
-      padding: 16px;
-      padding-bottom: 80px;
-    }
-
-    /* Hide sidebar by default on mobile */
-    .sidebar {
-      position: fixed;
-      left: -280px;
-      top: 0;
-      bottom: 0;
-      z-index: 1000;
-      transition: left 0.3s ease;
-      box-shadow: 4px 0 20px rgba(0,0,0,0.5);
-    }
-
-    .sidebar.mobile-open {
-      left: 0;
-    }
-
-    /* Mobile overlay when sidebar is open */
-    .mobile-overlay {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0,0,0,0.7);
-      z-index: 999;
-    }
-
-    .mobile-overlay.show {
-      display: block;
-    }
-
-    /* Adjust main content for mobile */
-    .main {
-      grid-column: 1;
-    }
-
-    /* Mobile topbar */
-    .topbar {
-      padding: 12px 16px;
-      gap: 12px;
-    }
-
-    .topbar-left {
-      gap: 8px;
-    }
-
-    .topbar-title {
-      font-size: 1rem;
-    }
-
-    .topbar-sub {
-      font-size: 0.7rem;
-    }
-
-    /* Mobile hamburger menu */
-    .mobile-menu-btn {
-      display: block !important;
-      background: none;
-      border: none;
-      color: var(--text1);
-      font-size: 1.5rem;
-      cursor: pointer;
-      padding: 8px;
-      margin-right: 8px;
-    }
-
-    /* Hide desktop search on very small screens */
-    .topbar-search {
-      max-width: 120px;
-    }
-
-    .topbar-search input {
-      font-size: 0.8rem;
-    }
-
-    /* Topbar actions on mobile */
-    .topbar-actions {
-      gap: 8px;
-    }
-
-    .topbar-btn {
-      padding: 6px 10px;
-      font-size: 0.75rem;
-    }
-
-    .action-icon {
-      width: 32px;
-      height: 32px;
-      font-size: 1rem;
-    }
-
-
-    /* Cards on mobile */
-    .card {
-      padding: 16px;
-      margin-bottom: 16px;
-    }
-
-    .card-header {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    /* Grids to single column */
-    .grid-2, .grid-3, .grid-4 {
-      grid-template-columns: 1fr;
-      gap: 16px;
-    }
-
-    /* Stats grid */
-    .stats-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-
-    .stat-card {
-      padding: 16px;
-    }
-
-    .stat-value {
-      font-size: 1.8rem;
-    }
-
-    /* Dashboard urgent cards */
-    .urgent-grid {
-      grid-template-columns: 1fr;
-    }
-
-    /* Consultation view on mobile - CRITICAL FIXES */
-    #view-consult {
-      flex-direction: column !important;
-      height: auto !important;
-      min-height: auto !important;
-      overflow: visible !important;
-    }
-
-    .consult-view {
-      flex-direction: column !important;
-      height: auto !important;
-      min-height: auto !important;
-      overflow: visible !important;
-    }
-
-    .consult-left {
-      width: 100% !important;
-      height: auto !important;
-      min-height: auto !important;
-      max-height: none !important;
-      border-right: none !important;
-      border-bottom: 1px solid var(--border) !important;
-      overflow: visible !important;
-      flex: none !important;
-    }
-
-    .consult-left-body {
-      max-height: none !important;
-      overflow: visible !important;
-      height: auto !important;
-    }
-
-    .consult-right {
-      width: 100% !important;
-      height: auto !important;
-      min-height: 400px !important;
-      max-height: none !important;
-      overflow: visible !important;
-      border-left: none !important;
-      flex: none !important;
-    }
-
-    .consult-right-body {
-      max-height: none !important;
-      overflow: visible !important;
-      height: auto !important;
-    }
-
-    /* Patient switcher - horizontal scroll */
-    .patient-switcher {
-      overflow-x: auto;
-      -webkit-overflow-scrolling: touch;
-      padding-bottom: 8px;
-    }
-
-    .patient-chip {
-      flex-shrink: 0;
-    }
-
-    /* Chat on mobile */
-    .chat-messages {
-      max-height: none !important;
-      min-height: 300px;
-      height: auto !important;
-      overflow-y: auto;
-      -webkit-overflow-scrolling: touch;
-    }
-
-    .chat-input-area {
-      padding: 12px;
-    }
-
-    .chat-tools {
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .chat-tool-btn {
-      font-size: 0.7rem;
-      padding: 6px 10px;
-    }
-
-    /* Patient cards */
-    .patient-card {
-      padding: 12px;
-    }
-
-    /* Table on mobile */
-    .data-table {
-      font-size: 0.8rem;
-    }
-
-    .data-table th,
-    .data-table td {
-      padding: 8px 6px;
-    }
-
-    /* Hide some table columns on mobile */
-    .data-table th:nth-child(3),
-    .data-table td:nth-child(3),
-    .data-table th:nth-child(4),
-    .data-table td:nth-child(4) {
-      display: none;
-    }
-
-    /* Modals on mobile */
-    .modal {
-      width: 95% !important;
-      max-width: 95% !important;
-      max-height: 90vh;
-      margin: 5vh auto;
-    }
-
-    .soap-box {
-      width: 95%;
-      max-width: 95%;
-      max-height: 90vh;
-      padding: 16px;
-    }
-
-    .soap-section {
-      padding: 12px;
-    }
-
-    /* Buttons on mobile */
-    .btn {
-      padding: 10px 16px;
-      font-size: 0.85rem;
-    }
-
-    .btn-sm {
-      padding: 6px 12px;
-      font-size: 0.75rem;
-    }
-
-    /* Filter buttons */
-    .filter-row {
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .filter-btn {
-      font-size: 0.75rem;
-      padding: 6px 12px;
-    }
-
-    /* Spec cards */
-    .spec-grid {
-      grid-template-columns: repeat(2, 1fr);
-      gap: 12px;
-    }
-
-    .spec-card {
-      padding: 16px 12px;
-    }
-
-    .spec-icon {
-      font-size: 2rem;
-    }
-
-    .spec-name {
-      font-size: 0.85rem;
-    }
-
-    /* Lab items */
-    .lab-item {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 4px;
-    }
-
-    /* Rx items */
-    .rx-item {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 8px;
-    }
-
-    /* Imaging controls */
-    .scan-types {
-      flex-wrap: wrap;
-      gap: 8px;
-    }
-
-    .scan-type-btn {
-      font-size: 0.75rem;
-      padding: 8px 12px;
-    }
-
-    /* Settings on mobile */
-    .settings-section {
-      padding: 16px;
-    }
-
-    .settings-row {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 12px;
-    }
-
-    /* Toast on mobile */
-    .toast {
-      max-width: 90%;
-      left: 5%;
-      right: 5%;
-    }
-
-    /* Form elements */
-    .form-input,
-    .form-select,
-    textarea {
-      font-size: 16px; /* Prevents zoom on iOS */
-    }
-
-    /* Radiology view */
-    #view-radiology > div {
-      padding: 16px !important;
-      padding-bottom: 60px !important;
-    }
-
-    /* Dashboard view */
-    #view-dashboard,
-    .dashboard {
-      height: auto !important;
-      min-height: auto !important;
-      overflow: visible !important;
-    }
-
-    /* Patients view */
-    #view-patients {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    /* Settings view */
-    #view-settings {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    /* Risk prediction view */
-    #view-risk {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    /* Prescription view */
-    #view-prescription {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    .prescription-builder {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    .prescription-grid {
-      grid-template-columns: 1fr !important;
-    }
-
-    .rx-search-area {
-      position: relative !important;
-    }
-
-    .rx-suggestions {
-      position: relative !important;
-      max-height: 200px !important;
-    }
-
-    /* Labs view */
-    #view-labs {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    .lab-view {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    .lab-tabs {
-      overflow-x: auto !important;
-      flex-wrap: nowrap !important;
-      -webkit-overflow-scrolling: touch;
-      gap: 6px;
-    }
-
-    .lab-tab {
-      flex-shrink: 0 !important;
-      font-size: 0.75rem !important;
-      padding: 8px 12px !important;
-    }
-
-    .lab-panel {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    .lab-cards-grid {
-      grid-template-columns: repeat(2, 1fr) !important;
-      gap: 12px !important;
-    }
-
-    .lab-entry-card {
-      min-height: auto !important;
-    }
-
-    /* Lab view header - stack on mobile */
-    #view-labs > .lab-view > div:first-child {
-      flex-direction: column !important;
-      align-items: flex-start !important;
-      gap: 16px !important;
-    }
-
-    #view-labs .form-select {
-      width: 100% !important;
-      max-width: 100% !important;
-    }
-
-    #view-labs > .lab-view > div:first-child > div:last-child {
-      width: 100%;
-      flex-direction: column !important;
-      gap: 12px !important;
-    }
-
-    #view-labs .btn {
-      width: 100% !important;
-    }
-
-    /* Imaging view */
-    #view-imaging {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    .imaging-container {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    .imaging-split {
-      flex-direction: column !important;
-      height: auto !important;
-    }
-
-    .imaging-left,
-    .imaging-right {
-      width: 100% !important;
-      border: none !important;
-      height: auto !important;
-      min-height: auto !important;
-    }
-
-    .upload-area {
-      min-height: 200px !important;
-    }
-
-    .findings-area {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    /* Analytics view */
-    #view-analytics {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    /* Specializations view */
-    #view-specs {
-      height: auto !important;
-      overflow: visible !important;
-      padding-bottom: 60px;
-    }
-
-    /* Remove fixed heights from containers */
-    .consult-patient-info,
-    .consult-vitals,
-    .consult-details,
-    .tab-content {
-      height: auto !important;
-      max-height: none !important;
-      overflow: visible !important;
-    }
-
-    /* Ensure scrollable areas work */
-    .consult-patient-details {
-      max-height: none !important;
-      overflow: visible !important;
-    }
-
-    /* Force all flex containers to allow content flow */
-    .flex-view {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    /* All cards should expand */
-    .card {
-      height: auto !important;
-      max-height: none !important;
-    }
-
-    .card-body {
-      height: auto !important;
-      max-height: none !important;
-      overflow: visible !important;
-    }
-
-    /* Patient info sections */
-    .patient-info-section {
-      height: auto !important;
-      overflow: visible !important;
-    }
-
-    /* Mini sections in consultation */
-    .vital-mini,
-    .symptom-section,
-    .history-section {
-      height: auto !important;
-      max-height: none !important;
-    }
-
-    /* Ensure all divs with flex display stack properly */
-    [style*="display:flex"] {
-      flex-wrap: wrap !important;
-    }
-
-    /* Fix any viewport height constraints */
-    [style*="height:100vh"],
-    [style*="height: 100vh"] {
-      height: auto !important;
-      min-height: 100vh !important;
-    }
-
-    [style*="calc(100vh"] {
-      height: auto !important;
-    }
-
-    /* Analytics charts */
-    .analytics-section {
-      padding: 12px;
-    }
-
-    /* Risk prediction */
-    .risk-card {
-      padding: 12px;
-    }
-  }
-
-  @media screen and (max-width: 480px) {
-    /* Extra small mobile */
-    .topbar-title {
-      font-size: 0.9rem;
-    }
-
-    .stats-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .spec-grid {
-      grid-template-columns: 1fr;
-    }
-
-    .patient-switcher {
-      gap: 8px;
-    }
-
-    .patient-chip {
-      min-width: 120px;
-    }
-
-    /* Vertical tabs on mobile */
-    .consult-right-tabs {
-      flex-direction: row;
-      overflow-x: auto;
-    }
-
-    .r-tab {
-      flex-shrink: 0;
-      writing-mode: horizontal-tb;
-      min-width: auto;
-      padding: 8px 16px;
-    }
-
-    /* Hide some less critical elements */
-    .topbar-sub {
-      display: none;
-    }
-
-    .card-action {
-      font-size: 0.75rem;
-    }
-  }
+    /* removed conflicting 480px block */
 
   /* Landscape mobile */
   @media screen and (max-width: 900px) and (orientation: landscape) {
@@ -2023,11 +1358,7 @@
     display: none;
   }
 
-  @media screen and (max-width: 768px) {
-    .mobile-menu-btn {
-      display: block;
-    }
-  }
+    /* removed duplicate 768px block */
 
 
   /* ── MOBILE LAYOUT FIXES ────────────────────────────────────────── */
@@ -5402,7 +4733,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.4' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.6' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -10737,20 +10068,56 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
   function toggleVoiceListening() {
     if (!voiceConsultation.recognition) {
       initializeVoiceRecognition();
+      _iosUnlockAudio(); // unlock audio on very first tap
       return;
     }
 
     if (voiceConsultation.isListening) {
       voiceConsultation.recognition.stop();
       voiceConsultation.autoListen = false;
-      document.getElementById('autoListenToggle').checked = false;
+      var atEl = document.getElementById('autoListenToggle');
+      if (atEl) atEl.checked = false;
     } else {
+      _iosUnlockAudio(); // unlock audio on every mic tap (iOS requires this)
       try {
         voiceConsultation.recognition.start();
       } catch (e) {
         console.error('Failed to start recognition:', e);
       }
     }
+  }
+
+  // iOS Safari Audio Unlock
+  // Must be called synchronously within a user gesture (tap/click) handler.
+  // Speaks a zero-volume utterance to activate the speech synthesis session,
+  // AND creates+resumes an AudioContext so ElevenLabs AudioContext works too.
+  var _iosAudioUnlocked = false;
+  function _iosUnlockAudio() {
+    // Unlock Web Speech Synthesis (for browser TTS)
+    var synth = window.speechSynthesis;
+    if (synth) {
+      var silent = new SpeechSynthesisUtterance('');
+      silent.volume = 0;
+      silent.rate   = 10; // speak instantly
+      synth.cancel();
+      synth.speak(silent);
+    }
+    // Unlock AudioContext (for ElevenLabs / audio playback)
+    try {
+      if (!window._iosAudioCtxUnlocked) {
+        var AudioCtx = window.AudioContext || window.webkitAudioContext;
+        var ctx = new AudioCtx();
+        var buf = ctx.createBuffer(1, 1, 22050);
+        var src = ctx.createBufferSource();
+        src.buffer = buf;
+        src.connect(ctx.destination);
+        src.start(0);
+        src.onended = function() { ctx.close(); };
+        window._iosAudioCtxUnlocked = true;
+        window._elAudioCtx = null; // reset so _speakElevenLabs creates fresh one
+      }
+    } catch(e) {}
+    _iosAudioUnlocked = true;
   }
 
   // Process voice input with AI
@@ -10951,8 +10318,11 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     }
 
     // iOS Safari: wait one tick after cancel() before speaking
-    // Speaking in the same tick as cancel() causes permanent silence
     setTimeout(function() {
+      // iOS Safari sometimes pauses synth — resume it first
+      if (synth.paused) {
+        try { synth.resume(); } catch(e) {}
+      }
       var voices = synth.getVoices();
       if (voices.length > 0) {
         doSpeak();
@@ -10960,7 +10330,7 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
         synth.onvoiceschanged = function() { synth.onvoiceschanged = null; doSpeak(); };
         setTimeout(doSpeak, 400);
       }
-    }, 50);
+    }, 80);
   }
 
   function _onSpeakEnd() {
@@ -10970,11 +10340,17 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     if (voiceConsultation.autoListen && voiceConsultation.active) {
       setTimeout(function() {
         if (!voiceConsultation.isListening && voiceConsultation.active && !voiceConsultation.isSpeaking) {
+          // Pre-unlock audio for the NEXT AI response before mic starts
+          var synth = window.speechSynthesis;
+          if (synth) {
+            var s = new SpeechSynthesisUtterance('');
+            s.volume = 0; s.rate = 10;
+            synth.speak(s);
+          }
           try {
             voiceConsultation.recognition.start();
             voiceConsultation.isListening = true;
           } catch(e) {
-            // recognition may already be running - that's fine
             console.warn('_onSpeakEnd restart:', e.message);
           }
         }
