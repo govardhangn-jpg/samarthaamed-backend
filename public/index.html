@@ -2033,6 +2033,270 @@
   /* ── MOBILE LAYOUT FIXES ────────────────────────────────────────── */
   
 
+  
+  /* ═══ EMBEDDED FROM styles.css ═══════════════════════════════════ */
+  @media screen and (max-width: 900px) {
+      /* ── Shell switches to full-width ── */
+      html, body { height: 100%; overflow: hidden; }
+  
+      .app {
+        grid-template-columns: 1fr;
+        grid-template-rows: 56px 1fr;
+        height: 100vh;
+        height: 100dvh;
+        overflow: hidden;
+      }
+  
+      /* ── Sidebar: off-canvas drawer ── */
+      .sidebar {
+        position: fixed;
+        left: -280px;
+        top: 0; bottom: 0;
+        width: 270px;
+        z-index: 1000;
+        transition: left 0.28s cubic-bezier(.4, 0, .2, 1);
+        overflow-y: auto;
+        box-shadow: none;
+      }
+      .sidebar.mobile-open {
+        left: 0;
+        box-shadow: 8px 0 40px rgba(0, 0, 0, 0.25);
+      }
+  
+      /* ── Main fills full column ── */
+      .main {
+        grid-column: 1;
+        grid-row: 2;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        height: 100%;
+        min-height: 0;
+      }
+  
+      /* ── Topbar ── */
+      .topbar          { height: 56px; padding: 0 14px; gap: 10px; flex-shrink: 0; }
+      .mobile-menu-btn { display: flex; }
+      .desktop-search  { display: none !important; }
+      .topbar-subtitle { display: none; }
+      .topbar-title    { font-size: 0.95rem; }
+      .icon-btn        { width: 38px; height: 38px; }
+  
+      /* ── Scrollable content ── */
+      .content {
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
+        overflow-x: hidden;
+        padding: 16px 16px 76px;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior-y: contain;
+      }
+  
+      /* ── Bottom navigation ── */
+      .mobile-bottom-nav {
+        display: flex;
+        position: fixed;
+        bottom: 0; left: 0; right: 0;
+        height: 60px;
+        background: var(--panel);
+        border-top: 1.5px solid var(--border);
+        z-index: 500;
+        box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.08);
+        padding-bottom: env(safe-area-inset-bottom, 0px);
+      }
+      .mobile-nav-item {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text3);
+        transition: color .15s;
+        padding: 6px 2px;
+        -webkit-tap-highlight-color: transparent;
+        touch-action: manipulation;
+        position: relative;
+      }
+      .mobile-nav-item.active { color: var(--teal); }
+      .mobile-nav-item.active::before {
+        content: '';
+        position: absolute;
+        top: 0; left: 50%;
+        transform: translateX(-50%);
+        width: 28px; height: 2px;
+        background: var(--teal);
+        border-radius: 0 0 2px 2px;
+      }
+      .mobile-nav-item:active { opacity: 0.55; }
+      .mobile-nav-icon  { font-size: 1.2rem; line-height: 1; }
+      .mobile-nav-label { font-size: 0.6rem; font-weight: 600; letter-spacing: 0.02em; white-space: nowrap; }
+  
+      /* ── Toast above bottom nav ── */
+      .toast {
+        bottom: 72px !important;
+        left: 12px !important;
+        right: 12px !important;
+        width: auto !important;
+        max-width: none !important;
+      }
+  
+      /* ── Floating Ask AI button above bottom nav ── */
+      #floatingChatBtn {
+        bottom: 72px !important;
+        right: 14px !important;
+        padding: 11px 16px !important;
+        font-size: 0.8rem !important;
+      }
+  
+      /* ── Grids & cards ── */
+      .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr !important; gap: 12px; }
+      .stat-grid  { grid-template-columns: repeat(2, 1fr); gap: 10px; margin-bottom: 14px; }
+      .stat-card  { padding: 14px; }
+      .stat-card .value { font-size: 1.5rem; }
+  
+      /* ── View padding reset (content area provides padding) ── */
+      .dashboard,
+      .patients-view,
+      .risk-view,
+      .spec-view,
+      .lab-view,
+      .imaging-view,
+      .analytics-view,
+      .settings-view { padding: 0 !important; }
+      .settings-view { max-width: 100% !important; }
+  
+      /* ── Card adjustments ── */
+      .card-header { flex-wrap: wrap; gap: 8px; }
+  
+      /* ── Consultation ── */
+      .consult-layout {
+        display: flex !important;
+        flex-direction: column !important;
+        height: auto !important;
+        overflow: visible !important;
+      }
+      .consult-left {
+        width: 100% !important;
+        height: auto !important;
+        max-height: none !important;
+        border-right: none !important;
+        border-bottom: 1px solid var(--border) !important;
+        overflow: visible !important;
+        flex: none !important;
+      }
+      .consult-left-body    { max-height: 260px; overflow-y: auto; }
+      .consult-center       { min-height: 400px; }
+      .consult-right        {
+        display: none;
+        position: fixed;
+        top: 0; right: 0; bottom: 0;
+        width: 85vw; max-width: 320px;
+        z-index: 800;
+        background: var(--panel);
+        border-left: 1px solid var(--border2);
+        box-shadow: -6px 0 32px rgba(0, 0, 0, 0.2);
+      }
+      .consult-right.mobile-panel-open { display: flex; }
+      .consult-right-toggle { display: inline-flex !important; }
+      .consult-right-body   { max-height: none; flex: 1; overflow-y: auto; }
+      .patient-switcher     { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 6px; gap: 6px; }
+      .patient-chip         { flex-shrink: 0; }
+      .chat-messages        { min-height: 280px; }
+  
+      /* ── Patients table ── */
+      .table-header         { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .filter-row           { overflow-x: auto; -webkit-overflow-scrolling: touch; padding-bottom: 4px; gap: 6px; width: 100%; }
+      .filter-btn           { flex-shrink: 0; font-size: 0.72rem; padding: 5px 12px; }
+      .table-wrap           { overflow-x: auto; -webkit-overflow-scrolling: touch; border-radius: var(--radius); }
+      table                 { min-width: 560px; }
+  
+      /* ── Specializations ── */
+      .spec-grid { grid-template-columns: repeat(3, 1fr) !important; gap: 8px; }
+  
+      /* ── Risk ── */
+      .risk-grid  { grid-template-columns: repeat(2, 1fr) !important; gap: 10px; }
+      .risk-split { flex-direction: column !important; }
+  
+      /* ── Lab ── */
+      .lab-cards-grid { grid-template-columns: repeat(2, 1fr); gap: 10px; }
+      .lab-input-row  { grid-template-columns: 2fr 1.2fr 1fr; gap: 6px; }
+  
+      /* ── Imaging ── */
+      .imaging-grid   { grid-template-columns: 1fr !important; }
+      .scan-type-bar  { overflow-x: auto; -webkit-overflow-scrolling: touch; flex-wrap: nowrap; padding-bottom: 4px; }
+      .scan-type-btn  { flex-shrink: 0; }
+  
+      /* ── Analytics ── */
+      .kpi-strip      { grid-template-columns: repeat(3, 1fr); gap: 8px; }
+      .analytics-grid { grid-template-columns: 1fr !important; }
+      .analytics-grid-3 { grid-template-columns: 1fr !important; }
+  
+      /* ── Prescription ── */
+      .rx-dose-row    { grid-template-columns: 1fr 1fr; }
+      #view-prescription > div { padding: 0 !important; }
+  
+      /* ── Settings ── */
+      #view-settings  { padding-bottom: 76px; }
+  
+      /* ── Vitals input grid ── */
+      .vital-input-grid { grid-template-columns: repeat(2, 1fr); }
+  
+      /* ── Form grids ── */
+      .form-grid-2, .form-grid-3 { grid-template-columns: 1fr !important; }
+      .form-group.span-2, .form-group.span-3 { grid-column: span 1 !important; }
+      .radio-group { flex-wrap: wrap; }
+  
+      /* ── Modals: full width ── */
+      .modal-overlay > div,
+      .soap-box {
+        width: calc(100vw - 24px) !important;
+        max-width: none !important;
+        max-height: 90vh !important;
+        margin: 12px !important;
+        border-radius: 16px !important;
+      }
+      .modal-steps { overflow-x: auto; }
+      .step-label  { display: none; }
+  
+      /* ── Voice modal: full screen ── */
+      #voiceConsultModal > div {
+        width: 100vw !important;
+        height: 100vh !important;
+        height: 100dvh !important;
+        max-width: none !important;
+        max-height: none !important;
+        border-radius: 0 !important;
+        margin: 0 !important;
+      }
+  
+      /* ── Login ── */
+      .login-container { padding: 16px; align-items: flex-start; padding-top: 40px; }
+      .login-box       { padding: 28px 20px; border-radius: 16px; width: 100%; }
+      .login-title     { font-size: 1.45rem; }
+      .login-logo      { font-size: 2.5rem; }
+  
+      /* ── Radiology / PACS ── */
+      #view-radiology { padding: 0; }
+  
+      /* ── Sidebar footer: hide avatar text on small screens ── */
+      .sidebar-footer .avatar-info { display: block; } /* restore on tablet */
+    }
+  @media screen and (max-width: 900px) and (orientation: landscape) and (max-height: 520px) {
+      .mobile-bottom-nav  { height: 46px; }
+      .mobile-nav-icon    { font-size: 0.95rem; }
+      .mobile-nav-label   { display: none; }
+      .content            { padding-bottom: 54px; }
+      .toast              { bottom: 54px !important; }
+      #floatingChatBtn    { bottom: 54px !important; }
+      .mobile-bottom-nav .mobile-nav-item.active::before { display: none; }
+    }
+  /* ═══════════════════════════════════════════════════════════════════ */
+
   /* ═══ SAMARTHAA MOBILE ADDITIONS ════════════════════════════════════
      Only rules missing from styles.css — no conflicts                  */
   @media screen and (max-width: 900px) {
@@ -5138,7 +5402,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.2' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.3' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
