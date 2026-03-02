@@ -2287,6 +2287,69 @@
     .kpi-strip { grid-template-columns: 1fr 1fr !important; }
   }
   /* ────────────────────────────────────────────────────────────────── */
+
+  /* ── LAB RESULTS PRECISE FIX v3.6 ───────────────────────────────── */
+  @media screen and (max-width: 900px) {
+
+    /* Tab strip: start from beginning, scroll right */
+    .lab-tabs {
+      display: flex !important;
+      flex-wrap: nowrap !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      scroll-snap-type: x mandatory !important;
+      padding-bottom: 4px !important;
+      margin-bottom: 14px !important;
+      scrollbar-width: none !important;
+      /* Start from left - no padding that hides first tab */
+      padding-left: 0 !important;
+      margin-left: 0 !important;
+    }
+    .lab-tabs::-webkit-scrollbar { display: none !important; }
+    .lab-tab {
+      flex-shrink: 0 !important;
+      scroll-snap-align: start !important;
+      white-space: nowrap !important;
+      padding: 7px 12px !important;
+      font-size: 0.76rem !important;
+    }
+
+    /* Lab cards: 2 columns side by side */
+    .lab-cards-grid {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8px !important;
+      margin-bottom: 14px !important;
+    }
+    .lab-entry-card {
+      padding: 12px !important;
+    }
+    .lec-val { font-size: 1.6rem !important; }
+    .lec-name { font-size: 0.78rem !important; }
+    .lec-ref { font-size: 0.68rem !important; }
+
+    /* Topbar red element - hide notification badge overflow */
+    .topbar .notification-dot,
+    .topbar [style*="background:var(--red)"],
+    .topbar .icon-btn:last-child { 
+      overflow: hidden !important;
+    }
+    /* Hide the overflowing red circle in topbar */
+    .topbar > *:last-child {
+      max-width: 38px !important;
+      overflow: hidden !important;
+    }
+  }
+  /* ────────────────────────────────────────────────────────────────── */
+
+  /* ── TOPBAR ICON FIX ────────────────────────────────────────── */
+  @media screen and (max-width: 900px) {
+    /* Hide notification, alerts, live icons - only show hamburger + title */
+    .topbar .icon-btn { display: none !important; }
+    .topbar .search-bar { display: none !important; }
+    /* Ensure topbar doesn't overflow */
+    .topbar { overflow: hidden !important; }
+  }
+  /* ────────────────────────────────────────────────────────────── */
 </style>
 
 </head>
@@ -5339,7 +5402,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v3.5' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v3.7' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
