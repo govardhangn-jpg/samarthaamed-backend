@@ -5138,7 +5138,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.1' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.2' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -10432,30 +10432,39 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
     };
 
     voiceConsultation.recognition.onerror = (event) => {
-      console.error('Voice recognition error:', event.error);
-      if (event.error === 'no-speech') {
-        updateVoiceStatus('No speech detected', 'Please speak clearly');
+      console.warn('Voice recognition error:', event.error);
+      if (event.error === 'aborted' || event.error === 'no-speech') {
+        // These are normal on iOS - don't show error, just let onend handle restart
+        return;
       } else if (event.error === 'not-allowed') {
-        showToast('⚠️', 'Microphone Access Denied', 'Please allow microphone access');
+        showToast('⚠️', 'Microphone Blocked', 'Allow mic in browser settings, then refresh');
         voiceConsultation.isListening = false;
+        voiceConsultation.active = false;
+      } else if (event.error === 'network') {
+        updateVoiceStatus('Network error', 'Check connection and tap mic again');
+      } else {
+        updateVoiceStatus('Error: ' + event.error, 'Tap mic to retry');
       }
     };
 
     voiceConsultation.recognition.onend = () => {
       voiceConsultation.isListening = false;
-      document.getElementById('voiceMicBtn').style.background = 'var(--teal)';
-      document.getElementById('voiceMicBtn').style.transform = 'scale(1)';
+      var btn = document.getElementById('voiceMicBtn');
+      if (btn) { btn.style.transform = 'scale(1)'; }
       animateWaveform(false);
-      
-      // Auto-restart if auto-listen is enabled and not speaking
-      if (voiceConsultation.autoListen && !voiceConsultation.isSpeaking && voiceConsultation.active) {
-        setTimeout(() => {
-          if (!voiceConsultation.isSpeaking && voiceConsultation.active) {
-            voiceConsultation.recognition.start();
+
+      // Only auto-restart if: active session, autoListen on, NOT currently speaking
+      // Use a longer delay to let isSpeaking state settle
+      if (voiceConsultation.autoListen && voiceConsultation.active) {
+        setTimeout(function() {
+          // Re-check after delay - AI may have started speaking
+          if (!voiceConsultation.isSpeaking && voiceConsultation.active && !voiceConsultation.isListening) {
+            try { voiceConsultation.recognition.start(); }
+            catch(e) { console.warn('Recognition restart failed:', e.message); }
           }
-        }, 1000);
-      } else {
-        updateVoiceStatus('Stopped', 'Click microphone to continue');
+        }, 1200);
+      } else if (!voiceConsultation.isSpeaking) {
+        updateVoiceStatus('Stopped', 'Tap microphone to continue');
       }
     };
   }
@@ -10608,18 +10617,28 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     const arrayBuffer = await response.arrayBuffer();
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     if (!AudioCtx) throw new Error('AudioContext not supported');
-    const ctx = new AudioCtx();
+
+    // Reuse existing AudioContext if available (iOS: creating new one outside gesture fails)
+    if (!window._elAudioCtx || window._elAudioCtx.state === 'closed') {
+      window._elAudioCtx = new AudioCtx();
+    }
+    const ctx = window._elAudioCtx;
     if (ctx.state === 'suspended') await ctx.resume();
-    const decoded = await ctx.decodeAudioData(arrayBuffer);
-    const gain = ctx.createGain(); gain.gain.value = 2.5; gain.connect(ctx.destination);
+
+    const decoded = await ctx.decodeAudioData(arrayBuffer.slice(0));
+    const gain = ctx.createGain();
+    gain.gain.value = 2.0;
+    gain.connect(ctx.destination);
     const src = ctx.createBufferSource();
-    src.buffer = decoded; src.connect(gain);
-    window._elAudioCtx = ctx; window._elAudioSrc = src;
+    src.buffer = decoded;
+    src.connect(gain);
+    window._elAudioSrc = src;
+
     return new Promise(function(resolve) {
       src.onended = function() {
-        try { ctx.close(); } catch(e) {}
-        window._elAudioCtx = null; window._elAudioSrc = null;
-        _onSpeakEnd(); resolve();
+        window._elAudioSrc = null;
+        _onSpeakEnd();
+        resolve();
       };
       src.start(0);
     });
@@ -10650,22 +10669,20 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
         console.warn('SpeechSynthesis error:', e.error);
         _onSpeakEnd(); // ensure loop continues even on error
       };
-      // iOS Safari bug: utterances >200 chars get cut off - split if needed
-      if (text.length > 200) {
+      // Speak the utterance - use single utterance (iOS queue is unreliable)
+      // If text is long, truncate to 220 chars to avoid iOS cutoff
+      if (text.length > 220) {
         var mid = text.lastIndexOf('. ', 200);
-        if (mid < 50) mid = 180;
-        var part1 = new SpeechSynthesisUtterance(text.substring(0, mid+1));
-        var part2 = new SpeechSynthesisUtterance(text.substring(mid+1));
-        part1.lang = part2.lang = utterance.lang;
-        part1.rate = part2.rate = utterance.rate;
-        if (best) { part1.voice = part2.voice = best; }
-        part2.onend   = _onSpeakEnd;
-        part2.onerror = utterance.onerror;
-        synth.speak(part1);
-        synth.speak(part2);
-      } else {
-        synth.speak(utterance);
+        if (mid < 60) mid = text.lastIndexOf(' ', 200);
+        if (mid < 60) mid = 200;
+        utterance = new SpeechSynthesisUtterance(text.substring(0, mid + 1));
+        utterance.lang = voiceConsultation.currentLanguage;
+        utterance.rate = 0.92;
+        if (best) utterance.voice = best;
+        utterance.onend = _onSpeakEnd;
+        utterance.onerror = function(e) { console.warn('TTS error:', e.error); _onSpeakEnd(); };
       }
+      synth.speak(utterance);
     }
 
     var voices = synth.getVoices();
@@ -10682,13 +10699,19 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
   function _onSpeakEnd() {
     voiceConsultation.isSpeaking = false;
     animateWaveform(false);
-    updateVoiceStatus('Ready', 'Your turn to speak');
+    updateVoiceStatus('Your turn', 'Speak now — listening will restart');
     if (voiceConsultation.autoListen && voiceConsultation.active) {
-      setTimeout(() => {
-        if (!voiceConsultation.isListening && voiceConsultation.active) {
-          toggleVoiceListening();
+      setTimeout(function() {
+        if (!voiceConsultation.isListening && voiceConsultation.active && !voiceConsultation.isSpeaking) {
+          try {
+            voiceConsultation.recognition.start();
+            voiceConsultation.isListening = true;
+          } catch(e) {
+            // recognition may already be running - that's fine
+            console.warn('_onSpeakEnd restart:', e.message);
+          }
         }
-      }, 500);
+      }, 600);
     }
   }
 
@@ -12333,9 +12356,9 @@ Please provide clinical guidance on management.`;
 
     initializeVoiceRecognition();
     voiceConsultation.active = true;
-
-    // Auto-start after short delay
-    setTimeout(function() { toggleVoiceListening(); }, 600);
+    voiceConsultation.conversationHistory = []; // fresh history for emergency session
+    // NOTE: User must tap mic button - iOS Safari blocks auto-start from timers
+    updateVoiceStatus('Ready', 'Tap the 🎤 mic button to start');
   }
   // ────────────────────────────────────────────────────────────────────────
 </script>
