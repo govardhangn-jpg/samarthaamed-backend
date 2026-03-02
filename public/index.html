@@ -1651,9 +1651,47 @@
       height: auto !important;
       min-height: 0 !important;
       overflow: visible !important;
+      flex-direction: column !important;
+      display: flex !important;
     }
-    #view-consult .consult-left  { max-height: 200px !important; overflow-y: auto !important; }
-    #view-consult .consult-center { min-height: 50vh !important; }
+    /* Patient switcher: compact, horizontal scroll */
+    #view-consult .patient-switcher {
+      flex-shrink: 0 !important;
+    }
+    /* Patient info panel: natural height, scrollable if needed */
+    #view-consult .consult-left  {
+      height: auto !important;
+      max-height: none !important;
+      overflow-y: visible !important;
+      flex-shrink: 0 !important;
+    }
+    /* Chat panel: takes remaining space, shows input at bottom */
+    #view-consult .consult-center {
+      display: flex !important;
+      flex-direction: column !important;
+      min-height: 0 !important;
+      height: auto !important;
+      overflow: visible !important;
+      flex: 1 !important;
+    }
+    /* Chat messages: scrollable */
+    #view-consult .chat-messages {
+      flex: 1 !important;
+      overflow-y: auto !important;
+      min-height: 200px !important;
+      max-height: 40vh !important;
+    }
+    /* Chat input: always visible at bottom, not clipped */
+    #view-consult .chat-input-area {
+      flex-shrink: 0 !important;
+      position: relative !important;
+      z-index: 2 !important;
+    }
+    /* Chat tools row: wrap on small screens */
+    #view-consult .chat-tools {
+      flex-wrap: wrap !important;
+      gap: 6px !important;
+    }
 
     /* Emergency nav button pulse */
     .emergency-nav-btn { animation: emergencyPulse 2s infinite; }
@@ -4758,7 +4796,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.1' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.2' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
