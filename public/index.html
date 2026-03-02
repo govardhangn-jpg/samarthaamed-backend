@@ -5402,7 +5402,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.3' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.4' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -10812,15 +10812,15 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
   // ── Text-to-Speech: ElevenLabs → browser Web Speech API fallback ──
   async function speakText(text) {
-    // Stop any ongoing speech
-    voiceConsultation.synthesis.cancel();
+    // Stop ElevenLabs audio if playing (but do NOT cancel Web Speech here —
+    // _speakBrowser handles its own cancel; double-cancel breaks iOS audio session)
     if (window._elCurrentAudio) {
       window._elCurrentAudio.pause();
       window._elCurrentAudio = null;
     }
-    if (window._elAudioCtx) {
-      try { window._elAudioCtx.close(); } catch(e) {}
-      window._elAudioCtx = null;
+    if (window._elAudioSrc) {
+      try { window._elAudioSrc.stop(); } catch(e) {}
+      window._elAudioSrc = null;
     }
 
     voiceConsultation.isSpeaking = true;
@@ -10910,7 +10910,8 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
   function _speakBrowser(text) {
     var synth = voiceConsultation.synthesis;
-    // iOS Safari: cancel any stuck speech first
+    // iOS Safari: cancel stuck speech, then wait one tick before speaking
+    // (calling speak() in the same tick as cancel() silences iOS)
     synth.cancel();
     var utterance = new SpeechSynthesisUtterance(text);
     utterance.lang   = voiceConsultation.currentLanguage;
@@ -10949,15 +10950,17 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
       synth.speak(utterance);
     }
 
-    var voices = synth.getVoices();
-    if (voices.length > 0) {
-      doSpeak();
-    } else {
-      // Voices not loaded yet - wait for voiceschanged event
-      synth.onvoiceschanged = function() { synth.onvoiceschanged = null; doSpeak(); };
-      // Fallback timeout in case event never fires (some browsers)
-      setTimeout(doSpeak, 300);
-    }
+    // iOS Safari: wait one tick after cancel() before speaking
+    // Speaking in the same tick as cancel() causes permanent silence
+    setTimeout(function() {
+      var voices = synth.getVoices();
+      if (voices.length > 0) {
+        doSpeak();
+      } else {
+        synth.onvoiceschanged = function() { synth.onvoiceschanged = null; doSpeak(); };
+        setTimeout(doSpeak, 400);
+      }
+    }, 50);
   }
 
   function _onSpeakEnd() {
@@ -11026,23 +11029,31 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
   }
 
   // Animate waveform
+  // Store interval IDs so we can clear them
+  var _waveformIntervals = [];
+
   function animateWaveform(active) {
-    const waveform = document.getElementById('voiceWaveform');
+    var waveform = document.getElementById('voiceWaveform');
     if (!waveform) return;
 
-    const bars = waveform.querySelectorAll('div');
-    
+    // Always clear existing intervals first to prevent accumulation
+    _waveformIntervals.forEach(function(id) { clearInterval(id); });
+    _waveformIntervals = [];
+
+    var bars = waveform.querySelectorAll('div');
+
     if (active) {
-      bars.forEach((bar, i) => {
-        setInterval(() => {
-          const height = Math.random() * 50 + 10;
+      bars.forEach(function(bar, i) {
+        var id = setInterval(function() {
+          var height = Math.random() * 34 + 8;
           bar.style.height = height + 'px';
           bar.style.background = 'var(--teal)';
-        }, 100 + i * 20);
+        }, 120 + i * 15);
+        _waveformIntervals.push(id);
       });
     } else {
-      bars.forEach(bar => {
-        bar.style.height = '20px';
+      bars.forEach(function(bar) {
+        bar.style.height = '8px';
         bar.style.background = 'var(--border)';
       });
     }
@@ -12589,7 +12600,7 @@ Please provide clinical guidance on management.`;
           '</label>' +
         '</div>' +
         '<div id="voiceWaveform" style="margin-top:14px;height:50px;background:var(--navy3);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:2px;padding:0 16px;overflow:hidden;">' +
-          (('<div style="width:3px;height:16px;background:var(--border);border-radius:2px;transition:all 0.1s;"></div>')*35) +
+          (function(){var b='';for(var i=0;i<20;i++)b+='<div style="width:3px;height:16px;background:var(--border);border-radius:2px;transition:height 0.1s;"></div>';return b;}()) +
         '</div>' +
       '</div>' +
       '<div style="padding:16px;">' +
