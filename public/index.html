@@ -2087,6 +2087,151 @@
     #view-emergency .btn span:last-child { font-size: 0.75rem !important; }
   }
   /* ──────────────────────────────────────────────────────────────── */
+
+  /* ── PATIENTS / LAB / ANALYTICS MOBILE FIXES ─────────────────────── */
+  @media screen and (max-width: 900px) {
+
+    /* ── PATIENTS PAGE ─────────────────────────────────────── */
+    /* Header row: stack title and button vertically */
+    #view-patients .page-header,
+    #view-patients > div > div:first-child {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 10px !important;
+    }
+    /* Register button full width */
+    #view-patients .btn-primary {
+      width: 100% !important;
+      justify-content: center !important;
+    }
+    /* Filter pills: wrap instead of overflow */
+    #view-patients .filter-row,
+    #view-patients > div > div[style*="display:flex"],
+    #view-patients > div > div[style*="display: flex"] {
+      flex-wrap: wrap !important;
+      overflow-x: visible !important;
+      gap: 8px !important;
+    }
+    /* Table: make it scrollable horizontally in its own container */
+    #view-patients .data-table,
+    #view-patients table {
+      display: block !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      width: 100% !important;
+      max-width: 100% !important;
+    }
+    /* Table wrapper */
+    #view-patients .card {
+      overflow: hidden !important;
+    }
+    /* Narrow table columns on mobile */
+    #view-patients td, #view-patients th {
+      padding: 8px 6px !important;
+      font-size: 0.78rem !important;
+      white-space: nowrap !important;
+    }
+    /* Status badges smaller */
+    #view-patients .status-badge {
+      font-size: 0.65rem !important;
+      padding: 2px 6px !important;
+    }
+
+    /* ── LAB RESULTS PAGE ──────────────────────────────────── */
+    /* Patient selector full width */
+    #view-labs select,
+    #view-labs .form-input {
+      width: 100% !important;
+      max-width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    /* Enter lab results button full width */
+    #view-labs .btn-primary {
+      width: 100% !important;
+      justify-content: center !important;
+    }
+    /* Filter tabs: horizontal scroll */
+    #view-labs .lab-filter-tabs,
+    #view-labs > div > div[style*="display:flex"],
+    #view-labs > div > div[style*="gap"] {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      flex-wrap: nowrap !important;
+      padding-bottom: 4px !important;
+      scrollbar-width: none !important;
+    }
+    #view-labs > div > div[style*="display:flex"]::-webkit-scrollbar { display: none; }
+    /* Lab value cards: 2 columns */
+    #view-labs .lab-grid,
+    #view-labs > div > div[style*="grid"] {
+      grid-template-columns: 1fr 1fr !important;
+      gap: 8px !important;
+    }
+    /* Charts: don't overflow */
+    #view-labs canvas,
+    #view-labs svg {
+      max-width: 100% !important;
+      height: auto !important;
+    }
+    #view-labs .card { overflow: hidden !important; }
+
+    /* ── ANALYTICS PAGE ────────────────────────────────────── */
+    /* Stat cards: 1 column on small screens */
+    #view-analytics .stat-grid,
+    #view-analytics > div > div[style*="grid-template-columns: repeat(3"],
+    #view-analytics > div > div[style*="repeat(3"] {
+      grid-template-columns: 1fr 1fr 1fr !important;
+    }
+    /* Charts full width, no overflow */
+    #view-analytics canvas,
+    #view-analytics svg {
+      max-width: 100% !important;
+      width: 100% !important;
+    }
+    #view-analytics .card { overflow: hidden !important; }
+    /* Chart containers */
+    #view-analytics > div > div[style*="grid"] {
+      grid-template-columns: 1fr !important;
+    }
+    /* Donut chart section: stack vertically */
+    #view-analytics div[style*="display:flex"][style*="gap"] {
+      flex-direction: column !important;
+    }
+
+    /* ── GLOBAL TABLE FIX ──────────────────────────────────── */
+    .data-table { overflow-x: auto !important; display: block !important; }
+    table { min-width: 0 !important; }
+
+    /* ── GLOBAL CHART FIX ──────────────────────────────────── */
+    canvas { max-width: 100% !important; }
+
+    /* ── FIX + REGISTER PATIENT BUTTON OVERFLOW ────────────── */
+    [onclick*="registerPatient"],
+    [onclick*="showRegister"] {
+      white-space: nowrap !important;
+    }
+
+    /* Page header pattern used across pages */
+    .page-header {
+      flex-direction: column !important;
+      align-items: flex-start !important;
+      gap: 10px !important;
+    }
+    .page-header .btn { width: 100% !important; justify-content: center !important; }
+
+  }
+
+  @media screen and (max-width: 480px) {
+    /* Analytics stats: stack to 1 column on tiny screens */
+    #view-analytics > div > div[style*="repeat(3"] {
+      grid-template-columns: 1fr !important;
+    }
+    /* Lab cards: 1 column on tiny screens */
+    #view-labs > div > div[style*="grid"] {
+      grid-template-columns: 1fr !important;
+    }
+  }
+  /* ──────────────────────────────────────────────────────────────── */
 </style>
 
 </head>
@@ -5139,7 +5284,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v3.3' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v3.4' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
