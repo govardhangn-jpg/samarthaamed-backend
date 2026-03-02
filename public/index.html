@@ -2031,419 +2031,61 @@
 
 
   /* ── MOBILE LAYOUT FIXES ────────────────────────────────────────── */
+  
+
+  /* ═══ SAMARTHAA MOBILE ADDITIONS ════════════════════════════════════
+     Only rules missing from styles.css — no conflicts                  */
   @media screen and (max-width: 900px) {
 
-    /* Hide search bar - it overflows on mobile */
-    .search-bar { display: none !important; }
+    /* Topbar: hide search bar and icon buttons (they overflow) */
+    .search-bar  { display: none !important; }
+    .icon-btn    { display: none !important; }
+    .topbar      { overflow: hidden !important; }
 
-    /* Topbar: hamburger + title only, no overflow */
-    .topbar { overflow: hidden; }
-    .topbar-title { font-size: 0.9rem !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; }
-
-    /* All views must not overflow horizontally */
-    .view { overflow-x: hidden !important; max-width: 100vw !important; box-sizing: border-box; }
-
-    /* Emergency view specific fixes */
-    #view-emergency > div { padding: 14px !important; box-sizing: border-box; max-width: 100% !important; }
-
-    /* Quick-fill buttons: 3 columns, no overflow */
-    #view-emergency .btn { min-width: 0 !important; width: 100% !important; box-sizing: border-box; }
-
-    /* Cards must not overflow */
-    .card { max-width: 100% !important; box-sizing: border-box; overflow: hidden; }
-    .card-body { padding: 14px !important; box-sizing: border-box; }
-
-    /* Form inputs full width */
-    .form-input { max-width: 100% !important; box-sizing: border-box !important; }
-
-    /* Age/Sex + Vitals grid: equal columns on mobile */
-    #view-emergency .card-body > div[style*="grid-template-columns:1fr 1fr"] {
-      display: grid !important;
-      grid-template-columns: 1fr 1fr !important;
-      gap: 8px !important;
-    }
-
-    /* Action buttons row */
-    #view-emergency .card-body > div[style*="grid-template-columns:1fr 1fr"]:last-child {
-      grid-template-columns: 1fr 1fr !important;
-    }
-
-    /* Stat grid: 2 columns on mobile instead of 4 */
-    .stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
-
-    /* General content boxes */
-    [style*="max-width:860px"] { max-width: 100% !important; }
-    [style*="max-width: 860px"] { max-width: 100% !important; }
-
-    /* Topbar right side - hide extra icons that overflow */
-    .topbar > .icon-btn:not(:last-child) { display: none; }
-  }
-
-  @media screen and (max-width: 480px) {
-    /* Extra small phones */
-    #view-emergency > div { padding: 10px !important; }
-    .card-body { padding: 12px !important; }
-    #view-emergency .btn span:first-child { font-size: 1.1rem !important; }
-    #view-emergency .btn span:last-child { font-size: 0.75rem !important; }
-  }
-  /* ──────────────────────────────────────────────────────────────── */
-
-  /* ── PATIENTS / LAB / ANALYTICS MOBILE FIXES ─────────────────────── */
-  @media screen and (max-width: 900px) {
-
-    /* ── PATIENTS PAGE ─────────────────────────────────────── */
-    /* Header row: stack title and button vertically */
-    #view-patients .page-header,
-    #view-patients > div > div:first-child {
-      flex-direction: column !important;
-      align-items: flex-start !important;
-      gap: 10px !important;
-    }
-    /* Register button full width */
-    #view-patients .btn-primary {
-      width: 100% !important;
-      justify-content: center !important;
-    }
-    /* Filter pills: wrap instead of overflow */
-    #view-patients .filter-row,
-    #view-patients > div > div[style*="display:flex"],
-    #view-patients > div > div[style*="display: flex"] {
-      flex-wrap: wrap !important;
-      overflow-x: visible !important;
-      gap: 8px !important;
-    }
-    /* Table: make it scrollable horizontally in its own container */
-    #view-patients .data-table,
-    #view-patients table {
-      display: block !important;
-      overflow-x: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      width: 100% !important;
-      max-width: 100% !important;
-    }
-    /* Table wrapper */
-    #view-patients .card {
-      overflow: hidden !important;
-    }
-    /* Narrow table columns on mobile */
-    #view-patients td, #view-patients th {
-      padding: 8px 6px !important;
-      font-size: 0.78rem !important;
-      white-space: nowrap !important;
-    }
-    /* Status badges smaller */
-    #view-patients .status-badge {
-      font-size: 0.65rem !important;
-      padding: 2px 6px !important;
-    }
-
-    /* ── LAB RESULTS PAGE ──────────────────────────────────── */
-    /* Patient selector full width */
-    #view-labs select,
-    #view-labs .form-input {
-      width: 100% !important;
-      max-width: 100% !important;
-      box-sizing: border-box !important;
-    }
-    /* Enter lab results button full width */
-    #view-labs .btn-primary {
-      width: 100% !important;
-      justify-content: center !important;
-    }
-    /* Filter tabs: horizontal scroll */
-    #view-labs .lab-filter-tabs,
-    #view-labs > div > div[style*="display:flex"],
-    #view-labs > div > div[style*="gap"] {
-      overflow-x: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      flex-wrap: nowrap !important;
-      padding-bottom: 4px !important;
-      scrollbar-width: none !important;
-    }
-    #view-labs > div > div[style*="display:flex"]::-webkit-scrollbar { display: none; }
-    /* Lab value cards: 2 columns */
-    #view-labs .lab-grid,
-    #view-labs > div > div[style*="grid"] {
-      grid-template-columns: 1fr 1fr !important;
-      gap: 8px !important;
-    }
-    /* Charts: don't overflow */
-    #view-labs canvas,
-    #view-labs svg {
-      max-width: 100% !important;
-      height: auto !important;
-    }
-    #view-labs .card { overflow: hidden !important; }
-
-    /* ── ANALYTICS PAGE ────────────────────────────────────── */
-    /* Stat cards: 1 column on small screens */
-    #view-analytics .stat-grid,
-    #view-analytics > div > div[style*="grid-template-columns: repeat(3"],
-    #view-analytics > div > div[style*="repeat(3"] {
-      grid-template-columns: 1fr 1fr 1fr !important;
-    }
-    /* Charts full width, no overflow */
-    #view-analytics canvas,
-    #view-analytics svg {
-      max-width: 100% !important;
-      width: 100% !important;
-    }
-    #view-analytics .card { overflow: hidden !important; }
-    /* Chart containers */
-    #view-analytics > div > div[style*="grid"] {
-      grid-template-columns: 1fr !important;
-    }
-    /* Donut chart section: stack vertically */
-    #view-analytics div[style*="display:flex"][style*="gap"] {
-      flex-direction: column !important;
-    }
-
-    /* ── GLOBAL TABLE FIX ──────────────────────────────────── */
-    .data-table { overflow-x: auto !important; display: block !important; }
-    table { min-width: 0 !important; }
-
-    /* ── GLOBAL CHART FIX ──────────────────────────────────── */
-    canvas { max-width: 100% !important; }
-
-    /* ── FIX + REGISTER PATIENT BUTTON OVERFLOW ────────────── */
-    [onclick*="registerPatient"],
-    [onclick*="showRegister"] {
-      white-space: nowrap !important;
-    }
-
-    /* Page header pattern used across pages */
-    .page-header {
-      flex-direction: column !important;
-      align-items: flex-start !important;
-      gap: 10px !important;
-    }
-    .page-header .btn { width: 100% !important; justify-content: center !important; }
-
-  }
-
-  @media screen and (max-width: 480px) {
-    /* Analytics stats: stack to 1 column on tiny screens */
-    #view-analytics > div > div[style*="repeat(3"] {
-      grid-template-columns: 1fr !important;
-    }
-    /* Lab cards: 1 column on tiny screens */
-    #view-labs > div > div[style*="grid"] {
-      grid-template-columns: 1fr !important;
-    }
-  }
-  /* ──────────────────────────────────────────────────────────────── */
-
-  /* ── LAB RESULTS & ANALYTICS PRECISE MOBILE FIXES ───────────────── */
-  @media screen and (max-width: 900px) {
-
-    /* ── LAB RESULTS ─────────────────────────────────────── */
-    .lab-view { padding: 14px !important; }
-
-    /* Header: stack select + button vertically */
-    .lab-view > div:first-child { flex-direction: column !important; align-items: flex-start !important; }
-    .lab-view > div:first-child > div:last-child { flex-direction: column !important; width: 100% !important; gap: 8px !important; }
-    #labPatientSelect { width: 100% !important; }
-    .lab-view .btn-primary { width: 100% !important; justify-content: center !important; }
-
-    /* Lab tabs: horizontal scroll, don't wrap */
-    .lab-tabs { flex-wrap: nowrap !important; overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; padding-bottom: 6px !important; scrollbar-width: none !important; }
-    .lab-tabs::-webkit-scrollbar { display: none !important; }
-    .lab-tab { flex-shrink: 0 !important; white-space: nowrap !important; padding: 7px 12px !important; font-size: 0.75rem !important; }
-
-    /* Lab cards: 2 columns instead of 4 */
-    .lab-cards-grid { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
-
-    /* Grid-2 (chart + legend): stack vertically, remove fixed 380px */
-    .grid-2 { grid-template-columns: 1fr !important; }
-
-    /* ── ANALYTICS ────────────────────────────────────────── */
-    .analytics-view { padding: 14px !important; }
-
-    /* Header: stack vertically */
-    .analytics-view > div:first-child { flex-direction: column !important; align-items: flex-start !important; gap: 10px !important; }
-    .analytics-view > div:first-child > div:last-child { width: 100% !important; flex-direction: column !important; }
-    .analytics-view .form-select { width: 100% !important; }
-    .analytics-view .btn { width: 100% !important; justify-content: center !important; }
-
-    /* KPI strip: 2 columns on mobile (was 5) */
-    .kpi-strip { grid-template-columns: 1fr 1fr !important; gap: 8px !important; }
-    .kpi-num { font-size: 1.6rem !important; }
-    .kpi-lbl { font-size: 0.72rem !important; }
-    .kpi-chg { font-size: 0.68rem !important; }
-
-    /* Analytics grid: single column (was 2) */
-    .analytics-grid { grid-template-columns: 1fr !important; gap: 12px !important; }
-
-    /* Charts: constrain width */
-    .chart-card canvas { max-width: 100% !important; }
-    .chart-card { overflow: hidden !important; }
-
-  }
-
-  @media screen and (max-width: 480px) {
-    /* Tiny phones: 1 column for lab cards */
-    .lab-cards-grid { grid-template-columns: 1fr !important; }
-    /* KPI: also 1 column */
-    .kpi-strip { grid-template-columns: 1fr 1fr !important; }
-  }
-  /* ────────────────────────────────────────────────────────────────── */
-
-  /* ── LAB RESULTS PRECISE FIX v3.6 ───────────────────────────────── */
-  @media screen and (max-width: 900px) {
-
-    /* Tab strip: start from beginning, scroll right */
+    /* Lab Results: tab strip scrolls horizontally from first tab */
     .lab-tabs {
-      display: flex !important;
       flex-wrap: nowrap !important;
       overflow-x: auto !important;
       -webkit-overflow-scrolling: touch !important;
-      scroll-snap-type: x mandatory !important;
-      padding-bottom: 4px !important;
-      margin-bottom: 14px !important;
       scrollbar-width: none !important;
-      /* Start from left - no padding that hides first tab */
-      padding-left: 0 !important;
-      margin-left: 0 !important;
+      padding-bottom: 4px !important;
+      -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
+      mask-image: linear-gradient(to right, black 80%, transparent 100%);
     }
     .lab-tabs::-webkit-scrollbar { display: none !important; }
-    .lab-tab {
-      flex-shrink: 0 !important;
-      scroll-snap-align: start !important;
-      white-space: nowrap !important;
-      padding: 7px 12px !important;
-      font-size: 0.76rem !important;
-    }
+    .lab-tab { flex-shrink: 0 !important; white-space: nowrap !important; }
 
-    /* Lab cards: 2 columns side by side */
-    .lab-cards-grid {
-      grid-template-columns: 1fr 1fr !important;
-      gap: 8px !important;
-      margin-bottom: 14px !important;
-    }
-    .lab-entry-card {
-      padding: 12px !important;
-    }
-    .lec-val { font-size: 1.6rem !important; }
-    .lec-name { font-size: 0.78rem !important; }
-    .lec-ref { font-size: 0.68rem !important; }
-
-    /* Topbar red element - hide notification badge overflow */
-    .topbar .notification-dot,
-    .topbar [style*="background:var(--red)"],
-    .topbar .icon-btn:last-child { 
-      overflow: hidden !important;
-    }
-    /* Hide the overflowing red circle in topbar */
-    .topbar > *:last-child {
-      max-width: 38px !important;
-      overflow: hidden !important;
-    }
-  }
-  /* ────────────────────────────────────────────────────────────────── */
-
-  /* ── TOPBAR ICON FIX ────────────────────────────────────────── */
-  @media screen and (max-width: 900px) {
-    /* Hide notification, alerts, live icons - only show hamburger + title */
-    .topbar .icon-btn { display: none !important; }
-    .topbar .search-bar { display: none !important; }
-    /* Ensure topbar doesn't overflow */
-    .topbar { overflow: hidden !important; }
-  }
-  /* ────────────────────────────────────────────────────────────── */
-
-  /* ── LAB RESULTS FINAL FIX v3.8 ─────────────────────────────────── */
-  @media screen and (max-width: 900px) {
-
-    /* Contain the entire lab view to screen width */
-    .lab-view {
-      padding: 14px !important;
-      width: 100% !important;
-      max-width: 100vw !important;
-      box-sizing: border-box !important;
-      overflow-x: hidden !important;
-    }
-
-    /* Header section: full width, stack vertically */
+    /* Lab Results: header row — stack patient select + button vertically */
     .lab-view > div:first-child {
-      display: flex !important;
       flex-direction: column !important;
+      align-items: flex-start !important;
       gap: 10px !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
     }
     .lab-view > div:first-child > div:last-child {
-      display: flex !important;
       flex-direction: column !important;
       width: 100% !important;
       gap: 8px !important;
     }
+    #labPatientSelect   { width: 100% !important; box-sizing: border-box !important; }
+    .lab-view .btn-primary { width: 100% !important; justify-content: center !important; }
 
-    /* Patient select: full width, no overflow */
-    #labPatientSelect {
-      width: 100% !important;
-      max-width: 100% !important;
-      box-sizing: border-box !important;
-      min-width: 0 !important;
-    }
+    /* Emergency view — constrain to screen */
+    #view-emergency > div { max-width: 100% !important; box-sizing: border-box !important; }
+    #view-emergency .card { overflow: hidden !important; }
+    #view-emergency canvas { max-width: 100% !important; }
 
-    /* Enter Lab Results button: full width */
-    .lab-view .btn-primary {
-      width: 100% !important;
-      max-width: 100% !important;
-      box-sizing: border-box !important;
-      justify-content: center !important;
+    /* Voice modal — full screen on mobile (styles.css already has this but ensure) */
+    #voiceConsultModal > div {
+      width: 100vw !important;
+      height: 100vh !important;
+      height: 100dvh !important;
+      max-width: none !important;
+      max-height: none !important;
+      border-radius: 0 !important;
     }
-
-    /* Lab tabs container: scroll horizontally from start */
-    .lab-tabs {
-      display: flex !important;
-      flex-wrap: nowrap !important;
-      overflow-x: auto !important;
-      -webkit-overflow-scrolling: touch !important;
-      gap: 6px !important;
-      padding-bottom: 6px !important;
-      margin-bottom: 14px !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-      scrollbar-width: none !important;
-      /* Gradient fade on right to hint scrollability */
-      -webkit-mask-image: linear-gradient(to right, black 85%, transparent 100%);
-      mask-image: linear-gradient(to right, black 85%, transparent 100%);
-    }
-    .lab-tabs::-webkit-scrollbar { display: none !important; }
-    .lab-tab {
-      flex-shrink: 0 !important;
-      white-space: nowrap !important;
-      padding: 6px 12px !important;
-      font-size: 0.74rem !important;
-    }
-
-    /* Lab cards grid: 2 columns, full width */
-    .lab-cards-grid {
-      display: grid !important;
-      grid-template-columns: 1fr 1fr !important;
-      gap: 8px !important;
-      width: 100% !important;
-      box-sizing: border-box !important;
-    }
-    .lab-entry-card {
-      width: 100% !important;
-      box-sizing: border-box !important;
-      padding: 10px !important;
-      min-width: 0 !important;
-    }
-    .lec-val  { font-size: 1.5rem !important; }
-    .lec-name { font-size: 0.76rem !important; }
-    .lec-ref  { font-size: 0.66rem !important; white-space: normal !important; }
-    .lec-flag { font-size: 0.6rem !important; padding: 2px 5px !important; }
-
-    /* Charts below: full width, no overflow */
-    .lab-panel .card,
-    .lab-panel .grid-2 { width: 100% !important; box-sizing: border-box !important; }
-    .lab-panel canvas  { max-width: 100% !important; }
-
   }
-  /* ────────────────────────────────────────────────────────────────── */
+  /* ═══════════════════════════════════════════════════════════════════ */
+
 </style>
 
 </head>
@@ -5496,7 +5138,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.0' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.1' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -10897,16 +10539,6 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
   // ── Text-to-Speech: ElevenLabs → browser Web Speech API fallback ──
   async function speakText(text) {
-    // iOS Safari: unlock AudioContext with silent buffer on every call
-    try {
-      var _iosCtx = new (window.AudioContext || window.webkitAudioContext)();
-      if (_iosCtx.state === 'suspended') await _iosCtx.resume();
-      var _buf = _iosCtx.createBuffer(1,1,22050);
-      var _src = _iosCtx.createBufferSource();
-      _src.buffer = _buf; _src.connect(_iosCtx.destination); _src.start(0);
-      setTimeout(function(){ try{_iosCtx.close();}catch(e){} }, 300);
-    } catch(e) {}
-
     // Stop any ongoing speech
     voiceConsultation.synthesis.cancel();
     if (window._elCurrentAudio) {
@@ -10994,19 +10626,57 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
   }
 
   function _speakBrowser(text) {
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang  = voiceConsultation.currentLanguage;
-    utterance.rate  = 0.95;
-    utterance.pitch = 1.0;
+    var synth = voiceConsultation.synthesis;
+    // iOS Safari: cancel any stuck speech first
+    synth.cancel();
+    var utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang   = voiceConsultation.currentLanguage;
+    utterance.rate   = 0.92;
+    utterance.pitch  = 1.0;
     utterance.volume = 1.0;
-    const voices = voiceConsultation.synthesis.getVoices();
-    const best   = voices.find(v =>
-      v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]) &&
-      (v.name.includes('Google') || v.name.includes('Microsoft'))
-    ) || voices.find(v => v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]));
-    if (best) utterance.voice = best;
-    utterance.onend = _onSpeakEnd;
-    voiceConsultation.synthesis.speak(utterance);
+
+    // iOS Safari: getVoices may be empty on first call - retry
+    function doSpeak() {
+      var voices = synth.getVoices();
+      var best = voices.find(function(v) {
+        return v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]) &&
+               (v.name.includes('Google') || v.name.includes('Microsoft'));
+      }) || voices.find(function(v) {
+        return v.lang.startsWith(voiceConsultation.currentLanguage.split('-')[0]);
+      });
+      if (best) utterance.voice = best;
+      utterance.onend   = _onSpeakEnd;
+      utterance.onerror = function(e) {
+        console.warn('SpeechSynthesis error:', e.error);
+        _onSpeakEnd(); // ensure loop continues even on error
+      };
+      // iOS Safari bug: utterances >200 chars get cut off - split if needed
+      if (text.length > 200) {
+        var mid = text.lastIndexOf('. ', 200);
+        if (mid < 50) mid = 180;
+        var part1 = new SpeechSynthesisUtterance(text.substring(0, mid+1));
+        var part2 = new SpeechSynthesisUtterance(text.substring(mid+1));
+        part1.lang = part2.lang = utterance.lang;
+        part1.rate = part2.rate = utterance.rate;
+        if (best) { part1.voice = part2.voice = best; }
+        part2.onend   = _onSpeakEnd;
+        part2.onerror = utterance.onerror;
+        synth.speak(part1);
+        synth.speak(part2);
+      } else {
+        synth.speak(utterance);
+      }
+    }
+
+    var voices = synth.getVoices();
+    if (voices.length > 0) {
+      doSpeak();
+    } else {
+      // Voices not loaded yet - wait for voiceschanged event
+      synth.onvoiceschanged = function() { synth.onvoiceschanged = null; doSpeak(); };
+      // Fallback timeout in case event never fires (some browsers)
+      setTimeout(doSpeak, 300);
+    }
   }
 
   function _onSpeakEnd() {
