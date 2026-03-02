@@ -4745,7 +4745,7 @@
               <div style="margin-bottom:14px"><label style="font-size:0.75rem;color:var(--text3);font-weight:600;display:block;margin-bottom:4px">PAST HISTORY / MEDICATIONS / ALLERGIES</label><textarea id="emHistory" class="form-input" rows="2" placeholder="PMH, medications, allergies..." style="width:100%;resize:vertical"></textarea></div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <button class="btn btn-primary" style="justify-content:center;background:var(--red);border-color:var(--red);font-size:0.95rem;padding:14px" onclick="runEmergencyAI()">🚨 Get AI Guidance</button>
-                <button class="btn" style="justify-content:center;background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal);font-size:0.95rem;padding:14px" onclick="startVoiceConsultation()">🎤 Voice Consult</button>
+                <button class="btn" style="justify-content:center;background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal);font-size:0.95rem;padding:14px" onclick="startEmergencyVoiceConsult()">🎤 Emergency Voice AI</button>
               </div>
             </div>
           </div>
@@ -5496,7 +5496,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v3.8' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v3.9' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -10860,7 +10860,9 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
       } else { msgs.push(m); }
     }
     const patientCtx = getActivePatientContext();
-    const systemPrompt = `You are Samarthaa, an AI clinical decision-support assistant speaking aloud to an Indian doctor during a patient consultation. ${patientCtx}
+    // Use emergency system prompt if set (emergency voice consult mode)
+    const systemPrompt = voiceConsultation._emergencySystemPrompt ||
+      `You are Samarthaa, an AI clinical decision-support assistant speaking aloud to an Indian doctor during a patient consultation. ${patientCtx}
 Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empathetic. Cite ICMR 2024 or NHP guidelines when relevant. Match the language the doctor speaks (English/Hindi/Kannada etc.). No bullet points — this is spoken.`;
     try {
       const raw = await callClaudeAI(msgs, systemPrompt);
@@ -11188,6 +11190,7 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
   function endVoiceConsultation() {
     if (confirm('End voice consultation session?')) {
       voiceConsultation.active = false;
+      voiceConsultation._emergencySystemPrompt = null;
       
       // Stop recognition and speech
       if (voiceConsultation.recognition) {
@@ -12542,6 +12545,115 @@ Please provide clinical guidance on management.`;
       });
   }
   // ──────────────────────────────────────────────────────────────────────────
+
+  // ── Emergency Voice AI Consultation ─────────────────────────────────────
+  // Works for unregistered patients - uses form fields as context
+  function startEmergencyVoiceConsult() {
+    var age       = (document.getElementById('emAge')||{value:''}).value.trim();
+    var vitals    = (document.getElementById('emVitals')||{value:''}).value.trim();
+    var complaint = (document.getElementById('emComplaint')||{value:''}).value.trim();
+    var history   = (document.getElementById('emHistory')||{value:''}).value.trim();
+
+    var apiKey = getApiKey();
+    if (!apiKey) {
+      showToast('⚠️','No API Key','Go to Settings → enter Anthropic API key first');
+      return;
+    }
+
+    // Build patient context from form (works even if empty)
+    var patientCtx = '';
+    if (age)       patientCtx += 'Patient: ' + age + '. ';
+    if (vitals)    patientCtx += 'Vitals: ' + vitals + '. ';
+    if (complaint) patientCtx += 'Complaint: ' + complaint + '. ';
+    if (history)   patientCtx += 'History: ' + history + '. ';
+    if (!patientCtx) patientCtx = 'Unregistered emergency patient. No details entered yet.';
+
+    // Emergency-specific system prompt
+    var emergencySystemPrompt = 'You are Samarthaa Emergency, an AI clinical decision-support assistant for emergency medicine in India. ' +
+      'Current patient context: ' + patientCtx + ' ' +
+      'Rules: Reply in 1-3 short spoken sentences. Be direct and immediately actionable. ' +
+      'Follow ICMR, ACLS, ATLS protocols. Prioritise life-threatening conditions. ' +
+      'Suggest immediate actions, doses in Indian generic names. ' +
+      'Match the language the doctor speaks (English/Hindi/Kannada etc.). ' +
+      'No bullet points - this is a spoken emergency consultation. ' +
+      'Start by acknowledging the emergency and asking the most critical clarifying question.';
+
+    // Create the voice modal (same UI as regular voice consult)
+    var existing = document.getElementById('voiceConsultModal');
+    if (existing) existing.remove();
+
+    var modal = document.createElement('div');
+    modal.id = 'voiceConsultModal';
+    modal.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.9);display:flex;align-items:center;justify-content:center;z-index:10000;padding:16px;';
+
+    modal.innerHTML = '<div style="background:var(--panel);border-radius:16px;width:100%;max-width:700px;max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.4);">' +
+      '<div style="padding:20px;border-bottom:1px solid var(--border);background:linear-gradient(135deg,var(--red-dim),var(--panel));">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+          '<div>' +
+            '<h2 style="margin:0;color:var(--red);font-size:1.3rem;font-family:var(--syne);">🚨 Emergency Voice AI</h2>' +
+            '<p style="margin:4px 0 0;color:var(--text3);font-size:0.8rem;">' + (patientCtx.substring(0,80)) + '...</p>' +
+          '</div>' +
+          '<button onclick="endVoiceConsultation()" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red);padding:8px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.85rem;">End</button>' +
+        '</div>' +
+      '</div>' +
+      '<div style="padding:20px;background:var(--panel2);border-bottom:1px solid var(--border);">' +
+        '<div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;justify-content:center;">' +
+          '<button id="voiceMicBtn" onclick="toggleVoiceListening()" style="width:80px;height:80px;border-radius:50%;background:var(--red);border:4px solid var(--red-dim);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:2rem;transition:all 0.3s;">🎤</button>' +
+          '<div style="flex:1;min-width:160px;">' +
+            '<div id="voiceStatus" style="font-size:1rem;font-weight:600;color:var(--text1);margin-bottom:4px;">Ready to listen...</div>' +
+            '<div id="voiceSubStatus" style="font-size:0.82rem;color:var(--text3);">Tap mic to start emergency consultation</div>' +
+          '</div>' +
+          '<select id="voiceLangSelect" onchange="changeVoiceLanguage(this.value)" style="padding:8px 12px;border-radius:8px;border:1px solid var(--border2);background:var(--panel);color:var(--text1);font-size:0.85rem;">' +
+            '<option value="en-US">🇺🇸 English</option>' +
+            '<option value="hi-IN">🇮🇳 Hindi</option>' +
+            '<option value="kn-IN">🇮🇳 Kannada</option>' +
+            '<option value="ta-IN">🇮🇳 Tamil</option>' +
+            '<option value="te-IN">🇮🇳 Telugu</option>' +
+            '<option value="ml-IN">🇮🇳 Malayalam</option>' +
+            '<option value="mr-IN">🇮🇳 Marathi</option>' +
+            '<option value="bn-IN">🇮🇳 Bengali</option>' +
+          '</select>' +
+          '<label style="display:flex;align-items:center;gap:6px;padding:8px 12px;background:var(--panel);border-radius:8px;border:1px solid var(--border2);cursor:pointer;font-size:0.8rem;color:var(--text2);">' +
+            '<input type="checkbox" id="autoListenToggle" checked onchange="voiceConsultation.autoListen=this.checked" style="width:16px;height:16px;"> Auto-continue' +
+          '</label>' +
+        '</div>' +
+        '<div id="voiceWaveform" style="margin-top:14px;height:50px;background:var(--navy3);border-radius:8px;display:flex;align-items:center;justify-content:center;gap:2px;padding:0 16px;overflow:hidden;">' +
+          (('<div style="width:3px;height:16px;background:var(--border);border-radius:2px;transition:all 0.1s;"></div>')*35) +
+        '</div>' +
+      '</div>' +
+      '<div style="padding:16px;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">' +
+          '<div style="font-size:0.88rem;font-weight:600;color:var(--text2);">Conversation Transcript</div>' +
+          '<button onclick="clearVoiceHistory()" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:0.8rem;text-decoration:underline;">Clear</button>' +
+        '</div>' +
+        '<div id="voiceTranscript" style="background:var(--navy3);border-radius:10px;padding:16px;max-height:300px;overflow-y:auto;min-height:120px;">' +
+          '<div style="text-align:center;color:var(--text3);padding:30px 16px;">' +
+            '<div style="font-size:2.5rem;margin-bottom:8px;">🚨</div>' +
+            '<p style="margin:0;font-size:0.85rem;">Emergency voice consultation ready. Tap the mic to begin.</p>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div style="padding:16px;border-top:1px solid var(--border);background:var(--panel2);display:flex;gap:10px;flex-wrap:wrap;">' +
+        '<button onclick="saveVoiceTranscript()" style="flex:1;min-width:120px;padding:10px;background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal);border-radius:8px;cursor:pointer;font-weight:600;font-size:0.82rem;">💾 Save Transcript</button>' +
+        '<button onclick="generateSOAPFromVoice()" style="flex:1;min-width:120px;padding:10px;background:var(--teal);color:white;border:none;border-radius:8px;cursor:pointer;font-weight:600;font-size:0.82rem;">📋 Generate SOAP</button>' +
+      '</div>' +
+    '</div>';
+
+    document.body.appendChild(modal);
+
+    // Override the system prompt for this emergency session
+    voiceConsultation._emergencySystemPrompt = emergencySystemPrompt;
+
+    // Patch processVoiceInput temporarily to use emergency prompt
+    voiceConsultation._originalProcessVoice = null; // flag that we're in emergency mode
+
+    initializeVoiceRecognition();
+    voiceConsultation.active = true;
+
+    // Auto-start after short delay
+    setTimeout(function() { toggleVoiceListening(); }, 600);
+  }
+  // ────────────────────────────────────────────────────────────────────────
 </script>
 
 <nav class="mobile-bottom-nav" id="mobileBottomNav">
