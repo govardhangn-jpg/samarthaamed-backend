@@ -4308,15 +4308,15 @@
             <span style="font-size:2rem">🚨</span>
             <div>
               <div style="font-weight:700;color:var(--red);font-size:1.05rem">Emergency AI Consultation</div>
-              <div style="font-size:0.8rem;color:var(--text2)">Rapid triage support · ACLS · ATLS · ICMR Emergency Protocols · Not a substitute for clinical judgment</div>
+              <div style="font-size:0.8rem;color:var(--text2)">Rapid triage · ACLS · ATLS · ICMR Protocols · Not a substitute for clinical judgment</div>
             </div>
           </div>
           <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:20px">
-            <button class="btn" onclick="emergencyQuickFill('chest-pain')" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red);padding:12px;flex-direction:column;gap:4px;height:auto"><span style="font-size:1.4rem">🫀</span><span style="font-weight:600;font-size:0.82rem">Chest Pain/ACS</span></button>
-            <button class="btn" onclick="emergencyQuickFill('stroke')" style="background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid #a78bfa;padding:12px;flex-direction:column;gap:4px;height:auto"><span style="font-size:1.4rem">🧠</span><span style="font-weight:600;font-size:0.82rem">Stroke/Neuro</span></button>
-            <button class="btn" onclick="emergencyQuickFill('trauma')" style="background:rgba(245,158,11,0.12);color:var(--gold);border:1px solid var(--gold);padding:12px;flex-direction:column;gap:4px;height:auto"><span style="font-size:1.4rem">🩹</span><span style="font-weight:600;font-size:0.82rem">Trauma/ATLS</span></button>
+            <button class="btn" onclick="emergencyQuickFill('chest-pain')" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red);padding:12px;flex-direction:column;gap:4px;height:auto"><span style="font-size:1.4rem">🫀</span><span style="font-weight:600;font-size:0.82rem">Chest Pain</span></button>
+            <button class="btn" onclick="emergencyQuickFill('stroke')" style="background:rgba(139,92,246,0.12);color:#a78bfa;border:1px solid #a78bfa;padding:12px;flex-direction:column;gap:4px;height:auto"><span style="font-size:1.4rem">🧠</span><span style="font-weight:600;font-size:0.82rem">Stroke</span></button>
+            <button class="btn" onclick="emergencyQuickFill('trauma')" style="background:rgba(245,158,11,0.12);color:var(--gold);border:1px solid var(--gold);padding:12px;flex-direction:column;gap:4px;height:auto"><span style="font-size:1.4rem">🩹</span><span style="font-weight:600;font-size:0.82rem">Trauma</span></button>
             <button class="btn" onclick="emergencyQuickFill('respiratory')" style="background:var(--teal-dim);color:var(--teal);border:1px solid var(--teal);padding:12px;flex-direction:column;gap:4px;height:auto"><span style="font-size:1.4rem">🫁</span><span style="font-weight:600;font-size:0.82rem">Respiratory</span></button>
-            <button class="btn" onclick="emergencyQuickFill('sepsis')" style="background:rgba(16,185,129,0.1);color:#10b981;border:1px solid #10b981;padding:12px;flex-direction:column;gap:4px;height:auto"><span style="font-size:1.4rem">🦠</span><span style="font-weight:600;font-size:0.82rem">Sepsis/Shock</span></button>
+            <button class="btn" onclick="emergencyQuickFill('sepsis')" style="background:rgba(16,185,129,0.1);color:#10b981;border:1px solid #10b981;padding:12px;flex-direction:column;gap:4px;height:auto"><span style="font-size:1.4rem">🦠</span><span style="font-weight:600;font-size:0.82rem">Sepsis</span></button>
             <button class="btn" onclick="emergencyQuickFill('anaphylaxis')" style="background:rgba(249,115,22,0.1);color:#f97316;border:1px solid #f97316;padding:12px;flex-direction:column;gap:4px;height:auto"><span style="font-size:1.4rem">💉</span><span style="font-weight:600;font-size:0.82rem">Anaphylaxis</span></button>
           </div>
           <div class="card" style="margin-bottom:14px">
@@ -4326,7 +4326,7 @@
                 <div><label style="font-size:0.75rem;color:var(--text3);font-weight:600;display:block;margin-bottom:4px">AGE / SEX</label><input id="emAge" class="form-input" placeholder="e.g. 55M" style="width:100%"></div>
                 <div><label style="font-size:0.75rem;color:var(--text3);font-weight:600;display:block;margin-bottom:4px">VITALS</label><input id="emVitals" class="form-input" placeholder="BP / HR / SpO2 / RR" style="width:100%"></div>
               </div>
-              <div style="margin-bottom:10px"><label style="font-size:0.75rem;color:var(--text3);font-weight:600;display:block;margin-bottom:4px">CHIEF COMPLAINT &amp; HISTORY</label><textarea id="emComplaint" class="form-input" rows="3" placeholder="Presenting complaint, onset, duration, symptoms..." style="width:100%;resize:vertical"></textarea></div>
+              <div style="margin-bottom:10px"><label style="font-size:0.75rem;color:var(--text3);font-weight:600;display:block;margin-bottom:4px">CHIEF COMPLAINT &amp; HISTORY</label><textarea id="emComplaint" class="form-input" rows="3" placeholder="Presenting complaint, onset, duration..." style="width:100%;resize:vertical"></textarea></div>
               <div style="margin-bottom:14px"><label style="font-size:0.75rem;color:var(--text3);font-weight:600;display:block;margin-bottom:4px">PAST HISTORY / MEDICATIONS / ALLERGIES</label><textarea id="emHistory" class="form-input" rows="2" placeholder="PMH, medications, allergies..." style="width:100%;resize:vertical"></textarea></div>
               <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
                 <button class="btn btn-primary" style="justify-content:center;background:var(--red);border-color:var(--red);font-size:0.95rem;padding:14px" onclick="runEmergencyAI()">🚨 Get AI Guidance</button>
@@ -4338,7 +4338,7 @@
             <div class="card">
               <div class="card-header"><div class="card-title">🤖 AI Emergency Guidance</div><span style="font-size:0.72rem;color:var(--text3)">ICMR · ACLS · ATLS</span></div>
               <div class="card-body">
-                <div id="emTypingIndicator" style="padding:10px;color:var(--text3)">🔄 Analysing clinical presentation...</div>
+                <div id="emTypingIndicator" style="padding:10px;color:var(--text3)">🔄 Analysing...</div>
                 <div id="emResponseText" style="line-height:1.75;font-size:0.88rem;white-space:pre-wrap;margin-top:8px"></div>
               </div>
             </div>
@@ -5081,7 +5081,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Sunday, 01 March 2026 · AIIMS Delhi · v3.1' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v3.2' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -5415,7 +5415,7 @@
       document.getElementById('topbar-sub').textContent = views[id].sub;
     }
     var _bnMap = {dashboard:0,consult:1,patients:2,prescription:3,settings:4};
-    document.querySelectorAll('.mobile-nav-item').forEach(function(b,i){ b.classList.toggle('active', _bnMap[id]===i); });
+    document.querySelectorAll('.mobile-nav-item').forEach(function(b,i){b.classList.toggle('active',_bnMap[id]===i);});
     // Consult view is self-contained; all other views scroll via .content
     const content = document.querySelector('.content');
     if (content) content.scrollTop = 0;
@@ -8871,21 +8871,32 @@ INVESTIGATIONS:
     if (_configLoaded) return;
     if (_configLoadPromise) return _configLoadPromise;
     _configLoadPromise = fetch('/api/config')
-      .then(r => r.json())
-      .then(cfg => {
-        const ak = cfg.anthropicKey       || '';
-        const ek = cfg.elevenLabsKey      || '';
-        const ev = cfg.elevenLabsVoiceId  || '';
+      .then(function(r) {
+        var ct = r.headers.get('content-type') || '';
+        if (!ct.includes('application/json')) {
+          console.warn('[Config] /api/config not available - using stored keys');
+          _configLoaded = true;
+          return null;
+        }
+        return r.json();
+      })
+      .then(function(cfg) {
+        if (!cfg) return;
+        var ak = cfg.anthropicKey      || '';
+        var ek = cfg.elevenLabsKey     || '';
+        var ev = cfg.elevenLabsVoiceId || '';
         _anthropicApiKey = ak;
         if (ak) _vault.set('smak', ak);
         if (ek) _vault.set('elak', ek);
         if (ev) _vault.set('elvi', ev);
-        // Just store whether Orthanc is configured — proxy handles credentials
-        _orthancBase = (cfg.orthancUrl || '').replace(/\/$/, '');
+        _orthancBase = (cfg.orthancUrl || '').replace(/\/$/,'');
         _configLoaded = true;
         _updatePacsBadge();
       })
-      .catch(err => console.error('[SamarthaaMed] Failed to load config:', err));
+      .catch(function(err) {
+        console.warn('[Config] fetch failed:', err.message);
+        _configLoaded = true;
+      });
     return _configLoadPromise;
   }
 
@@ -8976,10 +8987,10 @@ INVESTIGATIONS:
 
   function getApiKey() {
     if (_anthropicApiKey) return _anthropicApiKey;
-    // Try vault (populated after config loads)
-    const stored = _vault.get('smak');
+    var stored = _vault.get('smak');
     if (stored) { _anthropicApiKey = stored; return _anthropicApiKey; }
-    showToast('⚠️', 'AI Not Ready', 'Configuration is still loading — please try again in a moment');
+    var manual = localStorage.getItem('samarthaamed_ak');
+    if (manual) { _anthropicApiKey = manual; _vault.set('smak', manual); return manual; }
     return null;
   }
 
@@ -10537,16 +10548,12 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     const ctx = new AudioCtx();
     if (ctx.state === 'suspended') await ctx.resume();
     const decoded = await ctx.decodeAudioData(arrayBuffer);
-    const gain = ctx.createGain();
-    gain.gain.value = 2.5;
-    gain.connect(ctx.destination);
+    const gain = ctx.createGain(); gain.gain.value = 2.5; gain.connect(ctx.destination);
     const src = ctx.createBufferSource();
-    src.buffer = decoded;
-    src.connect(gain);
-    window._elAudioCtx = ctx;
-    window._elAudioSrc = src;
-    return new Promise((resolve) => {
-      src.onended = () => {
+    src.buffer = decoded; src.connect(gain);
+    window._elAudioCtx = ctx; window._elAudioSrc = src;
+    return new Promise(function(resolve) {
+      src.onended = function() {
         try { ctx.close(); } catch(e) {}
         window._elAudioCtx = null; window._elAudioSrc = null;
         _onSpeakEnd(); resolve();
@@ -12057,29 +12064,47 @@ Please provide clinical guidance on management.`;
   }
 
 
-  // ── Emergency AI ─────────────────────────────────────────────────────────
+  // ── Emergency AI ──────────────────────────────────────────────────────────
   function emergencyQuickFill(type) {
-    var p = {'chest-pain':{c:'Acute crushing chest pain radiating to left arm. Onset 30 min ago. Diaphoresis and nausea. Pain 8/10.',h:'Hypertension, DM Type 2, ex-smoker.'},'stroke':{c:'Sudden left-sided weakness, facial droop, slurred speech. Last seen normal 1 hour ago. FAST positive.',h:'Atrial fibrillation, on Warfarin.'},'trauma':{c:'Road traffic accident. Multiple injuries, altered GCS. Primary survey in progress.',h:'Unknown history.'},'respiratory':{c:'Acute severe breathlessness. Cannot complete sentences. SpO2 dropping on high-flow O2. Bilateral wheeze.',h:'Known asthmatic. Salbutamol 3x today, no relief.'},'sepsis':{c:'Fever 39.8C, BP 88/56, HR 118, altered sensorium. Suspected urinary source.',h:'Elderly diabetic on immunosuppressants.'},'anaphylaxis':{c:'Urticaria, angioedema, hypotension and stridor 10 min after IV antibiotic.',h:'No prior allergy documented.'}}[type];
+    var p = {
+      'chest-pain':  {c:'Acute crushing chest pain radiating to left arm. Onset 30 min ago. Diaphoresis and nausea. Pain 8/10.',h:'Hypertension, DM Type 2, ex-smoker.'},
+      'stroke':      {c:'Sudden left-sided weakness, facial droop, slurred speech. Last seen normal 1 hour ago. FAST positive.',h:'Atrial fibrillation, on Warfarin.'},
+      'trauma':      {c:'Road traffic accident. Multiple injuries, altered GCS. Primary survey in progress.',h:'Unknown history.'},
+      'respiratory': {c:'Acute severe breathlessness. Cannot complete sentences. SpO2 dropping on high-flow O2. Bilateral wheeze.',h:'Known asthmatic. Salbutamol 3x today, no relief.'},
+      'sepsis':      {c:'Fever 39.8C, BP 88/56, HR 118, altered sensorium. Suspected urinary source.',h:'Elderly diabetic on immunosuppressants.'},
+      'anaphylaxis': {c:'Urticaria, angioedema, hypotension and stridor 10 min after IV antibiotic.',h:'No prior allergy documented.'}
+    }[type];
     if (!p) return;
-    var ec=document.getElementById('emComplaint'), eh=document.getElementById('emHistory');
-    if (ec) ec.value=p.c; if (eh) eh.value=p.h;
-    showToast('✅','Template loaded','Add age and vitals, then tap Get Emergency AI Guidance');
+    var ec = document.getElementById('emComplaint');
+    var eh = document.getElementById('emHistory');
+    if (ec) ec.value = p.c;
+    if (eh) eh.value = p.h;
+    showToast('✅','Template loaded','Add age and vitals then tap Get AI Guidance');
   }
 
   function runEmergencyAI() {
-    var age      = (document.getElementById('emAge')||{value:''}).value.trim();
-    var vitals   = (document.getElementById('emVitals')||{value:''}).value.trim();
-    var complaint= (document.getElementById('emComplaint')||{value:''}).value.trim();
-    var history  = (document.getElementById('emHistory')||{value:''}).value.trim();
-    var area     = document.getElementById('emResponseArea');
-    var typing   = document.getElementById('emTypingIndicator');
-    var resp     = document.getElementById('emResponseText');
+    var age       = (document.getElementById('emAge')||{value:''}).value.trim();
+    var vitals    = (document.getElementById('emVitals')||{value:''}).value.trim();
+    var complaint = (document.getElementById('emComplaint')||{value:''}).value.trim();
+    var history   = (document.getElementById('emHistory')||{value:''}).value.trim();
+    var area      = document.getElementById('emResponseArea');
+    var typing    = document.getElementById('emTypingIndicator');
+    var resp      = document.getElementById('emResponseText');
+    if (!complaint) { showToast('⚠️','Missing','Please enter the chief complaint'); return; }
+    if (!area||!typing||!resp) return;
 
-    if (!complaint) {
-      alert('Please enter the chief complaint before requesting AI guidance.');
+    var apiKey = getApiKey();
+    if (!apiKey) {
+      area.style.display = 'block';
+      typing.style.display = 'none';
+      resp.style.color = 'var(--gold)';
+      resp.textContent = '⚠️ No API key configured.
+
+Please go to ⚙️ Settings → enter your Anthropic API key → Save.
+Then return here and try again.';
+      area.scrollIntoView({behavior:'smooth',block:'start'});
       return;
     }
-    if (!area||!typing||!resp) { alert('Page error - please reload'); return; }
 
     area.style.display   = 'block';
     typing.style.display = 'block';
@@ -12088,22 +12113,35 @@ Please provide clinical guidance on management.`;
     resp.style.color     = '';
     area.scrollIntoView({behavior:'smooth',block:'start'});
 
-    var sys = 'You are Samarthaa Emergency, an AI clinical decision support for emergency medicine in India. Follow ICMR, ACLS, ATLS protocols. Use these headings: 1.IMMEDIATE ACTIONS (0-5 min) 2.DIFFERENTIAL DIAGNOSIS 3.URGENT INVESTIGATIONS 4.TREATMENT (Indian generic drugs, doses) 5.DISPOSITION 6.RED FLAGS';
-    var msg = 'Patient: '+(age||'unknown')+'\nVitals: '+(vitals||'not provided')+'\nComplaint: '+complaint+'\nHistory: '+(history||'none')+'\n\nProvide emergency guidance.';
+    var sys = 'You are Samarthaa Emergency, AI clinical decision support for emergency medicine in India. Follow ICMR, ACLS, ATLS, WHO SEARO protocols. Structure response with these headings:
+1. IMMEDIATE ACTIONS (0-5 min)
+2. DIFFERENTIAL DIAGNOSIS
+3. URGENT INVESTIGATIONS
+4. TREATMENT PROTOCOL (Indian generic drugs + doses)
+5. DISPOSITION & ESCALATION
+6. RED FLAGS
+Be concise and clinically actionable.';
+    var msg = 'Patient: '+(age||'not specified')+'
+Vitals: '+(vitals||'not provided')+'
+Complaint: '+complaint+'
+History: '+(history||'none')+'
+
+Provide emergency management guidance.';
 
     callClaudeAI([{role:'user',content:msg}], sys)
       .then(function(r) {
-        typing.style.display='none';
-        resp.textContent=r;
+        typing.style.display = 'none';
+        resp.style.color = '';
+        resp.textContent = r;
       })
       .catch(function(err) {
-        typing.style.display='none';
-        resp.style.color='var(--red)';
-        resp.textContent='⚠️ '+err.message;
-        console.error('[Emergency]',err);
+        typing.style.display = 'none';
+        resp.style.color = 'var(--red)';
+        resp.textContent = '⚠️ Error: ' + err.message;
+        console.error('[Emergency]', err);
       });
   }
-  // ─────────────────────────────────────────────────────────────────────────
+  // ──────────────────────────────────────────────────────────────────────────
 </script>
 
 <nav class="mobile-bottom-nav" id="mobileBottomNav">
