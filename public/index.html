@@ -307,6 +307,7 @@
   .view { display: none; animation: fadeIn .25s ease; }
   .view.active { display: block; }
   .view.active.flex-view { display: flex; }
+  #view-consult { flex-direction: column; height: calc(100vh - 58px); overflow: hidden; }
   #view-radiology { overflow-y: auto; max-height: 100%; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
@@ -2269,7 +2270,7 @@
       </div>
 
       <!-- ── AI CONSULTATION ── -->
-      <div class="view flex-view" id="view-consult" style="flex-direction:column;height:calc(100vh - 58px);overflow:hidden">
+      <div class="view flex-view" id="view-consult">
         <!-- Patient switcher -->
         <div class="patient-switcher">
           <div class="patient-chip active" onclick="switchConsultPatient(this,'PK','Priya Krishnamurthy','urgent')"><div class="patient-chip-avatar" style="background:linear-gradient(135deg,#EF4444,#DC2626)">PK</div><span class="patient-chip-name">Priya K.</span><span class="status-badge urgent" style="margin-left:4px;font-size:0.6rem">Urgent</span></div>
@@ -4757,7 +4758,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.0' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.1' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -10088,60 +10089,59 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
     };
   }
 
-  // Toggle voice listening
+  // ── Audio Session Keepalive ──────────────────────────────────────────────
+  // iOS Safari & Android Chrome suspend audio when not triggered by a gesture.
+  // Fix: start a SILENT looping AudioContext oscillator on the mic tap gesture.
+  // This keeps the audio session "active" across the async API call gap,
+  // so speechSynthesis.speak() works when the AI response arrives.
+  var _kcCtx  = null;   // keepalive AudioContext
+  var _kcNode = null;   // keepalive oscillator node
+
+  function _startAudioKeepalive() {
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      if (!_kcCtx || _kcCtx.state === 'closed') {
+        _kcCtx = new AC();
+      }
+      if (_kcCtx.state === 'suspended') _kcCtx.resume();
+      // Stop previous node if any
+      if (_kcNode) { try { _kcNode.stop(); } catch(e) {} _kcNode = null; }
+      // Silent oscillator — keeps session alive, uses zero CPU essentially
+      var osc  = _kcCtx.createOscillator();
+      var gain = _kcCtx.createGain();
+      gain.gain.value = 0;  // completely silent
+      osc.connect(gain);
+      gain.connect(_kcCtx.destination);
+      osc.start();
+      _kcNode = osc;
+      window._elAudioCtx = _kcCtx;  // share with ElevenLabs
+    } catch(e) { console.warn('Keepalive failed:', e.message); }
+  }
+
+  function _stopAudioKeepalive() {
+    if (_kcNode) { try { _kcNode.stop(); } catch(e) {} _kcNode = null; }
+  }
+
   function toggleVoiceListening() {
     if (!voiceConsultation.recognition) {
       initializeVoiceRecognition();
-      _iosUnlockAudio(); // unlock audio on very first tap
+      _startAudioKeepalive();
       return;
     }
-
     if (voiceConsultation.isListening) {
       voiceConsultation.recognition.stop();
       voiceConsultation.autoListen = false;
       var atEl = document.getElementById('autoListenToggle');
       if (atEl) atEl.checked = false;
     } else {
-      _iosUnlockAudio(); // unlock audio on every mic tap (iOS requires this)
+      _startAudioKeepalive(); // re-lock on every tap
       try {
         voiceConsultation.recognition.start();
       } catch (e) {
         console.error('Failed to start recognition:', e);
       }
     }
-  }
-
-  // iOS Safari Audio Unlock
-  // Must be called synchronously within a user gesture (tap/click) handler.
-  // Speaks a zero-volume utterance to activate the speech synthesis session,
-  // AND creates+resumes an AudioContext so ElevenLabs AudioContext works too.
-  var _iosAudioUnlocked = false;
-  function _iosUnlockAudio() {
-    // Speak a near-silent utterance within the gesture to unlock iOS audio session.
-    // MUST NOT call synth.cancel() — it breaks the session on iOS 16+.
-    var synth = window.speechSynthesis;
-    if (synth && !window._synthUnlocked) {
-      var s = new SpeechSynthesisUtterance(' ');
-      s.volume = 0.01;
-      s.rate   = 10;
-      s.onend  = function() { window._synthUnlocked = true; };
-      synth.speak(s);
-    }
-    // Unlock AudioContext for ElevenLabs
-    try {
-      if (!window._audioCtxUnlocked) {
-        var AC = window.AudioContext || window.webkitAudioContext;
-        if (AC) {
-          var c = new AC();
-          var b = c.createBuffer(1, 1, 22050);
-          var src = c.createBufferSource();
-          src.buffer = b; src.connect(c.destination); src.start(0);
-          src.onended = function() { c.close(); };
-          window._audioCtxUnlocked = true;
-          window._elAudioCtx = null;
-        }
-      }
-    } catch(e) {}
   }
 
   // Process voice input with AI
@@ -10211,14 +10211,13 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
     animateWaveform(true);
     if (voiceConsultation.isListening) { try { voiceConsultation.recognition.stop(); } catch(e) {} }
 
-    // No await here — async breaks iOS speechSynthesis gesture chain
     var elKey   = _vault.get('elak') || '';
     var elVoice = _vault.get('elvi') || '';
     var elCheck = document.getElementById('elUseVoiceConsult');
     var useEL   = elKey && elVoice && (elCheck ? elCheck.checked !== false : true);
     if (useEL) {
       _speakElevenLabs(text, elKey, elVoice).catch(function(err) {
-        console.warn('ElevenLabs TTS failed:', err.message);
+        console.warn('ElevenLabs TTS failed, using browser TTS:', err.message);
         _speakBrowser(text);
       });
     } else {
@@ -10289,19 +10288,26 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
   function _speakBrowser(text) {
     var synth = voiceConsultation.synthesis;
 
-    // Truncate to 200 chars — iOS silently drops longer utterances
-    var str = text.length > 200
-      ? text.substring(0, text.lastIndexOf(' ', 190) || 190)
-      : text;
+    // Truncate — iOS silently cuts off utterances > ~200 chars
+    var str = text;
+    if (str.length > 200) {
+      var cut = str.lastIndexOf('. ', 190);
+      if (cut < 50) cut = str.lastIndexOf(' ', 190);
+      if (cut < 50) cut = 190;
+      str = str.substring(0, cut + 1);
+    }
 
     var utt = new SpeechSynthesisUtterance(str);
     utt.lang   = voiceConsultation.currentLanguage || 'en-US';
     utt.rate   = 0.9;
     utt.volume = 1.0;
     utt.onend  = _onSpeakEnd;
-    utt.onerror = function(e) { console.warn('TTS:', e.error); _onSpeakEnd(); };
+    utt.onerror = function(e) {
+      console.warn('TTS error:', e.error);
+      _onSpeakEnd();
+    };
 
-    // Pick best local voice
+    // Pick best available voice for the language
     var voices = synth.getVoices();
     var lang = (voiceConsultation.currentLanguage || 'en-US').split('-')[0];
     var best = voices.find(function(v){ return v.lang.startsWith(lang) && v.localService; })
@@ -10309,19 +10315,26 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
             || voices.find(function(v){ return v.lang.startsWith('en'); });
     if (best) utt.voice = best;
 
-    // *** DO NOT call synth.cancel() — it kills the iOS audio session
-    //     unlocked by _iosUnlockAudio() on the mic tap gesture.
-    // *** DO NOT use setTimeout — any delay breaks the iOS gesture chain.
+    // iOS Safari: if synth is paused (common after primer utterance finishes),
+    // resume it before speaking. This keeps the audio session alive.
+    if (synth.paused) {
+      try { synth.resume(); } catch(e) {}
+    }
+
+    // Speak. AudioContext keepalive ensures session is active from mic tap gesture.
+    // No cancel() — no setTimeout — both break iOS.
     synth.speak(utt);
   }
 
   function _onSpeakEnd() {
     voiceConsultation.isSpeaking = false;
     animateWaveform(false);
+    _stopAudioKeepalive(); // session used for speaking, stop it
     updateVoiceStatus('Your turn', 'Speak now…');
     if (voiceConsultation.autoListen && voiceConsultation.active) {
       setTimeout(function() {
         if (!voiceConsultation.isListening && voiceConsultation.active && !voiceConsultation.isSpeaking) {
+          _startAudioKeepalive(); // re-lock for next AI response
           try {
             voiceConsultation.recognition.start();
             voiceConsultation.isListening = true;
