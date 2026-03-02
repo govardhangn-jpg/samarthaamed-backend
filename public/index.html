@@ -2607,7 +2607,7 @@
         </div>
         <div class="nav-item" onclick="showView('consult')">
           <span class="nav-icon">💬</span> AI Consultation
-          <span class="nav-badge green">3</span>
+          
         </div>
         <div class="nav-item" onclick="showView('emergency')" style="color:var(--red)">
           <span class="nav-icon">🚨</span> Emergency AI
@@ -2630,7 +2630,7 @@
         </div>
         <div class="nav-item" onclick="showView('labs')">
           <span class="nav-icon">🧪</span> Lab Results
-          <span class="nav-badge">5</span>
+          
         </div>
         <div class="nav-item" onclick="showView('imaging')">
           <span class="nav-icon">🩻</span> Imaging AI
@@ -5496,7 +5496,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v3.9' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.0' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -10897,11 +10897,25 @@ Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empa
 
   // ── Text-to-Speech: ElevenLabs → browser Web Speech API fallback ──
   async function speakText(text) {
+    // iOS Safari: unlock AudioContext with silent buffer on every call
+    try {
+      var _iosCtx = new (window.AudioContext || window.webkitAudioContext)();
+      if (_iosCtx.state === 'suspended') await _iosCtx.resume();
+      var _buf = _iosCtx.createBuffer(1,1,22050);
+      var _src = _iosCtx.createBufferSource();
+      _src.buffer = _buf; _src.connect(_iosCtx.destination); _src.start(0);
+      setTimeout(function(){ try{_iosCtx.close();}catch(e){} }, 300);
+    } catch(e) {}
+
     // Stop any ongoing speech
     voiceConsultation.synthesis.cancel();
     if (window._elCurrentAudio) {
       window._elCurrentAudio.pause();
       window._elCurrentAudio = null;
+    }
+    if (window._elAudioCtx) {
+      try { window._elAudioCtx.close(); } catch(e) {}
+      window._elAudioCtx = null;
     }
 
     voiceConsultation.isSpeaking = true;
