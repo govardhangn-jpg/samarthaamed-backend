@@ -12098,10 +12098,7 @@ Please provide clinical guidance on management.`;
       area.style.display = 'block';
       typing.style.display = 'none';
       resp.style.color = 'var(--gold)';
-      resp.textContent = '⚠️ No API key configured.
-
-Please go to ⚙️ Settings → enter your Anthropic API key → Save.
-Then return here and try again.';
+      resp.textContent = '⚠️ No API key configured.  Please go to ⚙️ Settings → enter your Anthropic API key → Save. Then return here and try again.';
       area.scrollIntoView({behavior:'smooth',block:'start'});
       return;
     }
@@ -12113,20 +12110,8 @@ Then return here and try again.';
     resp.style.color     = '';
     area.scrollIntoView({behavior:'smooth',block:'start'});
 
-    var sys = 'You are Samarthaa Emergency, AI clinical decision support for emergency medicine in India. Follow ICMR, ACLS, ATLS, WHO SEARO protocols. Structure response with these headings:
-1. IMMEDIATE ACTIONS (0-5 min)
-2. DIFFERENTIAL DIAGNOSIS
-3. URGENT INVESTIGATIONS
-4. TREATMENT PROTOCOL (Indian generic drugs + doses)
-5. DISPOSITION & ESCALATION
-6. RED FLAGS
-Be concise and clinically actionable.';
-    var msg = 'Patient: '+(age||'not specified')+'
-Vitals: '+(vitals||'not provided')+'
-Complaint: '+complaint+'
-History: '+(history||'none')+'
-
-Provide emergency management guidance.';
+    var sys = 'You are Samarthaa Emergency, AI clinical decision support for emergency medicine in India. Follow ICMR, ACLS, ATLS, WHO SEARO protocols. Structure response with these headings: 1. IMMEDIATE ACTIONS (0-5 min) 2. DIFFERENTIAL DIAGNOSIS 3. URGENT INVESTIGATIONS 4. TREATMENT PROTOCOL (Indian generic drugs + doses) 5. DISPOSITION & ESCALATION 6. RED FLAGS Be concise and clinically actionable.';
+    var msg = 'Patient: '+(age||'not specified')+' Vitals: '+(vitals||'not provided')+' Complaint: '+complaint+' History: '+(history||'none')+'  Provide emergency management guidance.';
 
     callClaudeAI([{role:'user',content:msg}], sys)
       .then(function(r) {
