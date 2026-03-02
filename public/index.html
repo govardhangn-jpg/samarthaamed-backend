@@ -1637,6 +1637,21 @@
     .icon-btn    { display: none !important; }
     .topbar      { overflow: hidden !important; }
 
+    /* Section header rows (title + action button) — stack on mobile */
+    .patients-view > div:first-child,
+    .lab-view > div:first-child,
+    .analytics-view > div:first-child {
+      flex-wrap: wrap !important;
+      gap: 10px !important;
+    }
+
+    /* Emergency nav button pulse */
+    .emergency-nav-btn { animation: emergencyPulse 2s infinite; }
+    @keyframes emergencyPulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.65; }
+    }
+
     /* Lab Results: tab strip scrolls horizontally from first tab */
     .lab-tabs {
       flex-wrap: nowrap !important;
@@ -1895,7 +1910,7 @@
 
     <!-- TOPBAR -->
     <div class="topbar" id="topbar">
-      <button class="mobile-menu-btn" onclick="toggleMobileSidebar()" style="display:none">☰</button>
+      <button class="mobile-menu-btn" onclick="toggleMobileSidebar()">☰</button>
       <div>
         <div class="topbar-title" id="topbar-title">Clinical Dashboard</div>
         <div class="topbar-subtitle" id="topbar-sub">Tuesday, 24 February 2026 · AIIMS Delhi</div>
@@ -4110,9 +4125,9 @@
                   </div>
 
                   <!-- The actual image -->
-                  <img id="pacsDicomImg" style="display:none;max-width:100%;max-height:600px;object-fit:contain;cursor:grab;transition:transform 0.2s" src="" alt="DICOM image"
-                    onload="pacsImgLoaded(this)"
-                    onerror="pacsImgError(this)">
+                  <img id="pacsDicomImg" style="display:none;max-width:100%;max-height:600px;object-fit:contain;cursor:grab;transition:transform 0.2s" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="DICOM image"
+                    onload="if(this.src.length>100)pacsImgLoaded(this)"
+                    onerror="if(typeof pacsImgError==='function')pacsImgError(this)">
 
                   <!-- Frame navigator -->
                   <div id="pacsFrameNav" style="display:none;position:absolute;bottom:12px;left:50%;transform:translateX(-50%);background:rgba(0,0,0,0.7);border-radius:8px;padding:6px 14px;display:flex;align-items:center;gap:10px">
@@ -4733,7 +4748,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.6' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v4.8' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -5066,7 +5081,7 @@
       document.getElementById('topbar-title').textContent = views[id].title;
       document.getElementById('topbar-sub').textContent = views[id].sub;
     }
-    var _bnMap = {dashboard:0,consult:1,patients:2,prescription:3,settings:4};
+    var _bnMap = {dashboard:0,consult:1,emergency:2,patients:3};
     document.querySelectorAll('.mobile-nav-item').forEach(function(b,i){b.classList.toggle('active',_bnMap[id]===i);});
     // Consult view is self-contained; all other views scroll via .content
     const content = document.querySelector('.content');
@@ -12017,9 +12032,9 @@ Please provide clinical guidance on management.`;
 <nav class="mobile-bottom-nav" id="mobileBottomNav">
   <button class="mobile-nav-item active" onclick="showView('dashboard')"><span class="mobile-nav-icon">🏠</span><span class="mobile-nav-label">Dashboard</span></button>
   <button class="mobile-nav-item" onclick="showView('consult')"><span class="mobile-nav-icon">🩺</span><span class="mobile-nav-label">Consult</span></button>
+  <button class="mobile-nav-item emergency-nav-btn" onclick="showView('emergency')" style="color:var(--red)"><span class="mobile-nav-icon">🚨</span><span class="mobile-nav-label">Emergency</span></button>
   <button class="mobile-nav-item" onclick="showView('patients')"><span class="mobile-nav-icon">👥</span><span class="mobile-nav-label">Patients</span></button>
-  <button class="mobile-nav-item" onclick="showView('prescription')"><span class="mobile-nav-icon">💊</span><span class="mobile-nav-label">Rx</span></button>
-  <button class="mobile-nav-item" onclick="showView('settings')"><span class="mobile-nav-icon">⚙️</span><span class="mobile-nav-label">Settings</span></button>
+  <button class="mobile-nav-item" onclick="toggleMobileSidebar()"><span class="mobile-nav-icon">☰</span><span class="mobile-nav-label">More</span></button>
 </nav>
 </body>
 </html>
