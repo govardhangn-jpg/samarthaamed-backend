@@ -6,20 +6,6 @@
 [build.processing]
   skip_processing = true
 
-[build.processing.css]
-  bundle = false
-  minify = false
-
-[build.processing.js]
-  bundle = false
-  minify = false
-
-[build.processing.html]
-  pretty_urls = false
-
-[build.processing.images]
-  compress = false
-
 # Route /api/config → the config serverless function
 [[redirects]]
   from   = "/api/config"
@@ -32,14 +18,7 @@
   to     = "/.netlify/functions/orthanc-proxy"
   status = 200
 
-# patient.html — Video AI Consultation kiosk (must come BEFORE the SPA catch-all)
-[[redirects]]
-  from   = "/patient.html"
-  to     = "/patient.html"
-  status = 200
-  force  = true
-
-# All other routes → SPA index
+# All other routes → SPA index (patient.html is a real file so Netlify serves it directly)
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
