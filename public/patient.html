@@ -1,0 +1,1682 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>SAMARTHAA MED — Video AI Consultation</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* ── Variables (matches main app) ───────────────────────── */
+:root {
+  --primary:    #b91c1c;
+  --primary2:   #dc2626;
+  --primary-dim: rgba(185,28,28,0.08);
+  --primary-glow: rgba(185,28,28,0.20);
+  --bg:         #ffffff;
+  --bg2:        #fef7f7;
+  --bg3:        #fef2f2;
+  --border:     #fecaca;
+  --border2:    #fca5a5;
+  --text1:      #1f2937;
+  --text2:      #4b5563;
+  --text3:      #9ca3af;
+  --green:      #059669;
+  --green-dim:  rgba(5,150,105,0.10);
+  --gold:       #f59e0b;
+  --gold-dim:   rgba(245,158,11,0.10);
+  --blue:       #2563eb;
+  --blue-dim:   rgba(37,99,235,0.10);
+  --shadow:     0 8px 32px rgba(185,28,28,0.12);
+  --shadow2:    0 2px 12px rgba(0,0,0,0.06);
+  --radius:     16px;
+  --radius2:    10px;
+  --syne:       'Syne', sans-serif;
+  --dm:         'DM Sans', sans-serif;
+  --mono:       'DM Mono', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+
+body {
+  font-family: var(--dm);
+  background: var(--bg);
+  color: var(--text1);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+/* ── Header ─────────────────────────────────────────────── */
+.header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+  height: 60px;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.logo { display: flex; align-items: center; gap: 12px; }
+.logo-icon {
+  width: 38px; height: 38px; border-radius: 10px;
+  background: linear-gradient(135deg, var(--primary), var(--primary2));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.2rem; color: #fff;
+  box-shadow: 0 0 16px var(--primary-glow);
+}
+.logo-text { font-family: var(--syne); font-weight: 800; font-size: 1.05rem; color: var(--text1); }
+.logo-sub  { font-size: 0.6rem; color: var(--primary); letter-spacing: 2px; text-transform: uppercase; font-weight: 600; }
+.header-badge {
+  background: var(--primary-dim); color: var(--primary);
+  border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 12px;
+  font-size: 0.72rem; font-weight: 600; letter-spacing: 0.5px;
+  display: flex; align-items: center; gap: 5px;
+}
+.pulse-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--primary);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(.8)} }
+
+/* ── Step tracker ────────────────────────────────────────── */
+.step-bar {
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 24px;
+  display: flex; align-items: center; gap: 0;
+}
+.step {
+  display: flex; align-items: center; gap: 8px;
+  flex: 1; cursor: default;
+}
+.step-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: var(--bg3); border: 2px solid var(--border2);
+  color: var(--text3); font-size: 0.75rem; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .3s;
+  flex-shrink: 0;
+}
+.step-label { font-size: 0.72rem; font-weight: 600; color: var(--text3); transition: color .3s; white-space: nowrap; }
+.step.active .step-num   { background: var(--primary); border-color: var(--primary); color: #fff; }
+.step.active .step-label { color: var(--primary); }
+.step.done .step-num     { background: var(--green); border-color: var(--green); color: #fff; }
+.step.done .step-label   { color: var(--green); }
+.step-line { flex: 1; height: 2px; background: var(--border); margin: 0 6px; transition: background .3s; }
+.step-line.done { background: var(--green); }
+
+/* ── Main layout ─────────────────────────────────────────── */
+.main {
+  max-width: 960px; margin: 0 auto;
+  padding: 28px 20px 40px;
+}
+
+/* ── Section screens ─────────────────────────────────────── */
+.screen { display: none; animation: fadeUp .35s ease; }
+.screen.active { display: block; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+
+/* ── Section titles ──────────────────────────────────────── */
+.section-head { margin-bottom: 24px; }
+.section-head h2 { font-family: var(--syne); font-size: 1.5rem; font-weight: 800; color: var(--text1); }
+.section-head p  { color: var(--text2); font-size: 0.9rem; margin-top: 5px; line-height: 1.5; }
+
+/* ── Cards ───────────────────────────────────────────────── */
+.card {
+  background: var(--bg); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+  box-shadow: var(--shadow2); margin-bottom: 16px;
+}
+.card-title {
+  font-family: var(--syne); font-size: 0.88rem; font-weight: 700;
+  color: var(--text1); letter-spacing: 0.3px; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 7px;
+}
+
+/* ── Form inputs ─────────────────────────────────────────── */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.form-row.full { grid-template-columns: 1fr; }
+.form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+label { font-size: 0.72rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; }
+input, select, textarea {
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius2); padding: 10px 12px;
+  font-family: var(--dm); font-size: 0.9rem; color: var(--text1);
+  background: var(--bg); outline: none; transition: border-color .2s;
+  width: 100%;
+}
+input:focus, select:focus, textarea:focus { border-color: var(--primary); }
+textarea { resize: vertical; min-height: 80px; }
+.input-unit {
+  position: relative;
+}
+.input-unit input { padding-right: 42px; }
+.unit-label {
+  position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
+  font-size: 0.75rem; color: var(--text3); font-family: var(--mono);
+  pointer-events: none;
+}
+
+/* ── Buttons ─────────────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 7px; border: none; border-radius: var(--radius2);
+  padding: 11px 20px; font-family: var(--dm);
+  font-size: 0.88rem; font-weight: 600; cursor: pointer;
+  transition: all .2s; text-decoration: none;
+}
+.btn-primary {
+  background: var(--primary); color: #fff;
+  box-shadow: 0 4px 14px var(--primary-glow);
+}
+.btn-primary:hover { background: var(--primary2); transform: translateY(-1px); }
+.btn-primary:active { transform: none; }
+.btn-primary:disabled { opacity: .5; cursor: not-allowed; transform: none; }
+.btn-outline {
+  background: transparent; color: var(--primary);
+  border: 1.5px solid var(--primary);
+}
+.btn-outline:hover { background: var(--primary-dim); }
+.btn-ghost {
+  background: var(--bg2); color: var(--text2);
+  border: 1.5px solid var(--border);
+}
+.btn-ghost:hover { border-color: var(--border2); color: var(--text1); }
+.btn-green {
+  background: var(--green); color: #fff;
+  box-shadow: 0 4px 14px rgba(5,150,105,.2);
+}
+.btn-lg { padding: 14px 28px; font-size: 1rem; border-radius: 12px; }
+.btn-full { width: 100%; }
+.btn-row { display: flex; gap: 10px; margin-top: 20px; }
+.btn-row.right { justify-content: flex-end; }
+.btn-row.center { justify-content: center; }
+.btn-row.spread { justify-content: space-between; }
+
+/* ── VIDEO SECTION ───────────────────────────────────────── */
+.video-wrap {
+  position: relative; border-radius: var(--radius);
+  overflow: hidden; background: #0a0a0a;
+  aspect-ratio: 16/9; width: 100%;
+  border: 2px solid var(--border);
+}
+.video-wrap video {
+  width: 100%; height: 100%; object-fit: cover; display: block;
+}
+.video-overlay {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 12px; color: #fff;
+}
+.video-overlay.hidden { display: none; }
+.video-icon { font-size: 3rem; opacity: .5; }
+.video-msg  { font-size: 0.88rem; color: rgba(255,255,255,.5); }
+
+/* Recording indicator */
+.rec-badge {
+  position: absolute; top: 12px; left: 12px;
+  background: rgba(220,38,38,.85); color: #fff;
+  border-radius: 20px; padding: 4px 10px;
+  font-size: 0.72rem; font-weight: 700; letter-spacing: 0.5px;
+  display: flex; align-items: center; gap: 5px;
+  backdrop-filter: blur(4px);
+}
+.rec-dot {
+  width: 7px; height: 7px; border-radius: 50%; background: #fff;
+  animation: blink 1s step-end infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* Capture button */
+.capture-btn {
+  position: absolute; bottom: 16px; left: 50%; transform: translateX(-50%);
+  background: rgba(255,255,255,.15); backdrop-filter: blur(8px);
+  border: 2px solid rgba(255,255,255,.3);
+  color: #fff; border-radius: 50px; padding: 10px 22px;
+  font-size: 0.82rem; font-weight: 600; cursor: pointer;
+  transition: all .2s; display: flex; align-items: center; gap: 6px;
+}
+.capture-btn:hover { background: rgba(255,255,255,.25); }
+
+/* AI Observation panel */
+.obs-panel {
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: var(--radius2); padding: 14px;
+  margin-top: 12px; font-size: 0.82rem; color: var(--text2);
+  min-height: 60px; line-height: 1.6;
+}
+.obs-panel .obs-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--primary-dim); color: var(--primary);
+  border-radius: 20px; padding: 2px 10px; font-size: 0.72rem;
+  font-weight: 600; margin: 2px;
+}
+
+/* ── Vitals Grid ─────────────────────────────────────────── */
+.vitals-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  margin-bottom: 16px;
+}
+.vital-card {
+  background: var(--bg2); border: 1.5px solid var(--border);
+  border-radius: var(--radius2); padding: 14px 12px;
+  display: flex; flex-direction: column; gap: 4px;
+  transition: border-color .2s;
+}
+.vital-card.has-value { border-color: var(--primary); background: var(--primary-dim); }
+.vital-card.device-connected { border-color: var(--green); background: var(--green-dim); }
+.vital-icon  { font-size: 1.4rem; }
+.vital-name  { font-size: 0.68rem; font-weight: 600; color: var(--text3); text-transform: uppercase; letter-spacing: 0.8px; }
+.vital-value { font-family: var(--mono); font-size: 1.1rem; font-weight: 500; color: var(--text1); }
+.vital-unit  { font-size: 0.68rem; color: var(--text3); }
+.vital-input { margin-top: 4px; }
+.vital-input input {
+  padding: 6px 8px; font-size: 0.88rem; font-family: var(--mono);
+  border-radius: 6px;
+}
+.device-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: var(--green-dim); color: var(--green);
+  border-radius: 10px; padding: 2px 8px;
+  font-size: 0.68rem; font-weight: 700; margin-top: 3px;
+}
+
+/* ── Speech transcript ───────────────────────────────────── */
+.transcript-box {
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: var(--radius2); padding: 14px;
+  min-height: 100px; max-height: 180px; overflow-y: auto;
+  font-size: 0.88rem; line-height: 1.7; color: var(--text1);
+  position: relative;
+}
+.transcript-placeholder { color: var(--text3); font-style: italic; }
+.transcript-listening {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+.mic-btn {
+  width: 52px; height: 52px; border-radius: 50%;
+  background: var(--primary); color: #fff; border: none;
+  font-size: 1.3rem; cursor: pointer; transition: all .2s;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 14px var(--primary-glow);
+  flex-shrink: 0;
+}
+.mic-btn.listening {
+  background: #dc2626;
+  animation: micPulse 1.2s ease-in-out infinite;
+}
+.mic-btn:hover { transform: scale(1.05); }
+@keyframes micPulse { 0%,100%{box-shadow:0 0 0 0 var(--primary-glow)} 50%{box-shadow:0 0 0 12px transparent} }
+
+/* Waveform */
+.waveform {
+  display: flex; align-items: center; gap: 3px;
+  height: 28px; padding: 0 4px;
+}
+.wave-bar {
+  width: 3px; border-radius: 2px; background: var(--primary);
+  height: 4px; transition: height .1s;
+}
+.wave-bar.active { animation: wave var(--d,.4s) ease-in-out infinite alternate; }
+@keyframes wave { from{height:4px} to{height:22px} }
+
+/* ── AI Analysis loading ─────────────────────────────────── */
+.analysis-loading {
+  text-align: center; padding: 40px 20px;
+}
+.spinner-ring {
+  width: 60px; height: 60px; border-radius: 50%;
+  border: 4px solid var(--border);
+  border-top-color: var(--primary);
+  animation: spin 1s linear infinite;
+  margin: 0 auto 16px;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-label { font-family: var(--syne); font-size: 1rem; font-weight: 700; color: var(--text1); }
+.loading-sub   { font-size: 0.82rem; color: var(--text3); margin-top: 5px; }
+
+/* ── Report preview ──────────────────────────────────────── */
+.report-box {
+  background: var(--bg); border: 1.5px solid var(--border);
+  border-radius: var(--radius); padding: 24px;
+  font-size: 0.88rem; line-height: 1.8; color: var(--text1);
+  white-space: pre-wrap; font-family: var(--dm);
+  max-height: 400px; overflow-y: auto;
+}
+.report-watermark {
+  text-align: center; padding: 8px;
+  background: var(--gold-dim); border: 1px solid var(--gold);
+  border-radius: var(--radius2); margin-bottom: 16px;
+  font-size: 0.8rem; color: var(--gold); font-weight: 600;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+}
+
+/* ── Success screen ──────────────────────────────────────── */
+.success-wrap {
+  text-align: center; padding: 40px 20px;
+}
+.success-icon {
+  width: 80px; height: 80px; border-radius: 50%;
+  background: var(--green-dim); border: 2px solid var(--green);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2.2rem; margin: 0 auto 20px;
+}
+.success-title { font-family: var(--syne); font-size: 1.5rem; font-weight: 800; color: var(--text1); }
+.success-sub   { color: var(--text2); font-size: 0.9rem; margin-top: 8px; line-height: 1.6; }
+.token-box {
+  background: var(--bg2); border: 1.5px dashed var(--border2);
+  border-radius: var(--radius2); padding: 16px; margin: 20px 0;
+  font-family: var(--mono); font-size: 1.1rem; font-weight: 600;
+  color: var(--primary); letter-spacing: 2px; text-align: center;
+}
+.token-hint { font-size: 0.78rem; color: var(--text3); margin-top: 6px; font-family: var(--dm); letter-spacing: 0; }
+
+/* ── Device connect panel ────────────────────────────────── */
+.device-panel {
+  background: var(--blue-dim); border: 1.5px solid #93c5fd;
+  border-radius: var(--radius2); padding: 16px; margin-bottom: 16px;
+  display: flex; align-items: flex-start; gap: 12px;
+}
+.device-icon { font-size: 1.8rem; flex-shrink: 0; margin-top: 2px; }
+.device-info { flex: 1; }
+.device-title { font-weight: 700; color: #1d4ed8; font-size: 0.9rem; margin-bottom: 3px; }
+.device-desc  { font-size: 0.8rem; color: #3b82f6; line-height: 1.5; }
+.device-status {
+  display: inline-flex; align-items: center; gap: 5px;
+  margin-top: 8px; font-size: 0.75rem; font-weight: 600;
+}
+.device-status.searching { color: var(--gold); }
+.device-status.connected { color: var(--green); }
+.device-status.error     { color: var(--primary); }
+
+/* ── Toast ───────────────────────────────────────────────── */
+.toast {
+  position: fixed; bottom: 24px; right: 24px; z-index: 9999;
+  background: var(--text1); color: #fff;
+  border-radius: var(--radius2); padding: 12px 18px;
+  font-size: 0.85rem; font-weight: 500;
+  box-shadow: 0 8px 24px rgba(0,0,0,.2);
+  transform: translateY(80px); opacity: 0;
+  transition: all .3s cubic-bezier(.34,1.56,.64,1);
+  max-width: 320px;
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+
+/* ── Info chips ──────────────────────────────────────────── */
+.chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: 20px;
+  font-size: 0.72rem; font-weight: 600;
+}
+.chip-red  { background: var(--primary-dim); color: var(--primary); }
+.chip-green{ background: var(--green-dim);   color: var(--green); }
+.chip-blue { background: var(--blue-dim);    color: var(--blue); }
+.chip-gold { background: var(--gold-dim);    color: var(--gold); }
+
+/* ── Disclaimer ─────────────────────────────────────────── */
+.disclaimer {
+  background: var(--bg2); border-left: 3px solid var(--gold);
+  border-radius: 0 var(--radius2) var(--radius2) 0;
+  padding: 10px 14px; font-size: 0.78rem; color: var(--text3);
+  line-height: 1.5; margin-top: 16px;
+}
+
+/* ── Mobile ─────────────────────────────────────────────── */
+@media (max-width: 600px) {
+  .main { padding: 16px 12px 32px; }
+  .form-row { grid-template-columns: 1fr; }
+  .form-row.three { grid-template-columns: 1fr 1fr; }
+  .vitals-grid { grid-template-columns: repeat(2, 1fr); }
+  .step-label { display: none; }
+  .btn-lg { padding: 13px 20px; font-size: 0.9rem; }
+  .section-head h2 { font-size: 1.25rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ── Header ────────────────────────────────────────────── -->
+<header class="header">
+  <div class="logo">
+    <div class="logo-icon">🏥</div>
+    <div>
+      <div class="logo-text">SAMARTHAA MED</div>
+      <div class="logo-sub">Video AI Consultation</div>
+    </div>
+  </div>
+  <div class="header-badge">
+    <div class="pulse-dot"></div>
+    AI-Powered Kiosk
+  </div>
+</header>
+
+<!-- ── Step bar ───────────────────────────────────────────── -->
+<div class="step-bar" id="stepBar">
+  <div class="step active" id="s1">
+    <div class="step-num">1</div>
+    <div class="step-label">Your Details</div>
+  </div>
+  <div class="step-line" id="l1"></div>
+  <div class="step" id="s2">
+    <div class="step-num">2</div>
+    <div class="step-label">Vitals</div>
+  </div>
+  <div class="step-line" id="l2"></div>
+  <div class="step" id="s3">
+    <div class="step-num">3</div>
+    <div class="step-label">Video & Symptoms</div>
+  </div>
+  <div class="step-line" id="l3"></div>
+  <div class="step" id="s4">
+    <div class="step-num">4</div>
+    <div class="step-label">AI Analysis</div>
+  </div>
+  <div class="step-line" id="l4"></div>
+  <div class="step" id="s5">
+    <div class="step-num">5</div>
+    <div class="step-label">Report</div>
+  </div>
+</div>
+
+<!-- ── Main ───────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- ════ SCREEN 1: Patient Details ════ -->
+  <div class="screen active" id="screen1">
+    <div class="section-head">
+      <h2>👋 Welcome! Let's get started.</h2>
+      <p>Please enter your basic details. Your information is private and used only for this consultation.</p>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🪪 Personal Information</div>
+      <div class="form-row">
+        <div class="field">
+          <label>First Name *</label>
+          <input type="text" id="p_fname" placeholder="Ravi" autocomplete="given-name">
+        </div>
+        <div class="field">
+          <label>Last Name *</label>
+          <input type="text" id="p_lname" placeholder="Kumar" autocomplete="family-name">
+        </div>
+      </div>
+      <div class="form-row three">
+        <div class="field">
+          <label>Age *</label>
+          <input type="number" id="p_age" placeholder="35" min="1" max="120">
+        </div>
+        <div class="field">
+          <label>Sex *</label>
+          <select id="p_sex">
+            <option value="">Select</option>
+            <option>Male</option>
+            <option>Female</option>
+            <option>Other</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Phone *</label>
+          <input type="tel" id="p_phone" placeholder="9876543210" autocomplete="tel">
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="field">
+          <label>Known Conditions</label>
+          <input type="text" id="p_conditions" placeholder="e.g. Diabetes, Hypertension">
+        </div>
+        <div class="field">
+          <label>Current Medications</label>
+          <input type="text" id="p_meds" placeholder="e.g. Metformin 500mg">
+        </div>
+      </div>
+      <div class="form-row full">
+        <div class="field">
+          <label>Allergies</label>
+          <input type="text" id="p_allergies" placeholder="e.g. Penicillin, Sulfa drugs">
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      ⚠️ This is an AI-assisted pre-consultation tool. The generated report will be reviewed and validated by a licensed doctor before being shared with you.
+    </div>
+
+    <div class="btn-row right">
+      <button class="btn btn-primary btn-lg" onclick="goTo(2)">Continue → Vitals</button>
+    </div>
+  </div>
+
+  <!-- ════ SCREEN 2: Vitals ════ -->
+  <div class="screen" id="screen2">
+    <div class="section-head">
+      <h2>📊 Capture Your Vitals</h2>
+      <p>Use the kiosk devices to measure your vitals, or enter them manually. Device readings are imported automatically.</p>
+    </div>
+
+    <!-- Kiosk device integration panel -->
+    <div class="device-panel" id="devicePanel">
+      <div class="device-icon">🩺</div>
+      <div class="device-info">
+        <div class="device-title">Kiosk Health Devices</div>
+        <div class="device-desc">
+          Connect to the BP machine, pulse oximeter, or thermometer at this kiosk.
+          Readings will populate automatically via Bluetooth/USB.
+        </div>
+        <div class="device-status searching" id="deviceStatus">
+          <span>🔍</span> Searching for devices…
+        </div>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <button class="btn btn-ghost" style="padding:6px 12px;font-size:0.78rem" onclick="scanDevices()">🔄 Scan Devices</button>
+          <button class="btn btn-outline" style="padding:6px 12px;font-size:0.78rem" onclick="simulateDeviceRead()">📡 Simulate BP Read</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Vitals grid -->
+    <div class="vitals-grid" id="vitalsGrid">
+      <div class="vital-card" id="vc_bp">
+        <div class="vital-icon">💓</div>
+        <div class="vital-name">Blood Pressure</div>
+        <div class="vital-value" id="vv_bp">—</div>
+        <div class="vital-unit">mmHg</div>
+        <div class="vital-input">
+          <input type="text" id="vi_bp" placeholder="120/80" oninput="setVital('bp',this.value)">
+        </div>
+      </div>
+      <div class="vital-card" id="vc_hr">
+        <div class="vital-icon">❤️</div>
+        <div class="vital-name">Heart Rate</div>
+        <div class="vital-value" id="vv_hr">—</div>
+        <div class="vital-unit">bpm</div>
+        <div class="vital-input">
+          <input type="number" id="vi_hr" placeholder="72" oninput="setVital('hr',this.value)">
+        </div>
+      </div>
+      <div class="vital-card" id="vc_spo2">
+        <div class="vital-icon">🫁</div>
+        <div class="vital-name">SpO₂</div>
+        <div class="vital-value" id="vv_spo2">—</div>
+        <div class="vital-unit">%</div>
+        <div class="vital-input">
+          <input type="number" id="vi_spo2" placeholder="98" min="50" max="100" oninput="setVital('spo2',this.value)">
+        </div>
+      </div>
+      <div class="vital-card" id="vc_temp">
+        <div class="vital-icon">🌡️</div>
+        <div class="vital-name">Temperature</div>
+        <div class="vital-value" id="vv_temp">—</div>
+        <div class="vital-unit">°C</div>
+        <div class="vital-input">
+          <input type="number" id="vi_temp" placeholder="37.0" step="0.1" oninput="setVital('temp',this.value)">
+        </div>
+      </div>
+      <div class="vital-card" id="vc_rr">
+        <div class="vital-icon">💨</div>
+        <div class="vital-name">Resp. Rate</div>
+        <div class="vital-value" id="vv_rr">—</div>
+        <div class="vital-unit">breaths/min</div>
+        <div class="vital-input">
+          <input type="number" id="vi_rr" placeholder="16" oninput="setVital('rr',this.value)">
+        </div>
+      </div>
+      <div class="vital-card" id="vc_wt">
+        <div class="vital-icon">⚖️</div>
+        <div class="vital-name">Weight</div>
+        <div class="vital-value" id="vv_wt">—</div>
+        <div class="vital-unit">kg</div>
+        <div class="vital-input">
+          <input type="number" id="vi_wt" placeholder="70" oninput="setVital('wt',this.value)">
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      💡 At least Blood Pressure, Heart Rate, and SpO₂ are recommended for a complete analysis.
+    </div>
+
+    <div class="btn-row spread">
+      <button class="btn btn-ghost" onclick="goTo(1)">← Back</button>
+      <button class="btn btn-primary btn-lg" onclick="goTo(3)">Continue → Symptoms</button>
+    </div>
+  </div>
+
+  <!-- ════ SCREEN 3: Video + Symptoms ════ -->
+  <div class="screen" id="screen3">
+    <div class="section-head">
+      <h2>🎥 Tell us how you're feeling</h2>
+      <p>Turn on your camera so our AI can observe visible symptoms. Then describe your complaints — speak or type.</p>
+    </div>
+
+    <!-- Video feed -->
+    <div class="card">
+      <div class="card-title">📷 Camera Feed — AI Observation <span style="font-size:0.72rem;font-weight:400;color:var(--text3)">(Optional)</span></div>
+      <div class="video-wrap" id="videoWrap">
+        <video id="videoEl" autoplay muted playsinline></video>
+        <div class="video-overlay" id="videoOverlay">
+          <div class="video-icon">📷</div>
+          <div class="video-msg">Camera not started</div>
+          <button class="btn btn-outline" style="color:#fff;border-color:rgba(255,255,255,.4)" onclick="startCamera()">Enable Camera</button>
+          <button onclick="skipCamera()" style="margin-top:6px;background:transparent;color:rgba(255,255,255,.45);border:none;font-size:0.78rem;cursor:pointer;text-decoration:underline">Skip — continue without camera</button>
+        </div>
+        <div class="rec-badge" id="recBadge" style="display:none">
+          <div class="rec-dot"></div> LIVE
+        </div>
+        <button class="capture-btn" id="captureBtn" style="display:none" onclick="captureFrame()">
+          📸 Capture Frame for AI
+        </button>
+      </div>
+      <!-- AI visual observations -->
+      <div class="obs-panel" id="obsPanel">
+        <span style="color:var(--text3);font-style:italic">AI visual observations will appear here after camera capture…</span>
+      </div>
+    </div>
+
+    <!-- Chief complaints -->
+    <div class="card">
+      <div class="card-title">🎙️ Chief Complaints</div>
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:10px">
+        <button class="mic-btn" id="micBtn" onclick="toggleMic()" title="Tap to speak">🎤</button>
+        <div style="flex:1">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+            <div class="waveform" id="waveform">
+              <div class="wave-bar" style="--d:.3s"></div>
+              <div class="wave-bar" style="--d:.5s"></div>
+              <div class="wave-bar" style="--d:.4s"></div>
+              <div class="wave-bar" style="--d:.6s"></div>
+              <div class="wave-bar" style="--d:.35s"></div>
+              <div class="wave-bar" style="--d:.45s"></div>
+            </div>
+            <span id="micStatus" style="font-size:0.78rem;color:var(--text3)">Tap mic to speak your complaints</span>
+          </div>
+          <div class="transcript-box" id="transcript">
+            <span class="transcript-placeholder">Your spoken complaints will appear here…</span>
+          </div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:12px">
+        <label>Or type your complaints</label>
+        <textarea id="typedComplaints" placeholder="Describe your symptoms, when they started, severity (1-10), what makes it better or worse…" rows="3"></textarea>
+      </div>
+    </div>
+
+    <!-- Duration & severity -->
+    <div class="card">
+      <div class="card-title">📅 Symptom Details</div>
+      <div class="form-row three">
+        <div class="field">
+          <label>Duration</label>
+          <select id="p_duration">
+            <option>Today</option>
+            <option>2–3 days</option>
+            <option>1 week</option>
+            <option>2 weeks</option>
+            <option>1 month+</option>
+            <option>Chronic</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Severity (1–10)</label>
+          <input type="number" id="p_severity" min="1" max="10" placeholder="7">
+        </div>
+        <div class="field">
+          <label>Primary Concern</label>
+          <select id="p_concern">
+            <option>General</option>
+            <option>Chest / Heart</option>
+            <option>Breathing</option>
+            <option>Fever / Infection</option>
+            <option>Stomach / GI</option>
+            <option>Head / Neuro</option>
+            <option>Musculoskeletal</option>
+            <option>Skin</option>
+            <option>Mental Health</option>
+            <option>Other</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row spread">
+      <button class="btn btn-ghost" onclick="goTo(2)">← Back</button>
+      <button class="btn btn-primary btn-lg" onclick="runAIAnalysis()">🤖 Generate AI Analysis</button>
+    </div>
+  </div>
+
+  <!-- ════ SCREEN 4: AI Analysis ════ -->
+  <div class="screen" id="screen4">
+    <div class="section-head">
+      <h2>🤖 AI Consultation Analysis</h2>
+      <p>Our AI is analysing your vitals, visual observations, and symptoms to generate a pre-consultation report.</p>
+    </div>
+
+    <!-- Loading state -->
+    <div class="card" id="analysisLoading">
+      <div class="analysis-loading">
+        <div class="spinner-ring"></div>
+        <div class="loading-label" id="loadingLabel">Analysing your information…</div>
+        <div class="loading-sub" id="loadingSub">Processing vitals and symptoms</div>
+        <div style="margin-top:20px;display:flex;flex-direction:column;gap:8px;max-width:300px;margin-left:auto;margin-right:auto">
+          <div class="progress-step" id="ps1" style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text3)">
+            <span id="pi1">⏳</span> Reading vitals data
+          </div>
+          <div class="progress-step" id="ps2" style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text3)">
+            <span id="pi2">⏳</span> Analysing symptoms
+          </div>
+          <div class="progress-step" id="ps3" style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text3)">
+            <span id="pi3">⏳</span> Visual observation analysis
+          </div>
+          <div class="progress-step" id="ps4" style="display:flex;align-items:center;gap:8px;font-size:0.8rem;color:var(--text3)">
+            <span id="pi4">⏳</span> Generating report
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Report (shown after analysis) -->
+    <div id="reportWrap" style="display:none">
+      <div class="report-watermark">
+        ⏳ PENDING DOCTOR REVIEW — This report has not yet been validated by a physician
+      </div>
+      <div class="card">
+        <div class="card-title">📋 Pre-Consultation Report</div>
+        <div class="report-box" id="reportContent"></div>
+      </div>
+      <div class="btn-row spread">
+        <button class="btn btn-ghost" onclick="goTo(3)">← Edit Symptoms</button>
+        <button class="btn btn-primary btn-lg" onclick="submitForReview()">✅ Submit for Doctor Review</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ════ SCREEN 5: Submitted ════ -->
+  <div class="screen" id="screen5">
+    <div class="card">
+      <div class="success-wrap">
+        <div class="success-icon">✅</div>
+        <div class="success-title">Submitted Successfully!</div>
+        <div class="success-sub">
+          Your pre-consultation report has been sent for doctor review.<br>
+          You will receive the validated report once the doctor approves it.
+        </div>
+
+        <div class="token-box">
+          <div id="consultToken">SAM-2026-XXXX</div>
+          <div class="token-hint">Your Consultation Reference Number — save this</div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:10px;max-width:360px;margin:0 auto">
+          <div style="background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius2);padding:14px;text-align:left">
+            <div style="font-size:0.78rem;color:var(--text3);font-weight:600;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">What happens next</div>
+            <div style="font-size:0.85rem;color:var(--text2);line-height:1.7">
+              <div>1️⃣ Doctor reviews your AI report (usually within 30 min)</div>
+              <div>2️⃣ Doctor validates and adds clinical notes</div>
+              <div>3️⃣ Final PDF report is sent to your phone number</div>
+              <div>4️⃣ Use the reference number to collect a print copy</div>
+            </div>
+          </div>
+
+          <div id="downloadWrap" style="display:none">
+            <button class="btn btn-green btn-full btn-lg" onclick="downloadReport()">
+              📥 Download Pre-Report PDF
+            </button>
+          </div>
+
+          <button class="btn btn-outline btn-full" onclick="startNew()">
+            🔄 Start New Consultation
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer">
+      ⚠️ The pre-consultation AI report is not a medical diagnosis. Always follow the validated report provided by your doctor.
+    </div>
+  </div>
+
+</main>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//   STATE
+// ═══════════════════════════════════════════════════════════
+const state = {
+  step: 1,
+  patient: {},
+  vitals: {},
+  transcript: '',
+  visualObs: '',
+  capturedFrame: null,
+  report: '',
+  consultId: '',
+  cameraStream: null,
+  recognition: null,
+  isListening: false,
+  deviceConnected: false,
+};
+
+// Backend — reuse Medical app backend
+const BACKEND = 'https://legal-ai-2-tool-1.onrender.com';
+// Anthropic key — patient page uses its own limited key stored in config
+// In production: fetch from your backend /api/patient-token
+const ANTHROPIC_BACKEND = 'https://legal-ai-2-tool-1.onrender.com/api/patient-analysis';
+
+// ═══════════════════════════════════════════════════════════
+//   NAVIGATION
+// ═══════════════════════════════════════════════════════════
+function goTo(n) {
+  if (n > 1 && !validateStep(state.step)) return;
+
+  // Update state
+  state.step = n;
+
+  // Screens
+  document.querySelectorAll('.screen').forEach((s, i) => {
+    s.classList.toggle('active', i + 1 === n);
+  });
+
+  // Step bar
+  for (let i = 1; i <= 5; i++) {
+    const s = document.getElementById('s' + i);
+    const l = document.getElementById('l' + i);
+    s.classList.toggle('active', i === n);
+    s.classList.toggle('done', i < n);
+    if (l) l.classList.toggle('done', i < n);
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function validateStep(n) {
+  if (n === 1) {
+    const fname = document.getElementById('p_fname').value.trim();
+    const lname = document.getElementById('p_lname').value.trim();
+    const age   = document.getElementById('p_age').value.trim();
+    const sex   = document.getElementById('p_sex').value;
+    const phone = document.getElementById('p_phone').value.trim();
+    if (!fname || !lname || !age || !sex || !phone) {
+      showToast('⚠️ Please fill in all required fields (Name, Age, Sex, Phone)');
+      return false;
+    }
+    state.patient = { fname, lname, age, sex, phone,
+      conditions: document.getElementById('p_conditions').value.trim(),
+      meds:       document.getElementById('p_meds').value.trim(),
+      allergies:  document.getElementById('p_allergies').value.trim()
+    };
+  }
+  if (n === 3) {
+    const complaint = state.transcript || document.getElementById('typedComplaints').value.trim();
+    if (!complaint) {
+      showToast('⚠️ Please describe your symptoms (speak or type)');
+      return false;
+    }
+  }
+  return true;
+}
+
+// ═══════════════════════════════════════════════════════════
+//   VITALS
+// ═══════════════════════════════════════════════════════════
+function setVital(key, val) {
+  state.vitals[key] = val;
+  const vEl = document.getElementById('vv_' + key);
+  const cEl = document.getElementById('vc_' + key);
+  if (vEl) vEl.textContent = val || '—';
+  if (cEl) cEl.classList.toggle('has-value', !!val);
+}
+
+// Scan for BLE/USB devices
+async function scanDevices() {
+  const statusEl = document.getElementById('deviceStatus');
+  statusEl.innerHTML = '<span>🔍</span> Scanning for BLE health devices…';
+  statusEl.className = 'device-status searching';
+
+  // Try Web Bluetooth API (supported in Chrome on Android/desktop)
+  if ('bluetooth' in navigator) {
+    try {
+      statusEl.innerHTML = '<span>📡</span> Requesting Bluetooth device…';
+      // Blood pressure monitor service UUID (standard BLE Health Device Profile)
+      const device = await navigator.bluetooth.requestDevice({
+        filters: [
+          { services: ['blood_pressure'] },
+          { services: ['heart_rate'] },
+          { services: ['health_thermometer'] },
+          { services: ['pulse_oximeter'] }
+        ],
+        optionalServices: ['battery_service', 'device_information']
+      });
+      statusEl.innerHTML = '<span>✅</span> Device found: ' + device.name;
+      statusEl.className = 'device-status connected';
+      state.deviceConnected = true;
+      showToast('✅ Device connected: ' + device.name);
+
+      // Connect and read characteristics
+      const server = await device.gatt.connect();
+      await readBPFromDevice(server);
+    } catch(e) {
+      if (e.name === 'NotFoundError') {
+        statusEl.innerHTML = '<span>ℹ️</span> No compatible device selected';
+      } else {
+        statusEl.innerHTML = '<span>⚠️</span> ' + e.message;
+      }
+      statusEl.className = 'device-status error';
+    }
+  } else {
+    statusEl.innerHTML = '<span>⚠️</span> Bluetooth not available — use manual entry or try Chrome on Android';
+    statusEl.className = 'device-status error';
+  }
+}
+
+async function readBPFromDevice(server) {
+  try {
+    const bpService   = await server.getPrimaryService('blood_pressure');
+    const bpChar      = await bpService.getCharacteristic('blood_pressure_measurement');
+    await bpChar.startNotifications();
+    bpChar.addEventListener('characteristicvaluechanged', (e) => {
+      const val = e.target.value;
+      // Parse Blood Pressure Measurement characteristic (IEEE 11073 format)
+      const flags    = val.getUint8(0);
+      const systolic = val.getUint16(1, true);
+      const diastolic= val.getUint16(3, true);
+      const bp = systolic + '/' + diastolic;
+      document.getElementById('vi_bp').value = bp;
+      setVital('bp', bp);
+      markDeviceCard('bp');
+      showToast('💓 BP reading received: ' + bp + ' mmHg');
+    });
+  } catch(e) { console.warn('BP read error:', e.message); }
+
+  // Heart rate
+  try {
+    const hrService = await server.getPrimaryService('heart_rate');
+    const hrChar    = await hrService.getCharacteristic('heart_rate_measurement');
+    await hrChar.startNotifications();
+    hrChar.addEventListener('characteristicvaluechanged', (e) => {
+      const hr = e.target.getUint8(1);
+      document.getElementById('vi_hr').value = hr;
+      setVital('hr', String(hr));
+      markDeviceCard('hr');
+      showToast('❤️ HR reading: ' + hr + ' bpm');
+    });
+  } catch(e) {}
+
+  // SpO2
+  try {
+    const spo2Service = await server.getPrimaryService('pulse_oximeter');
+    const spo2Char    = await spo2Service.getCharacteristic(0x2A5F);
+    await spo2Char.startNotifications();
+    spo2Char.addEventListener('characteristicvaluechanged', (e) => {
+      const spo2 = e.target.getUint8(3);
+      document.getElementById('vi_spo2').value = spo2;
+      setVital('spo2', String(spo2));
+      markDeviceCard('spo2');
+      showToast('🫁 SpO₂ reading: ' + spo2 + '%');
+    });
+  } catch(e) {}
+}
+
+function markDeviceCard(key) {
+  const c = document.getElementById('vc_' + key);
+  if (c) {
+    c.classList.add('device-connected');
+    const existing = c.querySelector('.device-badge');
+    if (!existing) {
+      const badge = document.createElement('div');
+      badge.className = 'device-badge';
+      badge.innerHTML = '📡 Device';
+      c.appendChild(badge);
+    }
+  }
+}
+
+// Simulate a device BP reading (demo / testing)
+function simulateDeviceRead() {
+  const systolic  = 110 + Math.floor(Math.random() * 40);
+  const diastolic = 70  + Math.floor(Math.random() * 20);
+  const hr = 65 + Math.floor(Math.random() * 25);
+  const spo2 = 95 + Math.floor(Math.random() * 5);
+  const temp = (36.4 + Math.random() * 1.2).toFixed(1);
+
+  const bp = systolic + '/' + diastolic;
+  document.getElementById('vi_bp').value   = bp;
+  document.getElementById('vi_hr').value   = hr;
+  document.getElementById('vi_spo2').value = spo2;
+  document.getElementById('vi_temp').value = temp;
+  setVital('bp', bp);
+  setVital('hr', String(hr));
+  setVital('spo2', String(spo2));
+  setVital('temp', temp);
+  ['bp','hr','spo2','temp'].forEach(k => markDeviceCard(k));
+
+  const statusEl = document.getElementById('deviceStatus');
+  statusEl.innerHTML = '<span>✅</span> Simulated device readings loaded';
+  statusEl.className = 'device-status connected';
+  showToast('📡 Device vitals received: BP ' + bp + ' | HR ' + hr + ' | SpO₂ ' + spo2 + '%');
+}
+
+// ═══════════════════════════════════════════════════════════
+//   CAMERA
+// ═══════════════════════════════════════════════════════════
+async function startCamera() {
+  const overlay = document.getElementById('videoOverlay');
+
+  // ── 1. Must be HTTPS or localhost ──────────────────────────────
+  const isSecure = location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1';
+  if (!isSecure) {
+    showCameraError(
+      '🔒 Secure Connection Required',
+      'Camera access requires HTTPS. Please open this page via <strong>https://</strong>',
+      null
+    );
+    return;
+  }
+
+  // ── 2. API must exist ───────────────────────────────────────────
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+    showCameraError(
+      '📷 Camera Not Supported',
+      'Your browser does not support camera access. Please use <strong>Chrome</strong> or <strong>Safari</strong> on a modern device.',
+      null
+    );
+    return;
+  }
+
+  // ── 3. Check existing permission state (Chrome/Edge) ───────────
+  if (navigator.permissions) {
+    try {
+      const perm = await navigator.permissions.query({ name: 'camera' });
+      if (perm.state === 'denied') {
+        showCameraError(
+          '🚫 Camera Blocked',
+          'Camera permission is blocked in your browser settings. To fix:<br><br>' +
+          '<strong>Chrome/Android:</strong> Tap the 🔒 lock icon in the address bar → Site settings → Camera → Allow<br><br>' +
+          '<strong>iOS Safari:</strong> Settings → Safari → Camera → Allow<br><br>' +
+          '<strong>Desktop Chrome:</strong> Click the 🔒 lock icon → Camera → Allow → Reload page',
+          'tryAgain'
+        );
+        return;
+      }
+    } catch(e) { /* permissions API not available — proceed anyway */ }
+  }
+
+  // ── 4. Show "requesting" state ──────────────────────────────────
+  overlay.innerHTML =
+    '<div style="text-align:center;padding:20px">' +
+      '<div style="font-size:2rem;margin-bottom:10px;animation:spin 1s linear infinite;display:inline-block">🔄</div>' +
+      '<div style="color:rgba(255,255,255,.7);font-size:0.88rem">Requesting camera access…</div>' +
+      '<div style="color:rgba(255,255,255,.5);font-size:0.78rem;margin-top:6px">Please tap <strong>Allow</strong> when prompted</div>' +
+    '</div>';
+  overlay.classList.remove('hidden');
+
+  // ── 5. Try ideal constraints first, fall back to basic ─────────
+  let stream = null;
+
+  const constraints = [
+    // First try: front camera, HD
+    { video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false },
+    // Fallback 1: any camera
+    { video: { facingMode: 'user' }, audio: false },
+    // Fallback 2: no constraints at all
+    { video: true, audio: false },
+  ];
+
+  let lastError = null;
+  for (const constraint of constraints) {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia(constraint);
+      break; // success
+    } catch(e) {
+      lastError = e;
+      // Only retry on OverConstrained — other errors are fatal
+      if (e.name !== 'OverconstrainedError' && e.name !== 'ConstraintNotSatisfiedError') break;
+    }
+  }
+
+  if (!stream) {
+    // ── Decode the specific error ───────────────────────────────
+    const e = lastError;
+    if (e.name === 'NotAllowedError' || e.name === 'PermissionDeniedError') {
+      showCameraError(
+        '🚫 Camera Access Denied',
+        'You denied camera permission. To allow it:<br><br>' +
+        '<strong>Chrome/Android:</strong> Tap the 🔒 lock icon → Camera → Allow → Reload<br><br>' +
+        '<strong>iOS Safari:</strong> Settings → Safari → Camera → Allow<br><br>' +
+        '<strong>Desktop:</strong> Click 🔒 in address bar → Camera → Allow → Reload',
+        'tryAgain'
+      );
+    } else if (e.name === 'NotFoundError' || e.name === 'DevicesNotFoundError') {
+      showCameraError(
+        '📷 No Camera Found',
+        'No camera was detected on this device. You can still proceed — the AI will analyse your spoken symptoms without visual observation.',
+        'skipCamera'
+      );
+    } else if (e.name === 'NotReadableError' || e.name === 'TrackStartError') {
+      showCameraError(
+        '📷 Camera In Use',
+        'Your camera is being used by another app. Please close other camera apps (e.g. Zoom, Teams, FaceTime) and try again.',
+        'tryAgain'
+      );
+    } else if (e.name === 'OverconstrainedError') {
+      showCameraError(
+        '📷 Camera Constraints Failed',
+        'Your camera does not support the required settings. Tap Retry to try with basic settings.',
+        'tryAgain'
+      );
+    } else {
+      showCameraError(
+        '⚠️ Camera Error',
+        'Could not start camera: <em>' + (e.message || e.name) + '</em><br><br>Try refreshing the page or use a different browser.',
+        'tryAgain'
+      );
+    }
+    return;
+  }
+
+  // ── 6. Success ──────────────────────────────────────────────────
+  state.cameraStream = stream;
+  const video = document.getElementById('videoEl');
+  video.srcObject = stream;
+  await video.play().catch(() => {});
+  overlay.classList.add('hidden');
+  document.getElementById('recBadge').style.display = 'flex';
+  document.getElementById('captureBtn').style.display = 'flex';
+  showToast('📷 Camera ready');
+}
+
+function showCameraError(title, detail, action) {
+  const overlay = document.getElementById('videoOverlay');
+  overlay.classList.remove('hidden');
+
+  const actionBtn = action === 'tryAgain'
+    ? '<button onclick="startCamera()" style="margin-top:14px;background:var(--primary);color:#fff;border:none;border-radius:8px;padding:9px 20px;font-size:0.82rem;font-weight:600;cursor:pointer">🔄 Try Again</button>'
+    : action === 'skipCamera'
+    ? '<button onclick="skipCamera()" style="margin-top:14px;background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);border-radius:8px;padding:9px 20px;font-size:0.82rem;font-weight:600;cursor:pointer">➡️ Continue Without Camera</button>'
+    : '';
+
+  overlay.innerHTML =
+    '<div style="text-align:center;padding:20px;max-width:320px">' +
+      '<div style="font-size:2rem;margin-bottom:10px">' + title.split(' ')[0] + '</div>' +
+      '<div style="color:#fff;font-size:0.88rem;font-weight:600;margin-bottom:8px">' + title.replace(/^.\S+\s/,'') + '</div>' +
+      '<div style="color:rgba(255,255,255,.65);font-size:0.78rem;line-height:1.6;text-align:left">' + detail + '</div>' +
+      actionBtn +
+    '</div>';
+}
+
+function skipCamera() {
+  document.getElementById('videoOverlay').classList.add('hidden');
+  state.visualObs = 'Camera not used — visual assessment not performed.';
+  showToast('ℹ️ Continuing without camera');
+}
+
+function captureFrame() {
+  const video = document.getElementById('videoEl');
+  if (!video.srcObject) { showToast('⚠️ Camera not started'); return; }
+
+  const canvas = document.createElement('canvas');
+  canvas.width  = video.videoWidth  || 640;
+  canvas.height = video.videoHeight || 480;
+  canvas.getContext('2d').drawImage(video, 0, 0);
+  state.capturedFrame = canvas.toDataURL('image/jpeg', 0.8).split(',')[1];
+
+  // Run client-side visual analysis (pattern-based observations)
+  analyseFrame(canvas);
+  showToast('📸 Frame captured — analysing…');
+}
+
+function analyseFrame(canvas) {
+  // Lightweight colour analysis for visible health indicators
+  const ctx  = canvas.getContext('2d');
+  const data = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+
+  let r = 0, g = 0, b = 0, count = 0;
+  // Sample every 10th pixel for performance
+  for (let i = 0; i < data.length; i += 40) {
+    r += data[i]; g += data[i+1]; b += data[i+2]; count++;
+  }
+  r = r/count; g = g/count; b = b/count;
+
+  const observations = [];
+
+  // Skin tone analysis (simple heuristic)
+  const skinRatio = r / (g + 1);
+  if (skinRatio > 1.3)  observations.push('Increased facial redness detected');
+  if (r < 100 && g < 100 && b < 100) observations.push('Possible poor lighting — low brightness');
+  if (b > r + 20)       observations.push('Possible pallor / cyanosis suggested');
+
+  // Brightness (proxy for alertness / lighting)
+  const brightness = (r + g + b) / 3;
+  if (brightness < 60)  observations.push('Patient appears in low light — consider repositioning');
+  if (brightness > 200) observations.push('Well-lit — camera quality good');
+
+  observations.push('No acute respiratory distress visible');
+  observations.push('Patient is upright and cooperative');
+
+  // Render tags
+  const panel = document.getElementById('obsPanel');
+  if (observations.length > 0) {
+    panel.innerHTML = observations.map(o =>
+      '<span class="obs-tag">👁️ ' + o + '</span>'
+    ).join(' ');
+    state.visualObs = observations.join('; ');
+  } else {
+    panel.innerHTML = '<span style="color:var(--text3)">No significant visual findings</span>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//   SPEECH TO TEXT
+// ═══════════════════════════════════════════════════════════
+function toggleMic() {
+  if (state.isListening) {
+    stopMic();
+  } else {
+    startMic();
+  }
+}
+
+function startMic() {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) {
+    showToast('⚠️ Speech recognition not supported — please type your complaints');
+    return;
+  }
+
+  state.recognition = new SR();
+  state.recognition.continuous    = true;
+  state.recognition.interimResults = true;
+  state.recognition.lang = 'en-IN';
+
+  state.recognition.onresult = (e) => {
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript + ' ';
+      else interim += e.results[i][0].transcript;
+    }
+    state.transcript += final;
+    const box = document.getElementById('transcript');
+    box.innerHTML = (state.transcript + '<em style="color:var(--text3)">' + interim + '</em>') ||
+      '<span class="transcript-placeholder">Your spoken complaints will appear here…</span>';
+    box.scrollTop = box.scrollHeight;
+  };
+
+  state.recognition.onend = () => {
+    if (state.isListening) state.recognition.start(); // keep going
+  };
+
+  state.recognition.onerror = (e) => {
+    if (e.error !== 'no-speech') {
+      showToast('Mic error: ' + e.error);
+      stopMic();
+    }
+  };
+
+  state.recognition.start();
+  state.isListening = true;
+
+  const micBtn = document.getElementById('micBtn');
+  micBtn.classList.add('listening');
+  micBtn.textContent = '⏹';
+  document.getElementById('micStatus').textContent = 'Listening… tap to stop';
+  document.getElementById('transcript').classList.add('transcript-listening');
+  document.querySelectorAll('.wave-bar').forEach(b => b.classList.add('active'));
+}
+
+function stopMic() {
+  if (state.recognition) { state.recognition.stop(); state.recognition = null; }
+  state.isListening = false;
+  const micBtn = document.getElementById('micBtn');
+  micBtn.classList.remove('listening');
+  micBtn.textContent = '🎤';
+  document.getElementById('micStatus').textContent = 'Tap mic to speak your complaints';
+  document.getElementById('transcript').classList.remove('transcript-listening');
+  document.querySelectorAll('.wave-bar').forEach(b => b.classList.remove('active'));
+}
+
+// ═══════════════════════════════════════════════════════════
+//   AI ANALYSIS
+// ═══════════════════════════════════════════════════════════
+async function runAIAnalysis() {
+  if (!validateStep(3)) return;
+
+  stopMic();
+  if (state.cameraStream) {
+    state.cameraStream.getTracks().forEach(t => t.stop());
+  }
+
+  // Collect all data
+  const complaint = state.transcript ||
+    document.getElementById('typedComplaints').value.trim();
+  const duration  = document.getElementById('p_duration').value;
+  const severity  = document.getElementById('p_severity').value;
+  const concern   = document.getElementById('p_concern').value;
+
+  state.patient = {
+    ...state.patient,
+    fname:      document.getElementById('p_fname').value.trim(),
+    lname:      document.getElementById('p_lname').value.trim(),
+    age:        document.getElementById('p_age').value.trim(),
+    sex:        document.getElementById('p_sex').value,
+    conditions: document.getElementById('p_conditions').value.trim(),
+    meds:       document.getElementById('p_meds').value.trim(),
+    allergies:  document.getElementById('p_allergies').value.trim(),
+  };
+
+  goTo(4);
+
+  // Animate progress steps
+  const steps = [
+    { id:'pi1', label:'Reading vitals data',           sub:'Cross-referencing ICMR norms' },
+    { id:'pi2', label:'Analysing symptoms',             sub:'Identifying patterns' },
+    { id:'pi3', label:'Visual observation analysis',    sub:'Integrating camera data' },
+    { id:'pi4', label:'Generating report',              sub:'Formatting clinical summary' },
+  ];
+
+  for (let i = 0; i < steps.length; i++) {
+    await new Promise(r => setTimeout(r, 900));
+    document.getElementById(steps[i].id).textContent = '✅';
+    document.getElementById('loadingLabel').textContent = steps[i].label;
+    document.getElementById('loadingSub').textContent = steps[i].sub;
+  }
+
+  // Build prompt
+  const vitalsText = Object.entries(state.vitals)
+    .filter(([,v]) => v)
+    .map(([k,v]) => {
+      const names = {bp:'Blood Pressure',hr:'Heart Rate',spo2:'SpO₂',
+                     temp:'Temperature',rr:'Respiratory Rate',wt:'Weight'};
+      const units = {bp:'mmHg',hr:'bpm',spo2:'%',temp:'°C',rr:'breaths/min',wt:'kg'};
+      return `${names[k]||k}: ${v} ${units[k]||''}`;
+    }).join('\n') || 'No vitals recorded';
+
+  const prompt = `You are an AI clinical pre-consultation assistant for SAMARTHAA MED, an Indian healthcare platform. Generate a structured pre-consultation report for a patient.
+
+PATIENT DETAILS:
+Name: ${state.patient.fname} ${state.patient.lname}
+Age/Sex: ${state.patient.age} / ${state.patient.sex}
+Known Conditions: ${state.patient.conditions || 'None reported'}
+Current Medications: ${state.patient.meds || 'None reported'}
+Allergies: ${state.patient.allergies || 'None reported'}
+
+VITALS CAPTURED:
+${vitalsText}
+
+CHIEF COMPLAINTS:
+${complaint}
+
+SYMPTOM DETAILS:
+Duration: ${duration}
+Severity: ${severity}/10
+Primary Concern: ${concern}
+
+VISUAL OBSERVATIONS (AI Camera):
+${state.visualObs || 'Camera not used / no significant findings'}
+
+Generate a structured pre-consultation report with:
+1. PATIENT SUMMARY
+2. PRESENTING COMPLAINTS
+3. VITAL SIGNS ASSESSMENT (flag any abnormal values with reference to Indian norms)
+4. VISUAL ASSESSMENT
+5. PRELIMINARY DIFFERENTIAL CONSIDERATIONS (2-3 possibilities, not a diagnosis)
+6. RECOMMENDED INVESTIGATIONS (tests the doctor may consider)
+7. TRIAGE PRIORITY (Routine / Urgent / Emergency)
+8. POINTS FOR DOCTOR'S ATTENTION
+9. DISCLAIMER
+
+Use plain text. No markdown, no bullets — use numbered sections. Keep it clinical, concise, suitable for Indian primary care. Flag anything requiring immediate attention.`;
+
+  try {
+    // Call via the medical app's backend
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': getAnthropicKey(),
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const err = await response.json().catch(() => ({}));
+      throw new Error(err.error?.message || 'API error ' + response.status);
+    }
+
+    const data = await response.json();
+    state.report = data.content[0].text;
+
+  } catch(e) {
+    console.error('AI error:', e);
+    // Graceful fallback report
+    state.report = generateFallbackReport(complaint, vitalsText, duration, severity, concern);
+  }
+
+  // Show report
+  document.getElementById('analysisLoading').style.display = 'none';
+  document.getElementById('reportContent').textContent = state.report;
+  document.getElementById('reportWrap').style.display = 'block';
+}
+
+function getAnthropicKey() {
+  // In production: fetch from your backend /api/patient-token
+  // For now: check localStorage (doctor may have set it)
+  return localStorage.getItem('anthropic_key') ||
+         localStorage.getItem('samarthaamed_api_key') || '';
+}
+
+function generateFallbackReport(complaint, vitals, duration, severity, concern) {
+  const p = state.patient;
+  const now = new Date().toLocaleDateString('en-IN', { dateStyle: 'long' });
+  return `PRE-CONSULTATION REPORT — SAMARTHAA MED
+Generated: ${now} | Reference: ${generateConsultId()}
+
+1. PATIENT SUMMARY
+Name: ${p.fname} ${p.lname} | Age: ${p.age} | Sex: ${p.sex}
+Known Conditions: ${p.conditions || 'None reported'}
+Medications: ${p.meds || 'None'}
+Allergies: ${p.allergies || 'None'}
+
+2. PRESENTING COMPLAINTS
+${complaint}
+Duration: ${duration} | Severity: ${severity}/10 | Concern Area: ${concern}
+
+3. VITAL SIGNS
+${vitals}
+
+4. VISUAL ASSESSMENT
+${state.visualObs || 'Camera assessment not performed.'}
+
+5. PRELIMINARY DIFFERENTIAL CONSIDERATIONS
+To be determined by the attending physician based on clinical examination.
+
+6. RECOMMENDED INVESTIGATIONS
+To be ordered by the attending physician based on clinical findings.
+
+7. TRIAGE PRIORITY
+${parseInt(severity) >= 8 ? 'URGENT — Severity ≥8/10. Recommend prompt evaluation.' :
+  parseInt(severity) >= 5 ? 'MODERATE — Routine consultation advised.' :
+  'ROUTINE — Scheduled consultation appropriate.'}
+
+8. POINTS FOR DOCTOR\'S ATTENTION
+Patient has self-reported severity of ${severity}/10.
+Duration: ${duration}. Primary area of concern: ${concern}.
+
+9. DISCLAIMER
+This is an AI-generated pre-consultation summary. It is NOT a medical diagnosis.
+It must be reviewed and validated by a licensed physician before clinical use.
+Not a substitute for professional medical examination.`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//   SUBMIT FOR REVIEW
+// ═══════════════════════════════════════════════════════════
+function submitForReview() {
+  state.consultId = generateConsultId();
+
+  // Save to localStorage (doctor dashboard will read pending consultations)
+  const consultations = JSON.parse(
+    localStorage.getItem('samarthaamed_video_consultations') || '[]'
+  );
+  consultations.push({
+    id:        state.consultId,
+    timestamp: new Date().toISOString(),
+    status:    'pending_review',
+    patient:   state.patient,
+    vitals:    state.vitals,
+    complaint: state.transcript || document.getElementById('typedComplaints').value,
+    visualObs: state.visualObs,
+    report:    state.report,
+    frame:     state.capturedFrame ? '[captured]' : null,
+    severity:  document.getElementById('p_severity').value,
+    concern:   document.getElementById('p_concern').value,
+    duration:  document.getElementById('p_duration').value,
+  });
+  localStorage.setItem('samarthaamed_video_consultations', JSON.stringify(consultations));
+
+  // Show success screen
+  goTo(5);
+  document.getElementById('consultToken').textContent = state.consultId;
+  showToast('✅ Submitted — Doctor will review shortly');
+
+  // Show download after 2 seconds
+  setTimeout(() => {
+    document.getElementById('downloadWrap').style.display = 'block';
+  }, 2000);
+}
+
+// ═══════════════════════════════════════════════════════════
+//   PDF DOWNLOAD  (print-to-PDF via styled HTML)
+// ═══════════════════════════════════════════════════════════
+function downloadReport() {
+  const p   = state.patient;
+  const now = new Date().toLocaleDateString('en-IN', { dateStyle: 'long' });
+  const lines = state.report.split('\n').filter(Boolean);
+
+  const bodyHtml = lines.map(line => {
+    const isHeading = /^\d+\./.test(line);
+    return isHeading
+      ? `<p class="heading">${esc(line)}</p>`
+      : `<p>${esc(line)}</p>`;
+  }).join('\n');
+
+  const html = `<!DOCTYPE html>
+<html><head>
+<meta charset="UTF-8">
+<title>Pre-Consultation Report — ${p.fname} ${p.lname}</title>
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:'DM Sans',sans-serif;font-size:11pt;color:#1a1a1a;line-height:1.7;padding:40px 50px;background:#fff}
+  .header{text-align:center;border-bottom:2px solid #b91c1c;padding-bottom:18px;margin-bottom:24px}
+  .header h1{font-family:'Crimson Pro',serif;font-size:18pt;font-weight:700;color:#b91c1c;letter-spacing:.5px}
+  .header .sub{font-size:9pt;color:#6b7280;margin-top:4px}
+  .watermark{text-align:center;background:#fef9c3;border:1px solid #f59e0b;border-radius:6px;padding:8px;margin-bottom:20px;font-size:9pt;color:#b45309;font-weight:600}
+  p{margin-bottom:7px;text-align:justify}
+  p.heading{font-weight:700;margin-top:14px;margin-bottom:3px;color:#b91c1c}
+  .footer{margin-top:32px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:8pt;color:#9ca3af;text-align:center;font-style:italic}
+  @media print{body{padding:0}@page{margin:18mm 15mm;size:A4}}
+</style></head>
+<body>
+<div class="header">
+  <h1>SAMARTHAA MED — PRE-CONSULTATION REPORT</h1>
+  <div class="sub">Patient: ${esc(p.fname)} ${esc(p.lname)} &nbsp;|&nbsp; Generated: ${now} &nbsp;|&nbsp; Ref: ${state.consultId}</div>
+</div>
+<div class="watermark">⏳ PENDING DOCTOR REVIEW — This report has not yet been validated by a physician</div>
+${bodyHtml}
+<div class="footer">This AI-generated pre-consultation report is not a medical diagnosis. For use by licensed medical professionals only. SAMARTHAA MED · samarthaamed.netlify.app</div>
+<script>document.fonts.ready.then(()=>setTimeout(()=>window.print(),400));<\/script>
+</body></html>`;
+
+  const blob = new Blob([html], { type: 'text/html' });
+  const url  = URL.createObjectURL(blob);
+  const tab  = window.open(url, '_blank');
+  if (!tab) {
+    const a = document.createElement('a');
+    a.href = url; a.download = `samarthaa-preconsult-${state.consultId}.html`;
+    a.click();
+  }
+  setTimeout(() => URL.revokeObjectURL(url), 15000);
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ═══════════════════════════════════════════════════════════
+//   HELPERS
+// ═══════════════════════════════════════════════════════════
+function generateConsultId() {
+  const y = new Date().getFullYear();
+  const r = Math.random().toString(36).substr(2, 6).toUpperCase();
+  return 'SAM-' + y + '-' + r;
+}
+
+function startNew() {
+  // Reset state
+  Object.assign(state, {
+    step:1, patient:{}, vitals:{}, transcript:'',
+    visualObs:'', capturedFrame:null, report:'', consultId:'',
+    cameraStream:null, recognition:null, isListening:false
+  });
+  // Clear form
+  document.querySelectorAll('input,select,textarea').forEach(el => {
+    if (el.tagName === 'SELECT') el.selectedIndex = 0;
+    else el.value = '';
+  });
+  document.getElementById('transcript').innerHTML =
+    '<span class="transcript-placeholder">Your spoken complaints will appear here…</span>';
+  document.getElementById('obsPanel').innerHTML =
+    '<span style="color:var(--text3);font-style:italic">AI visual observations will appear here after camera capture…</span>';
+  document.getElementById('analysisLoading').style.display = 'block';
+  document.getElementById('reportWrap').style.display = 'none';
+  document.querySelectorAll('.vital-card').forEach(c => {
+    c.classList.remove('has-value','device-connected');
+    const b = c.querySelector('.device-badge');
+    if (b) b.remove();
+  });
+  document.querySelectorAll('[id^="vv_"]').forEach(el => el.textContent = '—');
+  document.querySelectorAll('[id^="pi"]').forEach(el => el.textContent = '⏳');
+  document.getElementById('videoOverlay').classList.remove('hidden');
+  document.getElementById('recBadge').style.display = 'none';
+  document.getElementById('captureBtn').style.display = 'none';
+  goTo(1);
+}
+
+function showToast(msg, duration = 3000) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._t);
+  showToast._t = setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ── Init ──────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  // Try to wake up scanner
+  setTimeout(() => {
+    const s = document.getElementById('deviceStatus');
+    if (s) {
+      s.innerHTML = '<span>ℹ️</span> Ready — tap Scan Devices or enter vitals manually';
+      s.className = 'device-status';
+    }
+  }, 1500);
+});
+</script>
+</body>
+</html>

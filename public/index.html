@@ -307,7 +307,7 @@
   .view { display: none; animation: fadeIn .25s ease; }
   .view.active { display: block; }
   .view.active.flex-view { display: flex; }
-  #view-consult { flex-direction: column; height: calc(100vh - 58px); overflow: hidden; }
+  #view-consult.active { flex-direction: column; height: calc(100vh - 58px); overflow: hidden; }
   #view-radiology { overflow-y: auto; max-height: 100%; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
@@ -1646,8 +1646,48 @@
       gap: 10px !important;
     }
 
+    /* Register Patient button — always full-width and visible on mobile */
+    #view-patients .btn-primary[onclick="openModal()"] {
+      width: 100% !important;
+      justify-content: center !important;
+      padding: 12px 16px !important;
+      font-size: 1rem !important;
+      border-radius: 10px !important;
+      margin-top: 4px !important;
+    }
+
+    /* Patients header: stack title above button */
+    #view-patients .patients-view > div:first-child {
+      flex-direction: column !important;
+      align-items: stretch !important;
+      padding: 14px 14px 10px !important;
+      background: var(--navy2) !important;
+      border-bottom: 1px solid var(--border) !important;
+      margin-bottom: 0 !important;
+    }
+
+    /* Filter row: horizontal scroll so Register button isn't squished */
+    #view-patients .filter-row {
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+      flex-wrap: nowrap !important;
+      padding-bottom: 4px !important;
+    }
+
+    /* Search bar: full width on mobile */
+    #view-patients .search-bar {
+      width: 100% !important;
+    }
+
+    /* Table header: stack filter + search vertically */
+    #view-patients .table-header {
+      flex-direction: column !important;
+      gap: 8px !important;
+      padding: 10px 14px !important;
+    }
+
     /* AI Consult — override inline style="height:calc(100vh-58px);overflow:hidden" */
-    #view-consult {
+    #view-consult.active {
       height: auto !important;
       min-height: 0 !important;
       overflow: visible !important;
@@ -1655,18 +1695,18 @@
       display: flex !important;
     }
     /* Patient switcher: compact, horizontal scroll */
-    #view-consult .patient-switcher {
+    #view-consult.active .patient-switcher {
       flex-shrink: 0 !important;
     }
     /* Patient info panel: natural height, scrollable if needed */
-    #view-consult .consult-left  {
+    #view-consult.active .consult-left  {
       height: auto !important;
       max-height: none !important;
       overflow-y: visible !important;
       flex-shrink: 0 !important;
     }
     /* Chat panel: takes remaining space, shows input at bottom */
-    #view-consult .consult-center {
+    #view-consult.active .consult-center {
       display: flex !important;
       flex-direction: column !important;
       min-height: 0 !important;
@@ -1675,20 +1715,20 @@
       flex: 1 !important;
     }
     /* Chat messages: scrollable */
-    #view-consult .chat-messages {
+    #view-consult.active .chat-messages {
       flex: 1 !important;
       overflow-y: auto !important;
       min-height: 200px !important;
       max-height: 40vh !important;
     }
     /* Chat input: always visible at bottom, not clipped */
-    #view-consult .chat-input-area {
+    #view-consult.active .chat-input-area {
       flex-shrink: 0 !important;
       position: relative !important;
       z-index: 2 !important;
     }
     /* Chat tools row: wrap on small screens */
-    #view-consult .chat-tools {
+    #view-consult.active .chat-tools {
       flex-wrap: wrap !important;
       gap: 6px !important;
     }
@@ -1938,6 +1978,10 @@
       </div>
       <div class="nav-section">
         <div class="nav-label">Platform</div>
+        <div class="nav-item" onclick="showView('videoconsult')">
+          <span class="nav-icon">🎥</span> Video AI Consult
+          <span class="nav-badge" id="videoConsultBadge" style="display:none">0</span>
+        </div>
         <div class="nav-item" onclick="showView('analytics')">
           <span class="nav-icon">📈</span> Analytics
         </div>
@@ -3675,6 +3719,90 @@
         </div>
       </div>
 
+      <!-- ── VIDEO AI CONSULTATION REVIEW (Doctor Side) ── -->
+      <div class="view" id="view-videoconsult">
+        <div class="patients-view" style="padding:22px">
+
+          <!-- Header -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:12px">
+            <div>
+              <div class="section-title">🎥 Video AI Consultations</div>
+              <div class="section-sub" id="vcSubTitle">Loading pending reviews…</div>
+            </div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap">
+              <button class="btn btn-ghost" onclick="refreshVideoConsults()" style="font-size:0.82rem;padding:8px 14px">🔄 Refresh</button>
+              <a href="patient.html" target="_blank" class="btn btn-primary" style="font-size:0.82rem;padding:8px 14px">🎥 Open Patient Kiosk</a>
+            </div>
+          </div>
+
+          <!-- Stats row -->
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px" id="vcStats">
+            <div class="stat-card" style="--accent-color:var(--gold)">
+              <div class="stat-icon">⏳</div>
+              <div class="value" id="vcStatPending">0</div>
+              <div class="label">Pending Review</div>
+            </div>
+            <div class="stat-card" style="--accent-color:var(--green)">
+              <div class="stat-icon">✅</div>
+              <div class="value" id="vcStatApproved">0</div>
+              <div class="label">Approved Today</div>
+            </div>
+            <div class="stat-card" style="--accent-color:var(--teal)">
+              <div class="stat-icon">🎥</div>
+              <div class="value" id="vcStatTotal">0</div>
+              <div class="label">Total Sessions</div>
+            </div>
+            <div class="stat-card" style="--accent-color:var(--purple)">
+              <div class="stat-icon">🚨</div>
+              <div class="value" id="vcStatUrgent">0</div>
+              <div class="label">Urgent / Emergency</div>
+            </div>
+          </div>
+
+          <!-- Filter tabs -->
+          <div class="filter-row" style="margin-bottom:16px">
+            <button class="filter-btn active" onclick="filterVC(this,'all')">All</button>
+            <button class="filter-btn" onclick="filterVC(this,'pending_review')">⏳ Pending</button>
+            <button class="filter-btn" onclick="filterVC(this,'approved')">✅ Approved</button>
+            <button class="filter-btn" onclick="filterVC(this,'urgent')">🚨 Urgent</button>
+          </div>
+
+          <!-- Consultation cards list -->
+          <div id="vcList">
+            <div style="text-align:center;padding:48px 20px;color:var(--text3)">
+              <div style="font-size:2.5rem;margin-bottom:12px">🎥</div>
+              <div style="font-weight:600;margin-bottom:6px">No consultations yet</div>
+              <div style="font-size:0.85rem">Patient submissions from the Video AI Kiosk will appear here for your review.</div>
+              <a href="patient.html" target="_blank" class="btn btn-primary" style="margin-top:16px;display:inline-flex">Open Patient Kiosk →</a>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ── VIDEO CONSULT DETAIL MODAL ── -->
+      <div id="vcModal" style="display:none;position:fixed;inset:0;z-index:9000;background:rgba(0,0,0,.45);backdrop-filter:blur(4px);overflow-y:auto;padding:20px">
+        <div style="background:var(--navy);border:1px solid var(--border);border-radius:16px;max-width:780px;margin:0 auto;box-shadow:var(--shadow)">
+
+          <!-- Modal header -->
+          <div style="padding:20px 24px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+            <div>
+              <div style="font-family:var(--syne);font-size:1.1rem;font-weight:700;color:var(--text1)" id="vcModalTitle">Consultation Review</div>
+              <div style="font-size:0.78rem;color:var(--text3);margin-top:2px" id="vcModalSub"></div>
+            </div>
+            <button onclick="closeVCModal()" style="background:var(--navy2);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;color:var(--text2);font-size:0.82rem">✕ Close</button>
+          </div>
+
+          <!-- Modal body -->
+          <div style="padding:24px" id="vcModalBody">
+          </div>
+
+          <!-- Modal footer -->
+          <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;gap:10px;flex-wrap:wrap;justify-content:flex-end" id="vcModalFooter">
+          </div>
+        </div>
+      </div>
+
       <!-- ── ANALYTICS VIEW ── -->
       <div class="view" id="view-analytics">
         <div class="analytics-view">
@@ -4796,7 +4924,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.2' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.7' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -4809,6 +4937,7 @@
     radiology:   { title: 'Radiology & Imaging Intelligence', sub: 'AI-powered radiology report analysis · ICMR imaging guidelines' },
     dentistry:   { title: 'Dentistry & Oral Medicine', sub: 'AI-powered dental diagnosis · Oral charting · Procedure planning · IDA & ICMR guidelines' },
     emergency:   { title: 'Emergency AI Consultation', sub: 'Rapid triage · ACLS · ATLS · ICMR Emergency Protocols' },
+    videoconsult:{ title: 'Video AI Consultations', sub: 'Review patient kiosk submissions · Validate and release reports' },
   };
 
 
@@ -7880,6 +8009,16 @@ INVESTIGATIONS:
      LOGIN & AUTHENTICATION SYSTEM (Invitation Only)
      ══════════════════════════════════════════════════════════ */
 
+  // ── Cross-device session backend (shared Cloudflare Worker) ──────────
+  const SESSION_BACKEND = 'https://samarthaa-session.govardhangn.workers.dev';
+
+  // Session state
+  let _sessionToken    = null;   // cross-device session token
+  let _sessionUserKey  = null;   // invitation code used as unique user key
+  let _sessionWatcher  = null;   // heartbeat interval ID
+  let _kickOverlay     = null;   // DOM overlay shown on kick
+  let _offlineFailures = 0;      // heartbeat failures before assuming offline
+
    // Valid invitation codes with organization, role, and doctor name
   const validInvitations = {
     'INV-2026-OWNER-001': { name: 'Rekha Jayaram', org: 'SAMARTHAA MED', role: 'OWNER', email: 'rekhajayaram20@samarthaa.med' },
@@ -7893,42 +8032,45 @@ INVESTIGATIONS:
   // Store invitation requests (in production, this would be a database)
   const invitationRequests = JSON.parse(localStorage.getItem('samarthaamed_requests') || '[]');
 
-  // Check if user is already logged in
-  function checkExistingSession() {
-    const sessionToken = localStorage.getItem('samarthaamed_session');
+  // Check if user is already logged in (validates cross-device session)
+  async function checkExistingSession() {
+    const sessionToken  = localStorage.getItem('samarthaamed_session');
     const sessionExpiry = localStorage.getItem('samarthaamed_session_expiry');
-    
-    if (sessionToken && sessionExpiry) {
-      const expiryDate = new Date(sessionExpiry);
-      const now = new Date();
-      
-      if (now < expiryDate) {
-        // Valid session exists
-        const loginScreen = document.getElementById('loginScreen');
-        const mainApp = document.getElementById('mainApp');
-        
-        // Hide login screen
-        if (loginScreen) loginScreen.style.display = 'none';
-        
-        // Show main app - CSS handles the layout
-        if (mainApp) {
-          mainApp.style.display = 'grid';
-          mainApp.style.opacity = '1';
-          
-          // Initialize app
-          setTimeout(() => {
-            initializeApp();
-          }, 100);
-        }
-        
-        return true;
-      } else {
-        // Session expired
+    const savedSesToken = localStorage.getItem('samarthaamed_xsession_token');
+    const savedSesKey   = localStorage.getItem('samarthaamed_xsession_key');
+
+    if (!sessionToken || !sessionExpiry) return false;
+
+    // Check local expiry first
+    if (new Date() >= new Date(sessionExpiry)) {
+      clearSession();
+      return false;
+    }
+
+    // If cross-device token exists, validate it against the Worker
+    if (savedSesToken && savedSesKey) {
+      const valid = await _validateSession(savedSesKey, savedSesToken);
+      if (!valid) {
         clearSession();
+        showLoginError('Your session has ended. Please log in again.');
         return false;
       }
+      _sessionToken   = savedSesToken;
+      _sessionUserKey = savedSesKey;
     }
-    return false;
+
+    // Valid session — show app
+    const loginScreen = document.getElementById('loginScreen');
+    const mainApp     = document.getElementById('mainApp');
+    if (loginScreen) loginScreen.style.display = 'none';
+    if (mainApp) {
+      mainApp.style.display = 'grid';
+      mainApp.style.opacity = '1';
+      setTimeout(() => initializeApp(), 100);
+    }
+
+    if (_sessionToken && _sessionUserKey) startSessionWatcher();
+    return true;
   }
 
   // Handle login form submission
@@ -7975,30 +8117,39 @@ INVESTIGATIONS:
     }, 1500); // Simulate network delay
   }
 
-  function authenticateUser(invitationCode, email, invitation, rememberMe) {
-    // Generate session token
+  async function authenticateUser(invitationCode, email, invitation, rememberMe) {
     const sessionToken = generateSessionToken();
-    
-    // Set session expiry
-    const expiryDays = rememberMe ? 30 : 1;
-    const expiryDate = new Date();
+    const expiryDays   = rememberMe ? 30 : 1;
+    const expiryDate   = new Date();
     expiryDate.setDate(expiryDate.getDate() + expiryDays);
-    
-    // Store session with doctor name
-    localStorage.setItem('samarthaamed_session', sessionToken);
+
+    // Store local session
+    localStorage.setItem('samarthaamed_session',        sessionToken);
     localStorage.setItem('samarthaamed_session_expiry', expiryDate.toISOString());
-    localStorage.setItem('samarthaamed_user_name', invitation.name);
-    localStorage.setItem('samarthaamed_user_email', email);
-    localStorage.setItem('samarthaamed_user_org', invitation.org);
-    localStorage.setItem('samarthaamed_user_role', invitation.role);
-    localStorage.setItem('samarthaamed_invitation_code', invitationCode);
-    
-    // Show success and redirect
-    showToast('✅', 'Login Successful', `Welcome, ${invitation.name}!`);
-    
-    setTimeout(() => {
-      showMainApp();
-    }, 800);
+    localStorage.setItem('samarthaamed_user_name',      invitation.name);
+    localStorage.setItem('samarthaamed_user_email',     email);
+    localStorage.setItem('samarthaamed_user_org',       invitation.org);
+    localStorage.setItem('samarthaamed_user_role',      invitation.role);
+    localStorage.setItem('samarthaamed_invitation_code',invitationCode);
+
+    // Register cross-device session with Cloudflare Worker
+    // Use invitationCode as unique user key (each code = one doctor)
+    const xToken = 'MED_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9).toUpperCase();
+    const device  = _getDeviceDescription();
+    const registered = await _registerSession(invitationCode, xToken, device, expiryDays);
+
+    if (registered) {
+      _sessionToken   = xToken;
+      _sessionUserKey = invitationCode;
+      localStorage.setItem('samarthaamed_xsession_token', xToken);
+      localStorage.setItem('samarthaamed_xsession_key',   invitationCode);
+      startSessionWatcher();
+    } else {
+      console.warn('⚠️ Cross-device session backend unavailable — proceeding without it');
+    }
+
+    showToast('✅', 'Login Successful', 'Welcome, ' + invitation.name + '!');
+    setTimeout(() => showMainApp(), 800);
   }
 
   function generateSessionToken() {
@@ -8086,6 +8237,18 @@ INVESTIGATIONS:
   }
 
   function clearSession() {
+    stopSessionWatcher();
+
+    // Notify Worker to clean up the session key
+    if (_sessionToken && _sessionUserKey) {
+      _logoutSession(_sessionUserKey, _sessionToken);
+    }
+
+    _sessionToken    = null;
+    _sessionUserKey  = null;
+    _offlineFailures = 0;
+
+    // Clear all local storage keys
     localStorage.removeItem('samarthaamed_session');
     localStorage.removeItem('samarthaamed_session_expiry');
     localStorage.removeItem('samarthaamed_user_name');
@@ -8093,6 +8256,10 @@ INVESTIGATIONS:
     localStorage.removeItem('samarthaamed_user_org');
     localStorage.removeItem('samarthaamed_user_role');
     localStorage.removeItem('samarthaamed_invitation_code');
+    localStorage.removeItem('samarthaamed_xsession_token');
+    localStorage.removeItem('samarthaamed_xsession_key');
+
+    if (_kickOverlay) { _kickOverlay.remove(); _kickOverlay = null; }
   }
 
   // Logout function
@@ -8101,6 +8268,141 @@ INVESTIGATIONS:
       clearSession();
       location.reload();
     }
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //   CROSS-DEVICE SESSION (Cloudflare Worker)
+  // ══════════════════════════════════════════════════════════════
+
+  async function _registerSession(invCode, token, device, expiryDays) {
+    try {
+      const res = await fetch(SESSION_BACKEND + '/session/register', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ invitationCode: invCode, token, device, expiryDays })
+      });
+      return res.ok;
+    } catch(e) { console.warn('Session register failed:', e.message); return false; }
+  }
+
+  async function _validateSession(invCode, token) {
+    try {
+      const res  = await fetch(SESSION_BACKEND + '/session/validate', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ invitationCode: invCode, token })
+      });
+      const data = await res.json();
+      return data.valid === true;
+    } catch(e) {
+      console.warn('Session validate network error — assuming online:', e.message);
+      return true; // fail open on network error (user likely offline)
+    }
+  }
+
+  async function _logoutSession(invCode, token) {
+    try {
+      await fetch(SESSION_BACKEND + '/session/logout', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ invitationCode: invCode, token })
+      });
+    } catch(e) { console.warn('Session logout notify failed:', e.message); }
+  }
+
+  function startSessionWatcher() {
+    if (_sessionWatcher) clearInterval(_sessionWatcher);
+    _offlineFailures = 0;
+
+    _sessionWatcher = setInterval(async () => {
+      if (!_sessionToken || !_sessionUserKey) return;
+      try {
+        const res  = await fetch(SESSION_BACKEND + '/session/validate', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ invitationCode: _sessionUserKey, token: _sessionToken })
+        });
+        const data = await res.json();
+        _offlineFailures = 0;
+
+        if (!data.valid) {
+          stopSessionWatcher();
+          const reason = data.reason || 'session_ended';
+          if (reason === 'session_displaced') {
+            _showKickedOverlay('🔒 Session Ended',
+              'Your account was signed in on another device. Only one active session is allowed at a time.');
+          } else if (reason === 'session_expired') {
+            _showKickedOverlay('⏰ Session Expired',
+              'Your session has expired. Please log in again to continue.');
+          } else {
+            _showKickedOverlay('⚠️ Session Ended',
+              'Your session is no longer active. Please log in again.');
+          }
+        }
+      } catch(e) {
+        _offlineFailures++;
+        if (_offlineFailures <= 3) console.warn('Session heartbeat failed (' + _offlineFailures + '/3):', e.message);
+      }
+    }, 20000); // every 20 seconds
+  }
+
+  function stopSessionWatcher() {
+    if (_sessionWatcher) { clearInterval(_sessionWatcher); _sessionWatcher = null; }
+  }
+
+  function _showKickedOverlay(title, message) {
+    if (_kickOverlay) return;
+
+    // Stop any active voice consultation
+    if (typeof voiceConsultation !== 'undefined' && voiceConsultation.recognition) {
+      try { voiceConsultation.recognition.stop(); } catch(e) {}
+    }
+
+    // Clear local session data immediately
+    localStorage.removeItem('samarthaamed_session');
+    localStorage.removeItem('samarthaamed_session_expiry');
+    localStorage.removeItem('samarthaamed_xsession_token');
+    localStorage.removeItem('samarthaamed_xsession_key');
+
+    _kickOverlay = document.createElement('div');
+    _kickOverlay.id = 'sessionKickOverlay';
+    _kickOverlay.style.cssText = [
+      'position:fixed','top:0','left:0','right:0','bottom:0',
+      'background:rgba(10,20,40,0.97)',
+      'display:flex','flex-direction:column',
+      'align-items:center','justify-content:center',
+      'z-index:99999','padding:24px','text-align:center'
+    ].join(';');
+
+    _kickOverlay.innerHTML =
+      '<div style="background:#0d1b2a;border:1.5px solid var(--teal,#00d4b4);border-radius:16px;padding:40px 36px;max-width:420px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.7)">' +
+        '<div style="font-size:3rem;margin-bottom:16px">🏥</div>' +
+        '<h2 style="color:var(--teal,#00d4b4);font-size:1.4rem;margin:0 0 12px;font-weight:700">' + title + '</h2>' +
+        '<p style="color:#a0b4c8;font-size:0.95rem;line-height:1.6;margin:0 0 28px">' + message + '</p>' +
+        '<button id="kickLoginAgainBtn" style="background:linear-gradient(135deg,#00d4b4,#0096a0);color:#fff;border:none;padding:14px 32px;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;width:100%">' +
+          '🔑 Login Again' +
+        '</button>' +
+      '</div>';
+
+    document.body.appendChild(_kickOverlay);
+
+    document.getElementById('kickLoginAgainBtn').addEventListener('click', function() {
+      _kickOverlay.remove();
+      _kickOverlay = null;
+      const mainApp     = document.getElementById('mainApp');
+      const loginScreen = document.getElementById('loginScreen');
+      if (mainApp)     mainApp.style.display     = 'none';
+      if (loginScreen) loginScreen.style.display = 'flex';
+    });
+  }
+
+  function _getDeviceDescription() {
+    const ua = navigator.userAgent;
+    if (/android/i.test(ua))          return 'Android';
+    if (/iphone|ipad|ipod/i.test(ua)) return 'iOS';
+    if (/macintosh/i.test(ua))        return 'Mac';
+    if (/windows/i.test(ua))          return 'Windows';
+    return 'Browser';
   }
 
   // Request invitation modal functions
@@ -8476,8 +8778,9 @@ INVESTIGATIONS:
   };
 
   // Check session on page load
-  document.addEventListener('DOMContentLoaded', function() {
-    if (!checkExistingSession()) {
+  document.addEventListener('DOMContentLoaded', async function() {
+    const hasSession = await checkExistingSession();
+    if (!hasSession) {
       // No valid session, show login screen
       document.getElementById('loginScreen').style.display = 'flex';
       document.getElementById('mainApp').style.display = 'none';
@@ -12038,6 +12341,362 @@ Please provide clinical guidance on management.`;
     updateVoiceStatus('Ready', 'Tap the 🎤 mic button to start');
   }
   // ────────────────────────────────────────────────────────────────────────
+
+  // ══════════════════════════════════════════════════════════════════════
+  //   VIDEO AI CONSULTATION — DOCTOR REVIEW PANEL
+  // ══════════════════════════════════════════════════════════════════════
+
+  var _vcFilter = 'all';
+  var _vcConsults = [];
+  var _vcActiveId = null;
+
+  // Load consultations from localStorage (shared with patient.html on same origin)
+  function loadVideoConsults() {
+    _vcConsults = JSON.parse(localStorage.getItem('samarthaamed_video_consultations') || '[]');
+    return _vcConsults;
+  }
+
+  function refreshVideoConsults() {
+    loadVideoConsults();
+    renderVCList();
+    updateVCBadge();
+    showToast('🎥', 'Refreshed', 'Video consultation queue updated');
+  }
+
+  function updateVCBadge() {
+    var pending = _vcConsults.filter(function(c){ return c.status === 'pending_review'; }).length;
+    var badge = document.getElementById('videoConsultBadge');
+    if (badge) {
+      badge.textContent = pending;
+      badge.style.display = pending > 0 ? 'inline-flex' : 'none';
+    }
+  }
+
+  function renderVCList() {
+    loadVideoConsults();
+    var consults = _vcConsults;
+
+    // Stats
+    var pending  = consults.filter(function(c){ return c.status === 'pending_review'; }).length;
+    var approved = consults.filter(function(c){ return c.status === 'approved'; }).length;
+    var urgent   = consults.filter(function(c){ return parseInt(c.severity) >= 7; }).length;
+    document.getElementById('vcStatPending').textContent  = pending;
+    document.getElementById('vcStatApproved').textContent = approved;
+    document.getElementById('vcStatTotal').textContent    = consults.length;
+    document.getElementById('vcStatUrgent').textContent   = urgent;
+    document.getElementById('vcSubTitle').textContent     =
+      pending + ' pending review · ' + consults.length + ' total sessions';
+
+    // Filter
+    var filtered = consults;
+    if (_vcFilter === 'pending_review') filtered = consults.filter(function(c){ return c.status === 'pending_review'; });
+    else if (_vcFilter === 'approved')  filtered = consults.filter(function(c){ return c.status === 'approved'; });
+    else if (_vcFilter === 'urgent')    filtered = consults.filter(function(c){ return parseInt(c.severity) >= 7; });
+
+    var list = document.getElementById('vcList');
+    if (!list) return;
+
+    if (filtered.length === 0) {
+      list.innerHTML =
+        '<div style="text-align:center;padding:48px 20px;color:var(--text3)">' +
+          '<div style="font-size:2.5rem;margin-bottom:12px">🎥</div>' +
+          '<div style="font-weight:600;margin-bottom:6px">No consultations</div>' +
+          '<div style="font-size:0.85rem">Patient submissions from the Video AI Kiosk will appear here.</div>' +
+          '<a href="patient.html" target="_blank" class="btn btn-primary" style="margin-top:16px;display:inline-flex">Open Patient Kiosk →</a>' +
+        '</div>';
+      return;
+    }
+
+    // Sort newest first
+    filtered = filtered.slice().sort(function(a,b){ return new Date(b.timestamp) - new Date(a.timestamp); });
+
+    list.innerHTML = filtered.map(function(c) {
+      var sev = parseInt(c.severity) || 0;
+      var sevColor = sev >= 8 ? 'var(--red)' : sev >= 5 ? 'var(--gold)' : 'var(--green)';
+      var sevBg    = sev >= 8 ? 'rgba(220,38,38,.1)' : sev >= 5 ? 'rgba(245,158,11,.1)' : 'rgba(5,150,105,.1)';
+      var statusBadge = c.status === 'approved'
+        ? '<span style="background:rgba(5,150,105,.12);color:var(--green);padding:2px 10px;border-radius:12px;font-size:0.7rem;font-weight:700">✅ APPROVED</span>'
+        : '<span style="background:rgba(245,158,11,.12);color:var(--gold);padding:2px 10px;border-radius:12px;font-size:0.7rem;font-weight:700">⏳ PENDING</span>';
+      var triage = sev >= 8 ? '🚨 URGENT' : sev >= 5 ? '⚠️ MODERATE' : '✅ ROUTINE';
+      var dt = new Date(c.timestamp);
+      var timeStr = dt.toLocaleString('en-IN', { day:'numeric', month:'short', hour:'2-digit', minute:'2-digit' });
+
+      return '<div class="card" style="margin-bottom:12px;cursor:pointer;transition:border-color .2s" ' +
+        'onmouseenter="this.style.borderColor=\'var(--teal)\'" ' +
+        'onmouseleave="this.style.borderColor=\'var(--border)\'" ' +
+        'onclick="openVCDetail(\'' + c.id + '\')">' +
+        '<div style="display:flex;align-items:flex-start;gap:14px">' +
+          '<div style="width:44px;height:44px;border-radius:50%;background:var(--teal-dim);display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0">🧑‍⚕️</div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:4px">' +
+              '<span style="font-weight:700;color:var(--text1)">' + c.patient.fname + ' ' + c.patient.lname + '</span>' +
+              '<span style="color:var(--text3);font-size:0.8rem">' + c.patient.age + ' · ' + c.patient.sex + '</span>' +
+              statusBadge +
+            '</div>' +
+            '<div style="color:var(--text2);font-size:0.82rem;margin-bottom:6px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' +
+              '💬 ' + (c.complaint || 'No complaint recorded').substring(0,80) + '…' +
+            '</div>' +
+            '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">' +
+              '<span style="background:' + sevBg + ';color:' + sevColor + ';padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600">' + triage + '</span>' +
+              (c.concern ? '<span style="background:var(--teal-dim);color:var(--teal);padding:2px 8px;border-radius:10px;font-size:0.72rem;font-weight:600">🏥 ' + c.concern + '</span>' : '') +
+              '<span style="color:var(--text3);font-size:0.75rem;margin-left:auto">🕐 ' + timeStr + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<div style="font-size:1.4rem;flex-shrink:0;color:var(--text3)">›</div>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+
+    updateVCBadge();
+  }
+
+  function filterVC(btn, filter) {
+    document.querySelectorAll('#view-videoconsult .filter-btn').forEach(function(b){ b.classList.remove('active'); });
+    btn.classList.add('active');
+    _vcFilter = filter;
+    renderVCList();
+  }
+
+  function openVCDetail(id) {
+    var c = _vcConsults.find(function(x){ return x.id === id; });
+    if (!c) return;
+    _vcActiveId = id;
+
+    var sev = parseInt(c.severity) || 0;
+    var sevColor = sev >= 8 ? 'var(--red)' : sev >= 5 ? 'var(--gold)' : 'var(--green)';
+    var vitalsHtml = Object.entries(c.vitals || {}).filter(function(e){ return e[1]; }).map(function(e) {
+      var names = {bp:'Blood Pressure',hr:'Heart Rate',spo2:'SpO₂',temp:'Temperature',rr:'Resp. Rate',wt:'Weight'};
+      var units = {bp:'mmHg',hr:'bpm',spo2:'%',temp:'°C',rr:'/min',wt:'kg'};
+      return '<div style="background:var(--navy2);border:1px solid var(--border);border-radius:8px;padding:10px 12px;text-align:center">' +
+        '<div style="font-size:0.68rem;color:var(--text3);text-transform:uppercase;font-weight:600;letter-spacing:.8px">' + (names[e[0]]||e[0]) + '</div>' +
+        '<div style="font-family:var(--mono);font-size:1.1rem;font-weight:600;color:var(--text1);margin:4px 0">' + e[1] + '</div>' +
+        '<div style="font-size:0.68rem;color:var(--text3)">' + (units[e[0]]||'') + '</div>' +
+      '</div>';
+    }).join('');
+
+    document.getElementById('vcModalTitle').textContent =
+      c.patient.fname + ' ' + c.patient.lname + ' — Consultation Review';
+    document.getElementById('vcModalSub').textContent =
+      'Ref: ' + c.id + ' · ' + new Date(c.timestamp).toLocaleString('en-IN');
+
+    document.getElementById('vcModalBody').innerHTML =
+      // Patient info strip
+      '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">' +
+        _infoCell('👤 Name', c.patient.fname + ' ' + c.patient.lname) +
+        _infoCell('🎂 Age / Sex', c.patient.age + ' / ' + c.patient.sex) +
+        _infoCell('📞 Phone', c.patient.phone || '—') +
+        _infoCell('🏥 Conditions', c.patient.conditions || 'None') +
+        _infoCell('💊 Medications', c.patient.meds || 'None') +
+        _infoCell('⚠️ Allergies', c.patient.allergies || 'None') +
+      '</div>' +
+
+      // Vitals
+      (vitalsHtml ? '<div style="margin-bottom:16px"><div style="font-size:0.78rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px">📊 Vitals Captured</div>' +
+        '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">' + vitalsHtml + '</div></div>' : '') +
+
+      // Severity & triage
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">' +
+        '<span style="background:rgba(5,150,105,.1);color:var(--green);padding:4px 12px;border-radius:12px;font-size:0.78rem;font-weight:700">⏱ Duration: ' + (c.duration||'—') + '</span>' +
+        '<span style="background:' + (sev>=8?'rgba(220,38,38,.1)':sev>=5?'rgba(245,158,11,.1)':'rgba(5,150,105,.1)') + ';color:' + sevColor + ';padding:4px 12px;border-radius:12px;font-size:0.78rem;font-weight:700">Severity: ' + sev + '/10</span>' +
+        '<span style="background:var(--teal-dim);color:var(--teal);padding:4px 12px;border-radius:12px;font-size:0.78rem;font-weight:700">🏥 ' + (c.concern||'General') + '</span>' +
+      '</div>' +
+
+      // Chief complaint
+      '<div style="margin-bottom:16px"><div style="font-size:0.78rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">💬 Chief Complaint</div>' +
+        '<div style="background:var(--navy2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:0.88rem;line-height:1.7;color:var(--text1)">' + (c.complaint || 'Not recorded') + '</div></div>' +
+
+      // Visual obs
+      (c.visualObs ? '<div style="margin-bottom:16px"><div style="font-size:0.78rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">👁️ AI Visual Observations</div>' +
+        '<div style="background:var(--navy2);border:1px solid var(--border);border-radius:8px;padding:12px;font-size:0.82rem;line-height:1.7;color:var(--text2)">' + c.visualObs + '</div></div>' : '') +
+
+      // AI Report
+      '<div style="margin-bottom:16px">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">' +
+          '<div style="font-size:0.78rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px">📋 AI Pre-Consultation Report</div>' +
+          (c.status === 'pending_review' ? '<span style="background:rgba(245,158,11,.12);color:var(--gold);padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700">⏳ AWAITING YOUR REVIEW</span>' :
+           '<span style="background:rgba(5,150,105,.12);color:var(--green);padding:2px 8px;border-radius:10px;font-size:0.7rem;font-weight:700">✅ APPROVED</span>') +
+        '</div>' +
+        '<div style="background:var(--navy2);border:1px solid var(--border);border-radius:8px;padding:16px;font-size:0.82rem;line-height:1.8;color:var(--text1);white-space:pre-wrap;max-height:320px;overflow-y:auto;font-family:var(--mono)">' +
+          (c.report || 'Report not generated') + '</div></div>' +
+
+      // Doctor notes
+      '<div>' +
+        '<div style="font-size:0.78rem;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px">📝 Doctor\'s Notes & Additions</div>' +
+        '<textarea id="vcDoctorNotes" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:10px 12px;font-family:var(--dm);font-size:0.88rem;color:var(--text1);background:var(--navy);min-height:90px;outline:none;resize:vertical" placeholder="Add clinical notes, corrections, or additional findings before approving…">' + (c.doctorNotes || '') + '</textarea>' +
+      '</div>';
+
+    // Footer buttons
+    var footer = document.getElementById('vcModalFooter');
+    if (c.status === 'pending_review') {
+      footer.innerHTML =
+        '<button class="btn btn-ghost" onclick="closeVCModal()">Cancel</button>' +
+        '<button class="btn" style="background:var(--red-dim);color:var(--red);border:1px solid var(--red)" onclick="rejectVC(\'' + id + '\')">❌ Reject</button>' +
+        '<button class="btn btn-primary" onclick="approveVC(\'' + id + '\')">✅ Approve & Release Report</button>';
+    } else {
+      footer.innerHTML =
+        '<button class="btn btn-ghost" onclick="closeVCModal()">Close</button>' +
+        '<button class="btn btn-outline" onclick="downloadVCReport(\'' + id + '\')">📥 Download PDF</button>';
+    }
+
+    document.getElementById('vcModal').style.display = 'block';
+    document.body.style.overflow = 'hidden';
+  }
+
+  function _infoCell(label, value) {
+    return '<div style="background:var(--navy2);border:1px solid var(--border);border-radius:8px;padding:10px 12px">' +
+      '<div style="font-size:0.68rem;color:var(--text3);font-weight:600;margin-bottom:3px">' + label + '</div>' +
+      '<div style="font-size:0.85rem;color:var(--text1);font-weight:500">' + (value||'—') + '</div>' +
+    '</div>';
+  }
+
+  function closeVCModal() {
+    document.getElementById('vcModal').style.display = 'none';
+    document.body.style.overflow = '';
+    _vcActiveId = null;
+  }
+
+  function approveVC(id) {
+    var doctorNotes = document.getElementById('vcDoctorNotes').value.trim();
+    var idx = _vcConsults.findIndex(function(c){ return c.id === id; });
+    if (idx === -1) return;
+
+    _vcConsults[idx].status      = 'approved';
+    _vcConsults[idx].doctorNotes = doctorNotes;
+    _vcConsults[idx].approvedAt  = new Date().toISOString();
+    _vcConsults[idx].approvedBy  = localStorage.getItem('samarthaamed_user_name') || 'Doctor';
+
+    localStorage.setItem('samarthaamed_video_consultations', JSON.stringify(_vcConsults));
+    closeVCModal();
+    renderVCList();
+    showToast('✅', 'Report Approved', 'Patient can now download the validated report');
+
+    // Auto-download the final PDF
+    setTimeout(function(){ downloadVCReport(id); }, 500);
+  }
+
+  function rejectVC(id) {
+    var reason = prompt('Reason for rejection (optional):') || 'Incomplete information — please re-submit';
+    var idx = _vcConsults.findIndex(function(c){ return c.id === id; });
+    if (idx === -1) return;
+    _vcConsults[idx].status       = 'rejected';
+    _vcConsults[idx].rejectReason = reason;
+    localStorage.setItem('samarthaamed_video_consultations', JSON.stringify(_vcConsults));
+    closeVCModal();
+    renderVCList();
+    showToast('❌', 'Consultation Rejected', reason.substring(0,50));
+  }
+
+  function downloadVCReport(id) {
+    var c = _vcConsults.find(function(x){ return x.id === x.id && x.id === id; });
+    if (!c) return;
+
+    var p   = c.patient;
+    var now = new Date().toLocaleDateString('en-IN', { dateStyle: 'long' });
+    var approved = c.status === 'approved';
+    var vitalsLines = Object.entries(c.vitals || {}).filter(function(e){ return e[1]; }).map(function(e){
+      var names = {bp:'Blood Pressure',hr:'Heart Rate',spo2:'SpO₂',temp:'Temperature',rr:'Resp. Rate',wt:'Weight'};
+      var units = {bp:'mmHg',hr:'bpm',spo2:'%',temp:'°C',rr:'/min',wt:'kg'};
+      return (names[e[0]]||e[0]) + ': ' + e[1] + ' ' + (units[e[0]]||'');
+    }).join('\n');
+
+    var reportLines = (c.report || '').split('\n').filter(Boolean).map(function(line) {
+      var isH = /^\d+\./.test(line);
+      return isH ? '<p class="h">' + _esc(line) + '</p>' : '<p>' + _esc(line) + '</p>';
+    }).join('');
+
+    var doctorBlock = (c.doctorNotes || c.approvedBy) ?
+      '<div class="doctor-block">' +
+        '<div class="dh">👨‍⚕️ Doctor\'s Review — ' + _esc(c.approvedBy || '') + '</div>' +
+        '<div class="dn">' + _esc(c.doctorNotes || 'No additional notes.') + '</div>' +
+        '<div class="ds">Approved: ' + (c.approvedAt ? new Date(c.approvedAt).toLocaleString('en-IN') : '') + '</div>' +
+      '</div>' : '';
+
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+      '<title>Consultation Report — ' + p.fname + ' ' + p.lname + '</title>' +
+      '<link href="https://fonts.googleapis.com/css2?family=Crimson+Pro:wght@400;700&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">' +
+      '<style>' +
+        '*{box-sizing:border-box;margin:0;padding:0}' +
+        'body{font-family:"DM Sans",sans-serif;font-size:11pt;color:#1a1a1a;line-height:1.7;padding:40px 50px;background:#fff}' +
+        '.header{text-align:center;border-bottom:3px solid #b91c1c;padding-bottom:18px;margin-bottom:6px}' +
+        '.header h1{font-family:"Crimson Pro",serif;font-size:20pt;font-weight:700;color:#b91c1c}' +
+        '.header .sub{font-size:9pt;color:#6b7280;margin-top:4px}' +
+        '.status{text-align:center;padding:8px;margin:14px 0;border-radius:6px;font-size:9.5pt;font-weight:700}' +
+        '.status.approved{background:#dcfce7;color:#15803d;border:1px solid #86efac}' +
+        '.status.pending{background:#fef9c3;color:#b45309;border:1px solid #fde047}' +
+        '.vitals{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:12px 0}' +
+        '.vital{background:#fef7f7;border:1px solid #fecaca;border-radius:6px;padding:8px;text-align:center}' +
+        '.vital .vn{font-size:8pt;color:#6b7280;text-transform:uppercase;letter-spacing:.5px}' +
+        '.vital .vv{font-family:"DM Mono",monospace;font-size:13pt;font-weight:600;color:#b91c1c;margin:2px 0}' +
+        '.vital .vu{font-size:8pt;color:#9ca3af}' +
+        'p{margin-bottom:7px;text-align:justify}' +
+        'p.h{font-weight:700;margin-top:14px;margin-bottom:3px;color:#b91c1c}' +
+        '.doctor-block{margin-top:24px;padding:14px 18px;background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px}' +
+        '.dh{font-weight:700;color:#15803d;margin-bottom:6px}' +
+        '.dn{color:#1a1a1a;font-size:10.5pt;line-height:1.6}' +
+        '.ds{font-size:8.5pt;color:#6b7280;margin-top:8px}' +
+        '.footer{margin-top:32px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:8pt;color:#9ca3af;text-align:center;font-style:italic}' +
+        '@media print{body{padding:0}@page{margin:18mm 15mm;size:A4}}' +
+      '</style></head><body>' +
+      '<div class="header">' +
+        '<h1>SAMARTHAA MED — VIDEO AI CONSULTATION REPORT</h1>' +
+        '<div class="sub">Patient: ' + _esc(p.fname) + ' ' + _esc(p.lname) + ' &nbsp;|&nbsp; ' +
+          p.age + ' / ' + p.sex + ' &nbsp;|&nbsp; ' + now + ' &nbsp;|&nbsp; Ref: ' + c.id + '</div>' +
+      '</div>' +
+      '<div class="status ' + (approved ? 'approved' : 'pending') + '">' +
+        (approved ? '✅ VALIDATED & APPROVED BY DOCTOR — ' + _esc(c.approvedBy||'') : '⏳ PENDING DOCTOR REVIEW — Not yet validated') +
+      '</div>' +
+      (vitalsLines ? '<div class="vitals">' +
+        Object.entries(c.vitals||{}).filter(function(e){return e[1];}).map(function(e){
+          var names={bp:'Blood Pressure',hr:'Heart Rate',spo2:'SpO₂',temp:'Temperature',rr:'Resp. Rate',wt:'Weight'};
+          var units={bp:'mmHg',hr:'bpm',spo2:'%',temp:'°C',rr:'/min',wt:'kg'};
+          return '<div class="vital"><div class="vn">'+(names[e[0]]||e[0])+'</div><div class="vv">'+e[1]+'</div><div class="vu">'+(units[e[0]]||'')+'</div></div>';
+        }).join('') + '</div>' : '') +
+      reportLines +
+      doctorBlock +
+      '<div class="footer">This report was generated by SAMARTHAA MED Video AI Consultation. ' +
+        (approved ? 'Reviewed and approved by a licensed physician.' : 'Awaiting physician review.') +
+        ' Not a substitute for in-person clinical examination. · samarthaamed.netlify.app</div>' +
+      '<script>document.fonts.ready.then(function(){setTimeout(function(){window.print();},400);});<\/script>' +
+      '</body></html>';
+
+    var blob = new Blob([html], { type: 'text/html' });
+    var url  = URL.createObjectURL(blob);
+    var tab  = window.open(url, '_blank');
+    if (!tab) { var a = document.createElement('a'); a.href = url; a.download = 'samarthaa-consult-' + c.id + '.html'; a.click(); }
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 15000);
+  }
+
+  function _esc(s) {
+    return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // Hook into showView to load consultations when tab is opened
+  var _origShowView = showView;
+  showView = function(id) {
+    _origShowView(id);
+    if (id === 'videoconsult') {
+      loadVideoConsults();
+      renderVCList();
+    }
+  };
+
+  // Poll for new consultations every 30s when doctor is on the page
+  setInterval(function() {
+    var prev = _vcConsults.length;
+    loadVideoConsults();
+    updateVCBadge();
+    if (_vcConsults.length > prev) {
+      showToast('🎥', 'New Consultation', 'A patient has submitted a new video consultation');
+      renderVCList();
+    }
+  }, 30000);
+
+  // Initial badge load
+  setTimeout(function(){
+    loadVideoConsults();
+    updateVCBadge();
+  }, 1000);
+
 </script>
 
 <nav class="mobile-bottom-nav" id="mobileBottomNav">
