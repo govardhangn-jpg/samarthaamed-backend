@@ -1,9 +1,3 @@
-[[headers]]
-  for = "/*"
-  [headers.values]
-    X-Frame-Options = "DENY"
-    X-Content-Type-Options = "nosniff"
-
 [build]
   command = ""
   publish = "public"
@@ -37,6 +31,13 @@
   from   = "/api/orthanc-proxy"
   to     = "/.netlify/functions/orthanc-proxy"
   status = 200
+
+# patient.html — Video AI Consultation kiosk (must come BEFORE the SPA catch-all)
+[[redirects]]
+  from   = "/patient.html"
+  to     = "/patient.html"
+  status = 200
+  force  = true
 
 # All other routes → SPA index
 [[redirects]]
