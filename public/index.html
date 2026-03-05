@@ -4927,7 +4927,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.9' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.10' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -12578,6 +12578,17 @@ Please provide clinical guidance on management.`;
     _showApprovalDelivery(c);
   }
 
+  function _copyReportURL(id) {
+    var c = _vcConsults.find(function(x){ return x.id === id; });
+    if (!c) return;
+    var url = _buildReportURL(c);
+    navigator.clipboard.writeText(url).then(function() {
+      showToast('📋', 'Link Copied', 'Report URL copied to clipboard');
+    }).catch(function() {
+      prompt('Copy this report link:', url);
+    });
+  }
+
   function _showApprovalDelivery(c) {
     var p = c.patient;
     var phone = (p.phone || '').replace(/[^0-9]/g, '');
@@ -12614,15 +12625,20 @@ Please provide clinical guidance on management.`;
       // ── Option 1: WhatsApp ──────────────────────────────────────
       '<div style="background:rgba(37,211,102,.06);border:1.5px solid #25d366;border-radius:12px;padding:18px;margin-bottom:14px">' +
         '<div style="font-weight:700;color:#128C7E;margin-bottom:6px;font-size:0.95rem">📲 Send via WhatsApp</div>' +
-        '<div style="font-size:0.8rem;color:var(--text2);margin-bottom:12px">Opens WhatsApp with a pre-written message to the patient\'s phone number.</div>' +
-        '<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">' +
+        '<div style="font-size:0.8rem;color:var(--text2);margin-bottom:12px">Patient receives a direct link to their validated report — they can view, print or show it to any doctor at any time.</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px">' +
           '<label style="font-size:0.75rem;color:var(--text3);white-space:nowrap;font-weight:600">Patient Phone</label>' +
           '<input id="vcWaPhone" type="tel" value="' + _esc(p.phone || '') + '" ' +
             'style="flex:1;border:1.5px solid #86efac;border-radius:8px;padding:8px 10px;font-size:0.88rem;background:var(--navy);color:var(--text1);outline:none">' +
         '</div>' +
+        // Report URL preview
+        '<div style="background:var(--navy3,rgba(185,28,28,.06));border:1px solid var(--border);border-radius:8px;padding:8px 10px;margin-bottom:10px;display:flex;align-items:center;gap:8px">' +
+          '<span style="font-size:0.72rem;color:var(--text3);flex:1;word-break:break-all;font-family:var(--mono,monospace)" id="vcReportURLPreview">Generating link…</span>' +
+          '<button onclick="_copyReportURL(\'' + c.id + '\')" style="background:var(--teal);color:#fff;border:none;border-radius:6px;padding:4px 10px;font-size:0.72rem;cursor:pointer;white-space:nowrap">📋 Copy</button>' +
+        '</div>' +
         '<button onclick="_sendVCWhatsApp(\'' + c.id + '\')" ' +
           'style="width:100%;padding:12px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:0.92rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">' +
-          '📱 Open WhatsApp &amp; Send</button>' +
+          '📱 Open WhatsApp &amp; Send Report Link</button>' +
       '</div>' +
 
       // ── Option 2: Printable Token ───────────────────────────────
@@ -12646,6 +12662,38 @@ Please provide clinical guidance on management.`;
     // Update footer
     document.getElementById('vcModalFooter').innerHTML =
       '<button class="btn btn-ghost" onclick="closeVCModal()">Done</button>';
+
+    // Populate URL preview after DOM settles
+    setTimeout(function() {
+      var previewEl = document.getElementById('vcReportURLPreview');
+      if (previewEl) previewEl.textContent = _buildReportURL(c);
+    }, 50);
+  }
+
+  function _buildReportURL(c) {
+    // Encode the full consultation data into the URL hash
+    // patient can open this link anytime — no backend, no expiry
+    try {
+      var payload = JSON.stringify({
+        id:         c.id,
+        status:     c.status,
+        patient:    c.patient,
+        vitals:     c.vitals,
+        report:     c.report,
+        visualObs:  c.visualObs,
+        doctorNotes:c.doctorNotes,
+        approvedBy: c.approvedBy,
+        approvedAt: c.approvedAt,
+        timestamp:  c.timestamp
+      });
+      // base64url encode (URL-safe, no padding issues)
+      var b64 = btoa(encodeURIComponent(payload).replace(/%([0-9A-F]{2})/g, function(m, p){ return String.fromCharCode('0x'+p); }));
+      var b64url = b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+      return 'https://samarthaamed.netlify.app/report-viewer.html#' + b64url;
+    } catch(e) {
+      console.error('URL encode error:', e);
+      return 'https://samarthaamed.netlify.app/report-viewer.html';
+    }
   }
 
   function _sendVCWhatsApp(id) {
@@ -12653,25 +12701,30 @@ Please provide clinical guidance on management.`;
     if (!c) return;
     var p = c.patient;
 
-    // Get phone from the editable input (doctor may have corrected it)
-    var rawPhone = document.getElementById('vcWaPhone').value.replace(/[^0-9+]/g, '');
+    // Get phone from the editable input
+    var rawPhone = document.getElementById('vcWaPhone') ?
+      document.getElementById('vcWaPhone').value.replace(/[^0-9+]/g, '') :
+      (p.phone || '').replace(/[^0-9]/g, '');
     if (rawPhone.startsWith('+')) rawPhone = rawPhone.slice(1);
     if (rawPhone.length === 10) rawPhone = '91' + rawPhone;
+
+    // Generate the shareable report URL
+    var reportURL = _buildReportURL(c);
 
     var msg =
       '✅ *SAMARTHAA MED — Consultation Report Ready*\n\n' +
       'Dear ' + p.fname + ' ' + p.lname + ',\n\n' +
-      'Your Video AI Consultation report has been reviewed and approved by your doctor.\n\n' +
+      'Your Video AI Consultation report has been reviewed and approved by ' + (c.approvedBy || 'your doctor') + '.\n\n' +
       '📋 *Reference No:* ' + c.id + '\n' +
-      '👨‍⚕️ *Reviewed by:* ' + (c.approvedBy || 'Doctor') + '\n' +
       '🕐 *Approved:* ' + new Date(c.approvedAt).toLocaleString('en-IN') + '\n\n' +
-      '📥 Please show this reference number at the reception desk to collect your printed report.\n\n' +
       (c.doctorNotes ? '📝 *Doctor\'s Note:* ' + c.doctorNotes + '\n\n' : '') +
-      '_SAMARTHAA MED · samarthaamed.netlify.app/patient.html_';
+      '📄 *View your full report here:*\n' + reportURL + '\n\n' +
+      '_Tap the link to view, print or save your report. You can show this to your doctor at any time._\n\n' +
+      '_SAMARTHAA MED · samarthaamed.netlify.app_';
 
     var url = 'https://wa.me/' + rawPhone + '?text=' + encodeURIComponent(msg);
     window.open(url, '_blank');
-    showToast('📲', 'WhatsApp Opened', 'Send the message to ' + p.fname);
+    showToast('📲', 'WhatsApp Opened', 'Report link sent to ' + p.fname);
   }
 
   function _printVCToken(id) {

@@ -1,0 +1,356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SAMARTHAA MED — Consultation Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 15px; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: #fef7f7;
+  color: #1f2937;
+  min-height: 100vh;
+  padding: 0 0 60px;
+}
+
+/* ── Header ── */
+.header {
+  background: linear-gradient(135deg, #b91c1c, #dc2626);
+  color: #fff;
+  padding: 20px 24px;
+  text-align: center;
+}
+.header h1 { font-family: 'Syne', sans-serif; font-size: 1.3rem; font-weight: 800; letter-spacing: .5px; }
+.header .sub { font-size: 0.72rem; opacity: .8; margin-top: 4px; letter-spacing: 1px; text-transform: uppercase; }
+
+/* ── Status banner ── */
+.status-banner {
+  padding: 12px 24px;
+  text-align: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.status-banner.approved { background: #dcfce7; color: #15803d; border-bottom: 1px solid #86efac; }
+.status-banner.pending  { background: #fef9c3; color: #b45309; border-bottom: 1px solid #fde68a; }
+
+/* ── Content ── */
+.content { max-width: 720px; margin: 0 auto; padding: 24px 16px; }
+
+/* ── Patient strip ── */
+.patient-strip {
+  background: #fff;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin-bottom: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 20px;
+}
+.pf-label { font-size: 0.68rem; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: .7px; }
+.pf-value { font-size: 0.9rem; color: #1f2937; font-weight: 600; margin-top: 2px; }
+
+/* ── Vitals ── */
+.vitals-grid {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;
+  margin-bottom: 20px;
+}
+.vital-card {
+  background: #fff; border: 1px solid #fecaca;
+  border-radius: 10px; padding: 12px; text-align: center;
+}
+.vital-name  { font-size: 0.65rem; color: #9ca3af; text-transform: uppercase; letter-spacing: .7px; font-weight: 600; }
+.vital-value { font-family: 'DM Mono', monospace; font-size: 1.1rem; font-weight: 600; color: #b91c1c; margin: 4px 0; }
+.vital-unit  { font-size: 0.65rem; color: #9ca3af; }
+
+/* ── Report sections ── */
+.report-card {
+  background: #fff; border: 1px solid #fecaca;
+  border-radius: 12px; padding: 20px; margin-bottom: 16px;
+}
+.section-num  { font-size: 0.68rem; color: #b91c1c; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
+.section-title { font-family: 'Syne', sans-serif; font-size: 0.95rem; font-weight: 700; color: #1f2937; margin-bottom: 10px; }
+.section-body  { font-size: 0.88rem; line-height: 1.75; color: #374151; white-space: pre-wrap; }
+
+/* ── Doctor block ── */
+.doctor-block {
+  background: #f0fdf4; border: 1.5px solid #86efac;
+  border-radius: 12px; padding: 18px; margin-bottom: 16px;
+}
+.doctor-block .dh { font-weight: 700; color: #15803d; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+.doctor-block .dn { font-size: 0.88rem; color: #1f2937; line-height: 1.7; }
+.doctor-block .ds { font-size: 0.75rem; color: #6b7280; margin-top: 8px; }
+
+/* ── Triage badge ── */
+.triage-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px;
+  font-weight: 700; font-size: 0.82rem; margin-bottom: 4px;
+}
+.triage-routine   { background: rgba(5,150,105,.1);  color: #059669; }
+.triage-urgent    { background: rgba(245,158,11,.12); color: #b45309; }
+.triage-emergency { background: rgba(220,38,38,.12);  color: #dc2626; }
+
+/* ── Action bar ── */
+.action-bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: #fff; border-top: 1px solid #fecaca;
+  padding: 12px 16px;
+  display: flex; gap: 10px; justify-content: center;
+  box-shadow: 0 -4px 20px rgba(185,28,28,.1);
+}
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 6px; padding: 11px 20px; border-radius: 10px;
+  font-family: 'DM Sans', sans-serif; font-size: 0.88rem;
+  font-weight: 600; cursor: pointer; border: none; text-decoration: none;
+  transition: all .2s;
+}
+.btn-primary { background: #b91c1c; color: #fff; box-shadow: 0 4px 12px rgba(185,28,28,.2); }
+.btn-primary:hover { background: #dc2626; }
+.btn-ghost   { background: #fef7f7; color: #6b7280; border: 1.5px solid #fecaca; }
+.btn-ghost:hover { color: #1f2937; }
+
+/* ── Loading / Error ── */
+.center-msg { text-align: center; padding: 80px 20px; }
+.center-msg .icon  { font-size: 3rem; margin-bottom: 16px; }
+.center-msg h2     { font-family: 'Syne', sans-serif; font-size: 1.2rem; margin-bottom: 8px; }
+.center-msg p      { font-size: 0.88rem; color: #6b7280; line-height: 1.6; }
+
+/* ── Disclaimer ── */
+.disclaimer {
+  background: #fffbeb; border-left: 3px solid #f59e0b;
+  border-radius: 0 8px 8px 0; padding: 10px 14px;
+  font-size: 0.75rem; color: #92400e; line-height: 1.5; margin-bottom: 16px;
+}
+
+/* ── Print ── */
+@media print {
+  .action-bar { display: none; }
+  body { background: #fff; }
+  .header { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}
+@media (max-width: 480px) {
+  .vitals-grid { grid-template-columns: repeat(2, 1fr); }
+  .patient-strip { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+  <div class="center-msg">
+    <div class="icon">⏳</div>
+    <h2>Loading Report…</h2>
+    <p>Decoding your consultation report</p>
+  </div>
+</div>
+
+<script>
+// ─── Decode & render report from URL hash ────────────────────────────────────
+// URL format: /report-viewer.html#<base64url-encoded-json>
+
+(function() {
+  var hash = location.hash.slice(1); // strip leading #
+
+  if (!hash) {
+    showError('No Report Found',
+      'This link does not contain a report. Please ask your doctor to resend the WhatsApp message.');
+    return;
+  }
+
+  var data;
+  try {
+    // base64url decode
+    var b64 = hash.replace(/-/g, '+').replace(/_/g, '/');
+    var padded = b64 + '==='.slice((b64.length + 3) % 4);
+    var jsonStr = decodeURIComponent(
+      atob(padded).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join('')
+    );
+    data = JSON.parse(jsonStr);
+  } catch(e) {
+    showError('Invalid Report Link',
+      'This link appears to be corrupted or expired. Please ask your doctor to resend it.');
+    return;
+  }
+
+  renderReport(data);
+})();
+
+function renderReport(d) {
+  var p        = d.patient || {};
+  var vitals   = d.vitals  || {};
+  var report   = d.report  || '';
+  var approved = d.status === 'approved';
+  var now      = new Date(d.approvedAt || d.timestamp || Date.now())
+                   .toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
+
+  // ── Vital cards ──────────────────────────────────────────────────────────
+  var vNames = { bp:'Blood Pressure', hr:'Heart Rate', spo2:'SpO₂', temp:'Temperature', rr:'Resp. Rate', wt:'Weight' };
+  var vUnits = { bp:'mmHg', hr:'bpm', spo2:'%', temp:'°C', rr:'/min', wt:'kg' };
+  var vitalsHtml = Object.entries(vitals).filter(function(e){ return e[1]; }).map(function(e) {
+    return '<div class="vital-card">' +
+      '<div class="vital-name">' + (vNames[e[0]] || e[0]) + '</div>' +
+      '<div class="vital-value">' + esc(e[1]) + '</div>' +
+      '<div class="vital-unit">' + (vUnits[e[0]] || '') + '</div>' +
+    '</div>';
+  }).join('');
+
+  // ── Parse numbered report sections ───────────────────────────────────────
+  var sections = parseReportSections(report);
+
+  // ── Triage badge ─────────────────────────────────────────────────────────
+  var triageText = (sections['7'] || sections['7. TRIAGE PRIORITY'] || '').trim();
+  var triageClass = triageText.toLowerCase().includes('emergency') ? 'triage-emergency'
+                  : triageText.toLowerCase().includes('urgent')    ? 'triage-urgent'
+                  : 'triage-routine';
+  var triageIcon  = triageText.toLowerCase().includes('emergency') ? '🚨'
+                  : triageText.toLowerCase().includes('urgent')    ? '⚠️'
+                  : '✅';
+
+  // ── Sections HTML ─────────────────────────────────────────────────────────
+  var sectionDefs = [
+    { num:'1', title:'Patient Summary' },
+    { num:'2', title:'Presenting Complaints' },
+    { num:'3', title:'Vital Signs Assessment' },
+    { num:'4', title:'Visual Assessment' },
+    { num:'5', title:'Preliminary Differential Considerations' },
+    { num:'6', title:'Recommended Investigations' },
+    { num:'8', title:"Points for Doctor's Attention" },
+    { num:'9', title:'Disclaimer' },
+  ];
+
+  var sectionsHtml = sectionDefs.map(function(s) {
+    var body = sections[s.num] || '';
+    if (!body.trim()) return '';
+    return '<div class="report-card">' +
+      '<div class="section-num">Section ' + s.num + '</div>' +
+      '<div class="section-title">' + s.title + '</div>' +
+      '<div class="section-body">' + esc(body.trim()) + '</div>' +
+    '</div>';
+  }).join('');
+
+  // ── Doctor block ──────────────────────────────────────────────────────────
+  var doctorHtml = '';
+  if (approved && (d.doctorNotes || d.approvedBy)) {
+    doctorHtml =
+      '<div class="doctor-block">' +
+        '<div class="dh">👨‍⚕️ ' + esc(d.approvedBy || 'Doctor') + ' — Validated Report</div>' +
+        '<div class="dn">' + esc(d.doctorNotes || 'Report reviewed and approved.') + '</div>' +
+        '<div class="ds">Approved: ' + now + '</div>' +
+      '</div>';
+  }
+
+  // ── Full render ───────────────────────────────────────────────────────────
+  document.getElementById('app').innerHTML =
+
+    '<div class="header">' +
+      '<h1>🏥 SAMARTHAA MED</h1>' +
+      '<div class="sub">Video AI Consultation Report</div>' +
+    '</div>' +
+
+    '<div class="status-banner ' + (approved ? 'approved' : 'pending') + '">' +
+      (approved
+        ? '✅ VALIDATED & APPROVED BY DOCTOR — ' + esc(d.approvedBy || '')
+        : '⏳ PENDING DOCTOR REVIEW — Not yet validated by a physician') +
+    '</div>' +
+
+    '<div class="content">' +
+
+      // Patient info
+      '<div class="patient-strip">' +
+        '<div><div class="pf-label">Patient Name</div><div class="pf-value">' + esc(p.fname + ' ' + p.lname) + '</div></div>' +
+        '<div><div class="pf-label">Reference</div><div class="pf-value">' + esc(d.id || '—') + '</div></div>' +
+        '<div><div class="pf-label">Age / Sex</div><div class="pf-value">' + esc((p.age || '—') + ' / ' + (p.sex || '—')) + '</div></div>' +
+        '<div><div class="pf-label">Date</div><div class="pf-value">' + now + '</div></div>' +
+      '</div>' +
+
+      // Vitals
+      (vitalsHtml ? '<div class="vitals-grid">' + vitalsHtml + '</div>' : '') +
+
+      // Triage
+      (triageText ?
+        '<div class="report-card">' +
+          '<div class="section-num">Section 7</div>' +
+          '<div class="section-title">Triage Priority</div>' +
+          '<div class="triage-badge ' + triageClass + '">' + triageIcon + ' ' + esc(triageText.split('\n')[0].replace(/^ROUTINE|^URGENT|^EMERGENCY/i,'').trim() || triageText.split('\n')[0]) + '</div>' +
+          '<div class="section-body" style="margin-top:8px">' + esc(triageText) + '</div>' +
+        '</div>' : '') +
+
+      // Doctor's review
+      doctorHtml +
+
+      // Report sections
+      sectionsHtml +
+
+      '<div class="disclaimer">' +
+        '⚠️ This report is ' + (approved ? 'validated by a licensed physician.' : 'AI-generated and pending doctor review.') +
+        ' It is NOT a substitute for in-person clinical examination. Always follow your doctor\'s advice.' +
+      '</div>' +
+
+    '</div>' + // .content
+
+    // Action bar
+    '<div class="action-bar">' +
+      '<button class="btn btn-ghost" onclick="window.print()">🖨️ Print / Save PDF</button>' +
+      '<button class="btn btn-primary" onclick="shareReport()">📲 Share</button>' +
+    '</div>';
+}
+
+// ── Parse "1. SECTION TITLE\ncontent\n2. NEXT" format ────────────────────────
+function parseReportSections(text) {
+  var sections = {};
+  if (!text) return sections;
+
+  var lines   = text.split('\n');
+  var current = null;
+  var buffer  = [];
+
+  lines.forEach(function(line) {
+    var match = line.match(/^(\d+)\.\s+[A-Z]/);
+    if (match) {
+      if (current !== null) sections[current] = buffer.join('\n').trim();
+      current = match[1];
+      // Don't include the heading line itself in the body
+      buffer = [];
+    } else {
+      if (current !== null) buffer.push(line);
+    }
+  });
+  if (current !== null) sections[current] = buffer.join('\n').trim();
+
+  return sections;
+}
+
+function shareReport() {
+  if (navigator.share) {
+    navigator.share({
+      title: 'SAMARTHAA MED — Consultation Report',
+      url: location.href
+    });
+  } else {
+    navigator.clipboard.writeText(location.href).then(function() {
+      alert('Report link copied to clipboard!');
+    });
+  }
+}
+
+function showError(title, msg) {
+  document.getElementById('app').innerHTML =
+    '<div class="header"><h1>🏥 SAMARTHAA MED</h1><div class="sub">Consultation Report</div></div>' +
+    '<div class="center-msg"><div class="icon">❌</div><h2>' + title + '</h2><p>' + msg + '</p></div>';
+}
+
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+</body>
+</html>
