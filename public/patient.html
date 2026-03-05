@@ -1032,70 +1032,138 @@ async function scanDevices() {
 
 async function discoverAndRead(server, deviceName) {
   const statusEl = document.getElementById('deviceStatus');
-  let gotReading = false;
 
-  // ── 1. Try standard Blood Pressure service (0x1810) ──────────────────────
-  // Omron HEM-7143T1A uses INDICATE (not NOTIFY) on this characteristic
+  // ── Check which services are available right now ──────────────────────────
+  let services = [];
   try {
-    const bpService = await server.getPrimaryService(0x1810);
-    const bpChar    = await bpService.getCharacteristic(0x2A35); // BP Measurement
-
-    // Omron uses indications — must call startNotifications() which handles both
-    await bpChar.startNotifications();
-    bpChar.addEventListener('characteristicvaluechanged', (e) => {
-      const reading = parseBPMeasurement(e.target.value);
-      if (reading) {
-        document.getElementById('vi_bp').value = reading.bp;
-        setVital('bp', reading.bp);
-        markDeviceCard('bp');
-        if (reading.pulse) {
-          document.getElementById('vi_hr').value = reading.pulse;
-          setVital('hr', String(reading.pulse));
-          markDeviceCard('hr');
-        }
-        statusEl.innerHTML = '<span>✅</span> Reading received: ' + reading.bp + ' mmHg' +
-          (reading.pulse ? ' | Pulse: ' + reading.pulse + ' bpm' : '');
-        showToast('💓 BP: ' + reading.bp + ' mmHg' + (reading.pulse ? ' | HR: ' + reading.pulse : ''));
-        gotReading = true;
-      }
-    });
-
-    statusEl.innerHTML = '<span>✅</span> Ready — take a reading on your monitor now';
-    return;
-  } catch(e) {
-    console.log('Standard BP service not found:', e.message);
-  }
-
-  // ── 2. Try Heart Rate service (0x180D) ────────────────────────────────────
-  try {
-    const hrService = await server.getPrimaryService(0x180D);
-    const hrChar    = await hrService.getCharacteristic(0x2A37);
-    await hrChar.startNotifications();
-    hrChar.addEventListener('characteristicvaluechanged', (e) => {
-      const flags = e.target.getUint8(0);
-      const hr = (flags & 0x01) ? e.target.getUint16(1, true) : e.target.getUint8(1);
-      document.getElementById('vi_hr').value = hr;
-      setVital('hr', String(hr));
-      markDeviceCard('hr');
-      showToast('❤️ HR: ' + hr + ' bpm');
-    });
-    gotReading = true;
+    services = await server.getPrimaryServices();
   } catch(e) {}
 
-  // ── 3. Enumerate all services and log UUIDs (helps debugging) ────────────
-  if (!gotReading) {
-    try {
-      const services = await server.getPrimaryServices();
-      const uuids = services.map(s => s.uuid).join(', ');
-      console.log('Device services found:', uuids);
-      statusEl.innerHTML =
-        '<span>⚠️</span> Connected but could not read vitals automatically. ' +
-        'Services: ' + uuids.substring(0, 60) + '… — enter readings manually below.';
-    } catch(e) {
-      statusEl.innerHTML = '<span>⚠️</span> Connected — take a reading on the monitor to transfer data';
-    }
-    statusEl.className = 'device-status error';
+  const uuids = services.map(s => s.uuid);
+  const hasBP = uuids.some(u => u.startsWith('00001810'));
+  const hasHR = uuids.some(u => u.startsWith('0000180d'));
+
+  // ── Device connected but only has Generic services (idle state) ───────────
+  // Omron only exposes BP service AFTER a measurement is stored and
+  // the BT icon is flashing. Show clear instruction and auto-retry.
+  if (!hasBP && !hasHR) {
+    statusEl.innerHTML =
+      '<span>✅</span> <strong>Monitor connected!</strong> Now press <strong>START</strong> on ' +
+      'the monitor to take a reading. The vitals will transfer automatically when done.';
+    statusEl.className = 'device-status connected';
+
+    // Show animated waiting indicator in the device panel
+    _showWaitingForReading(server);
+    return;
   }
+
+  // ── BP service available — subscribe to measurements ──────────────────────
+  if (hasBP) {
+    try {
+      const bpService = await server.getPrimaryService(0x1810);
+      const bpChar    = await bpService.getCharacteristic(0x2A35);
+      await bpChar.startNotifications();
+      bpChar.addEventListener('characteristicvaluechanged', (e) => {
+        const reading = parseBPMeasurement(e.target.value);
+        if (reading) {
+          document.getElementById('vi_bp').value = reading.bp;
+          setVital('bp', reading.bp);
+          markDeviceCard('bp');
+          if (reading.pulse) {
+            document.getElementById('vi_hr').value = reading.pulse;
+            setVital('hr', String(reading.pulse));
+            markDeviceCard('hr');
+          }
+          statusEl.innerHTML = '<span>✅</span> Reading received: <strong>' + reading.bp +
+            ' mmHg</strong>' + (reading.pulse ? ' · Pulse: ' + reading.pulse + ' bpm' : '');
+          statusEl.className = 'device-status connected';
+          showToast('💓 BP: ' + reading.bp + ' mmHg' + (reading.pulse ? ' | HR: ' + reading.pulse : ''));
+          _stopRetryTimer();
+        }
+      });
+      statusEl.innerHTML = '<span>✅</span> Monitor ready — press START to take a reading';
+      statusEl.className = 'device-status connected';
+      return;
+    } catch(e) {
+      console.warn('BP characteristic error:', e.message);
+    }
+  }
+
+  // ── HR service only ───────────────────────────────────────────────────────
+  if (hasHR) {
+    try {
+      const hrService = await server.getPrimaryService(0x180D);
+      const hrChar    = await hrService.getCharacteristic(0x2A37);
+      await hrChar.startNotifications();
+      hrChar.addEventListener('characteristicvaluechanged', (e) => {
+        const flags = e.target.getUint8(0);
+        const hr = (flags & 0x01) ? e.target.getUint16(1, true) : e.target.getUint8(1);
+        document.getElementById('vi_hr').value = hr;
+        setVital('hr', String(hr));
+        markDeviceCard('hr');
+        showToast('❤️ HR: ' + hr + ' bpm');
+      });
+      statusEl.innerHTML = '<span>✅</span> Heart rate monitor ready';
+      statusEl.className = 'device-status connected';
+    } catch(e) {}
+  }
+}
+
+// ── Poll for BP service after device finishes measurement ─────────────────────
+var _retryTimer = null;
+var _retryCount = 0;
+
+function _showWaitingForReading(server) {
+  _retryCount = 0;
+  _stopRetryTimer();
+
+  const statusEl = document.getElementById('deviceStatus');
+
+  // Animate a countdown dot
+  var dots = 0;
+  _retryTimer = setInterval(async function() {
+    _retryCount++;
+    dots = (dots + 1) % 4;
+    var dotStr = '.'.repeat(dots + 1);
+
+    // Give up after 3 minutes (36 × 5s)
+    if (_retryCount > 36) {
+      _stopRetryTimer();
+      statusEl.innerHTML =
+        '<span>⚠️</span> No reading received — monitor may have timed out. ' +
+        '<button onclick="scanDevices()" style="background:var(--primary);color:#fff;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.75rem;margin-left:4px">Reconnect</button>';
+      statusEl.className = 'device-status error';
+      return;
+    }
+
+    statusEl.innerHTML = '<span>⏳</span> Waiting for reading' + dotStr +
+      ' (' + (36 - _retryCount) * 5 + 's left)';
+
+    // Try to discover BP service — it appears after measurement is stored
+    try {
+      var svcs = await server.getPrimaryServices();
+      var hasBP = svcs.some(function(s){ return s.uuid.startsWith('00001810'); });
+
+      if (hasBP) {
+        _stopRetryTimer();
+        // BP service now available — read it
+        await discoverAndRead(server, '');
+      }
+    } catch(e) {
+      // Device disconnected
+      if (e.name === 'NetworkError' || e.message.includes('disconnect')) {
+        _stopRetryTimer();
+        statusEl.innerHTML =
+          '<span>⚠️</span> Monitor disconnected. ' +
+          '<button onclick="scanDevices()" style="background:var(--primary);color:#fff;border:none;border-radius:6px;padding:3px 10px;cursor:pointer;font-size:0.75rem;margin-left:4px">Reconnect</button>';
+        statusEl.className = 'device-status error';
+      }
+    }
+  }, 5000); // poll every 5 seconds
+}
+
+function _stopRetryTimer() {
+  if (_retryTimer) { clearInterval(_retryTimer); _retryTimer = null; }
 }
 
 // ── Parse standard BP Measurement characteristic (0x2A35) ────────────────────
