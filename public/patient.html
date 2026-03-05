@@ -992,9 +992,8 @@ async function scanDevices() {
         0x180F,  // Battery Service
         0x1800,  // Generic Access
         0x1801,  // Generic Attribute
-        // Omron proprietary service UUIDs (known from reverse engineering)
-        'ecbe3980-c9a2-11e1-b1bd-0002a5d5c51b',  // Omron custom service
-        'bloodpressure',
+        // Omron proprietary service UUID (known from reverse engineering)
+        'ecbe3980-c9a2-11e1-b1bd-0002a5d5c51b',
       ]
     });
   } catch(e) {

@@ -308,6 +308,7 @@
   .view.active { display: block; }
   .view.active.flex-view { display: flex; }
   #view-consult.active { flex-direction: column; height: calc(100vh - 58px); overflow: hidden; }
+  #view-emergency.active { overflow-y: auto; }
   #view-radiology { overflow-y: auto; max-height: 100%; }
   @keyframes fadeIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
 
@@ -1771,6 +1772,8 @@
     #view-emergency > div { max-width: 100% !important; box-sizing: border-box !important; }
     #view-emergency .card { overflow: hidden !important; }
     #view-emergency canvas { max-width: 100% !important; }
+    /* Emergency inner wrapper: natural height, let .content scroll */
+    #view-emergency.active { display: block !important; overflow: visible !important; height: auto !important; }
 
     /* Voice modal — full screen on mobile (styles.css already has this but ensure) */
     #voiceConsultModal > div {
@@ -4145,7 +4148,7 @@
       </div>
 
       <!-- EMERGENCY AI VIEW -->
-      <div class="view" id="view-emergency" style="overflow-y:auto;height:100%">
+      <div class="view" id="view-emergency">
         <div style="padding:20px;max-width:860px;width:100%;margin:0 auto;box-sizing:border-box">
           <div style="background:var(--red-dim);border:1px solid var(--red);border-radius:12px;padding:16px 20px;margin-bottom:20px;display:flex;align-items:center;gap:12px">
             <span style="font-size:2rem">🚨</span>
@@ -4924,7 +4927,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.7' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.9' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -12535,7 +12538,9 @@ Please provide clinical guidance on management.`;
     } else {
       footer.innerHTML =
         '<button class="btn btn-ghost" onclick="closeVCModal()">Close</button>' +
-        '<button class="btn btn-outline" onclick="downloadVCReport(\'' + id + '\')">📥 Download PDF</button>';
+        '<button class="btn" style="background:rgba(37,211,102,.1);color:#128C7E;border:1.5px solid #25d366" onclick="_sendVCWhatsApp(\'' + id + '\')">📲 WhatsApp</button>' +
+        '<button class="btn btn-outline" onclick="_printVCToken(\'' + id + '\')">🖨️ Print Token</button>' +
+        '<button class="btn btn-primary" onclick="downloadVCReport(\'' + id + '\')">📥 PDF Report</button>';
     }
 
     document.getElementById('vcModal').style.display = 'block';
@@ -12560,18 +12565,179 @@ Please provide clinical guidance on management.`;
     var idx = _vcConsults.findIndex(function(c){ return c.id === id; });
     if (idx === -1) return;
 
-    _vcConsults[idx].status      = 'approved';
-    _vcConsults[idx].doctorNotes = doctorNotes;
-    _vcConsults[idx].approvedAt  = new Date().toISOString();
-    _vcConsults[idx].approvedBy  = localStorage.getItem('samarthaamed_user_name') || 'Doctor';
+    var c = _vcConsults[idx];
+    c.status      = 'approved';
+    c.doctorNotes = doctorNotes;
+    c.approvedAt  = new Date().toISOString();
+    c.approvedBy  = localStorage.getItem('samarthaamed_user_name') || 'Doctor';
 
     localStorage.setItem('samarthaamed_video_consultations', JSON.stringify(_vcConsults));
-    closeVCModal();
     renderVCList();
-    showToast('✅', 'Report Approved', 'Patient can now download the validated report');
 
-    // Auto-download the final PDF
-    setTimeout(function(){ downloadVCReport(id); }, 500);
+    // Show post-approval delivery panel inside modal
+    _showApprovalDelivery(c);
+  }
+
+  function _showApprovalDelivery(c) {
+    var p = c.patient;
+    var phone = (p.phone || '').replace(/[^0-9]/g, '');
+    if (phone.length === 10) phone = '91' + phone; // add India country code
+
+    // Build WhatsApp message
+    var msg =
+      '✅ *SAMARTHAA MED — Consultation Report Ready*\n\n' +
+      'Dear ' + p.fname + ' ' + p.lname + ',\n\n' +
+      'Your Video AI Consultation report has been reviewed and approved by your doctor.\n\n' +
+      '📋 *Reference No:* ' + c.id + '\n' +
+      '👨‍⚕️ *Reviewed by:* ' + c.approvedBy + '\n' +
+      '🕐 *Approved:* ' + new Date(c.approvedAt).toLocaleString('en-IN') + '\n\n' +
+      '📥 To collect your printed report, show this reference number at the reception desk.\n\n' +
+      '_SAMARTHAA MED · samarthaamed.netlify.app_';
+
+    var encodedMsg = encodeURIComponent(msg);
+    var waURL = 'https://wa.me/' + phone + '?text=' + encodedMsg;
+
+    // Update modal header
+    document.getElementById('vcModalTitle').textContent = '✅ Report Approved — Share with Patient';
+    document.getElementById('vcModalSub').textContent   = c.id + ' · ' + p.fname + ' ' + p.lname;
+
+    // Replace modal body with delivery panel
+    document.getElementById('vcModalBody').innerHTML =
+
+      // Success banner
+      '<div style="text-align:center;padding:20px 0 16px">' +
+        '<div style="width:60px;height:60px;border-radius:50%;background:rgba(5,150,105,.12);border:2px solid var(--green);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 12px">✅</div>' +
+        '<div style="font-family:var(--syne);font-size:1.1rem;font-weight:800;color:var(--green)">Report Validated & Approved</div>' +
+        '<div style="font-size:0.82rem;color:var(--text3);margin-top:4px">Choose how to deliver the report to the patient</div>' +
+      '</div>' +
+
+      // ── Option 1: WhatsApp ──────────────────────────────────────
+      '<div style="background:rgba(37,211,102,.06);border:1.5px solid #25d366;border-radius:12px;padding:18px;margin-bottom:14px">' +
+        '<div style="font-weight:700;color:#128C7E;margin-bottom:6px;font-size:0.95rem">📲 Send via WhatsApp</div>' +
+        '<div style="font-size:0.8rem;color:var(--text2);margin-bottom:12px">Opens WhatsApp with a pre-written message to the patient\'s phone number.</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">' +
+          '<label style="font-size:0.75rem;color:var(--text3);white-space:nowrap;font-weight:600">Patient Phone</label>' +
+          '<input id="vcWaPhone" type="tel" value="' + _esc(p.phone || '') + '" ' +
+            'style="flex:1;border:1.5px solid #86efac;border-radius:8px;padding:8px 10px;font-size:0.88rem;background:var(--navy);color:var(--text1);outline:none">' +
+        '</div>' +
+        '<button onclick="_sendVCWhatsApp(\'' + c.id + '\')" ' +
+          'style="width:100%;padding:12px;background:linear-gradient(135deg,#25D366,#128C7E);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:0.92rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">' +
+          '📱 Open WhatsApp &amp; Send</button>' +
+      '</div>' +
+
+      // ── Option 2: Printable Token ───────────────────────────────
+      '<div style="background:var(--primary-dim,rgba(185,28,28,.07));border:1.5px solid var(--border2);border-radius:12px;padding:18px;margin-bottom:14px">' +
+        '<div style="font-weight:700;color:var(--teal);margin-bottom:6px;font-size:0.95rem">🖨️ Print Collection Token</div>' +
+        '<div style="font-size:0.8rem;color:var(--text2);margin-bottom:12px">Print a slip the patient shows at reception to collect their report.</div>' +
+        '<button onclick="_printVCToken(\'' + c.id + '\')" ' +
+          'style="width:100%;padding:12px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-weight:700;font-size:0.92rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">' +
+          '🖨️ Print Token Slip</button>' +
+      '</div>' +
+
+      // ── Option 3: Download PDF ──────────────────────────────────
+      '<div style="background:var(--navy2);border:1px solid var(--border);border-radius:12px;padding:18px">' +
+        '<div style="font-weight:700;color:var(--text1);margin-bottom:6px;font-size:0.95rem">📥 Download Full Report PDF</div>' +
+        '<div style="font-size:0.8rem;color:var(--text2);margin-bottom:12px">Download the validated report to print or share manually.</div>' +
+        '<button onclick="downloadVCReport(\'' + c.id + '\')" ' +
+          'style="width:100%;padding:12px;background:var(--navy3,#fef2f2);color:var(--teal);border:1.5px solid var(--border2);border-radius:8px;font-weight:700;font-size:0.92rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px">' +
+          '📄 Open &amp; Print PDF Report</button>' +
+      '</div>';
+
+    // Update footer
+    document.getElementById('vcModalFooter').innerHTML =
+      '<button class="btn btn-ghost" onclick="closeVCModal()">Done</button>';
+  }
+
+  function _sendVCWhatsApp(id) {
+    var c = _vcConsults.find(function(x){ return x.id === id; });
+    if (!c) return;
+    var p = c.patient;
+
+    // Get phone from the editable input (doctor may have corrected it)
+    var rawPhone = document.getElementById('vcWaPhone').value.replace(/[^0-9+]/g, '');
+    if (rawPhone.startsWith('+')) rawPhone = rawPhone.slice(1);
+    if (rawPhone.length === 10) rawPhone = '91' + rawPhone;
+
+    var msg =
+      '✅ *SAMARTHAA MED — Consultation Report Ready*\n\n' +
+      'Dear ' + p.fname + ' ' + p.lname + ',\n\n' +
+      'Your Video AI Consultation report has been reviewed and approved by your doctor.\n\n' +
+      '📋 *Reference No:* ' + c.id + '\n' +
+      '👨‍⚕️ *Reviewed by:* ' + (c.approvedBy || 'Doctor') + '\n' +
+      '🕐 *Approved:* ' + new Date(c.approvedAt).toLocaleString('en-IN') + '\n\n' +
+      '📥 Please show this reference number at the reception desk to collect your printed report.\n\n' +
+      (c.doctorNotes ? '📝 *Doctor\'s Note:* ' + c.doctorNotes + '\n\n' : '') +
+      '_SAMARTHAA MED · samarthaamed.netlify.app/patient.html_';
+
+    var url = 'https://wa.me/' + rawPhone + '?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank');
+    showToast('📲', 'WhatsApp Opened', 'Send the message to ' + p.fname);
+  }
+
+  function _printVCToken(id) {
+    var c = _vcConsults.find(function(x){ return x.id === id; });
+    if (!c) return;
+    var p = c.patient;
+    var approvedAt = c.approvedAt ? new Date(c.approvedAt).toLocaleString('en-IN') : '';
+
+    var tokenHtml =
+      '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Collection Token — ' + c.id + '</title>' +
+      '<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap" rel="stylesheet">' +
+      '<style>' +
+        '*{box-sizing:border-box;margin:0;padding:0}' +
+        'body{font-family:"DM Sans",sans-serif;background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}' +
+        '.token{width:100%;max-width:380px;border:2.5px solid #b91c1c;border-radius:16px;overflow:hidden;box-shadow:0 8px 32px rgba(185,28,28,.15)}' +
+        '.token-header{background:linear-gradient(135deg,#b91c1c,#dc2626);color:#fff;padding:18px 20px;text-align:center}' +
+        '.token-header h1{font-family:"Syne",sans-serif;font-size:15pt;font-weight:800;letter-spacing:.5px}' +
+        '.token-header .sub{font-size:8pt;opacity:.85;margin-top:3px;letter-spacing:1px;text-transform:uppercase}' +
+        '.token-body{padding:20px}' +
+        '.ref-box{text-align:center;background:#fef2f2;border:2px dashed #fca5a5;border-radius:10px;padding:16px;margin-bottom:16px}' +
+        '.ref-label{font-size:8pt;color:#6b7280;text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:6px}' +
+        '.ref-num{font-family:"DM Mono",monospace;font-size:20pt;font-weight:600;color:#b91c1c;letter-spacing:3px}' +
+        '.info-row{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #fecaca;font-size:9.5pt}' +
+        '.info-row:last-child{border:none}' +
+        '.info-label{color:#6b7280;font-weight:600}' +
+        '.info-value{color:#1f2937;font-weight:500;text-align:right;max-width:55%}' +
+        '.status-badge{margin:14px 0 0;text-align:center;padding:8px;background:#dcfce7;border:1px solid #86efac;border-radius:8px;color:#15803d;font-weight:700;font-size:9.5pt}' +
+        '.instructions{margin-top:14px;background:#fffbeb;border:1px solid #fde68a;border-radius:8px;padding:12px;font-size:8.5pt;color:#92400e;line-height:1.6}' +
+        '.instructions strong{display:block;margin-bottom:4px;font-size:9pt}' +
+        '.token-footer{background:#fef7f7;border-top:1px solid #fecaca;padding:12px 20px;text-align:center;font-size:7.5pt;color:#9ca3af}' +
+        '@media print{body{padding:0;display:block}@page{size:A5;margin:10mm}.token{max-width:100%;box-shadow:none;border-width:2px}}' +
+      '</style></head><body>' +
+      '<div class="token">' +
+        '<div class="token-header">' +
+          '<h1>🏥 SAMARTHAA MED</h1>' +
+          '<div class="sub">Video AI Consultation — Report Collection Token</div>' +
+        '</div>' +
+        '<div class="token-body">' +
+          '<div class="ref-box">' +
+            '<div class="ref-label">Reference Number</div>' +
+            '<div class="ref-num">' + _esc(c.id) + '</div>' +
+          '</div>' +
+          '<div class="info-row"><span class="info-label">Patient</span><span class="info-value">' + _esc(p.fname + ' ' + p.lname) + '</span></div>' +
+          '<div class="info-row"><span class="info-label">Age / Sex</span><span class="info-value">' + _esc(p.age + ' / ' + p.sex) + '</span></div>' +
+          '<div class="info-row"><span class="info-label">Phone</span><span class="info-value">' + _esc(p.phone || '—') + '</span></div>' +
+          '<div class="info-row"><span class="info-label">Approved by</span><span class="info-value">' + _esc(c.approvedBy || 'Doctor') + '</span></div>' +
+          '<div class="info-row"><span class="info-label">Approved at</span><span class="info-value">' + _esc(approvedAt) + '</span></div>' +
+          '<div class="status-badge">✅ REPORT VALIDATED — Ready for Collection</div>' +
+          '<div class="instructions">' +
+            '<strong>📋 Instructions for Patient:</strong>' +
+            '1. Show this token or quote the Reference Number at the reception desk.<br>' +
+            '2. Reception staff will print your validated consultation report.<br>' +
+            '3. This token is valid for 7 days from approval date.' +
+          '</div>' +
+        '</div>' +
+        '<div class="token-footer">SAMARTHAA MED · samarthaamed.netlify.app · Not a substitute for clinical examination</div>' +
+      '</div>' +
+      '<script>document.fonts.ready.then(function(){setTimeout(function(){window.print();},500);});<\/script>' +
+      '</body></html>';
+
+    var blob = new Blob([tokenHtml], { type: 'text/html' });
+    var url  = URL.createObjectURL(blob);
+    var tab  = window.open(url, '_blank');
+    if (!tab) { var a = document.createElement('a'); a.href = url; a.download = 'token-' + c.id + '.html'; a.click(); }
+    setTimeout(function(){ URL.revokeObjectURL(url); }, 15000);
+    showToast('🖨️', 'Token Printing', 'Collection slip opened for printing');
   }
 
   function rejectVC(id) {
