@@ -1,27 +1,42 @@
-[build]
-  command = "echo 'No build needed'"
-  publish = "public"
-  functions = "netlify/functions"
+# ─────────────────────────────────────────────────────────────
+#  SAMARTHAA MED — Netlify Configuration
+# ─────────────────────────────────────────────────────────────
 
-[build.environment]
-  NODE_VERSION = "18"
+[build]
+  command   = "echo 'Static site — no build'"
+  publish   = "public"
+  functions = "netlify/functions"
 
 [build.processing]
   skip_processing = true
 
-# Route /api/config → the config serverless function
+# ── Netlify Functions ─────────────────────────────────────────
 [[redirects]]
   from   = "/api/config"
   to     = "/.netlify/functions/config"
   status = 200
 
-# Route /api/orthanc-proxy → Orthanc proxy function (solves CORS)
 [[redirects]]
   from   = "/api/orthanc-proxy"
   to     = "/.netlify/functions/orthanc-proxy"
   status = 200
 
-# All other routes → SPA index
+# ── Public patient pages — served as real files ───────────────
+# Must be BEFORE the SPA catch-all
+
+[[redirects]]
+  from   = "/patient.html"
+  to     = "/patient.html"
+  status = 200
+  force  = true
+
+[[redirects]]
+  from   = "/report-viewer.html"
+  to     = "/report-viewer.html"
+  status = 200
+  force  = true
+
+# ── Doctor app — SPA catch-all (must be last) ─────────────────
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
