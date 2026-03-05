@@ -1630,21 +1630,34 @@ Generate a structured pre-consultation report with:
 Use plain text. No markdown, no bullets — use numbered sections. Keep it clinical, concise, suitable for Indian primary care. Flag anything requiring immediate attention.`;
 
   try {
-    // Call via the medical app's backend
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': getAnthropicKey(),
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 2000,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    });
+    // Route through Render backend which holds the API key securely
+    // Tries direct Anthropic first (if key available), falls back to backend proxy
+    const key = getAnthropicKey();
+    let response;
+
+    if (key) {
+      response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': key,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true'
+        },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 2000,
+          messages: [{ role: 'user', content: prompt }]
+        })
+      });
+    } else {
+      // No local key — call backend proxy on Render
+      response = await fetch('https://legal-ai-2-tool-1.onrender.com/api/patient-analysis', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt })
+      });
+    }
 
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
@@ -1652,11 +1665,13 @@ Use plain text. No markdown, no bullets — use numbered sections. Keep it clini
     }
 
     const data = await response.json();
-    state.report = data.content[0].text;
+    // Handle both direct Anthropic response and backend proxy response
+    state.report = data.content?.[0]?.text || data.report || data.output || '';
+    if (!state.report) throw new Error('Empty response');
 
   } catch(e) {
     console.error('AI error:', e);
-    // Graceful fallback report
+    // Smart rule-based fallback — actually analyses the data
     state.report = generateFallbackReport(complaint, vitalsText, duration, severity, concern);
   }
 
@@ -1674,46 +1689,213 @@ function getAnthropicKey() {
 }
 
 function generateFallbackReport(complaint, vitals, duration, severity, concern) {
-  const p = state.patient;
+  const p   = state.patient;
+  const v   = state.vitals;
   const now = new Date().toLocaleDateString('en-IN', { dateStyle: 'long' });
+  const sev = parseInt(severity) || 0;
+  const age = parseInt(p.age)    || 0;
+  const c   = (complaint || '').toLowerCase();
+  const cond = (p.conditions || '').toLowerCase();
+  const meds = (p.meds || '').toLowerCase();
+
+  // ── Parse vitals ──────────────────────────────────────────────────────────
+  const bpParts   = (v.bp || '').split('/');
+  const systolic  = parseInt(bpParts[0]) || 0;
+  const diastolic = parseInt(bpParts[1]) || 0;
+  const hr        = parseInt(v.hr)   || 0;
+  const spo2      = parseInt(v.spo2) || 0;
+  const temp      = parseFloat(v.temp) || 0;
+
+  // ── Vital sign flags (ICMR / Indian norms) ────────────────────────────────
+  const vitalFlags = [];
+  if (systolic >= 140 || diastolic >= 90)  vitalFlags.push('Hypertension (BP ' + v.bp + ' mmHg — above 140/90)');
+  if (systolic >= 180 || diastolic >= 120) vitalFlags.push('HYPERTENSIVE CRISIS — immediate attention required');
+  if (systolic > 0 && systolic < 90)       vitalFlags.push('Hypotension (BP ' + v.bp + ' mmHg — below 90 mmHg systolic)');
+  if (hr > 100)  vitalFlags.push('Tachycardia (HR ' + hr + ' bpm — above 100)');
+  if (hr > 0 && hr < 60)  vitalFlags.push('Bradycardia (HR ' + hr + ' bpm — below 60)');
+  if (spo2 > 0 && spo2 < 95) vitalFlags.push('Low SpO₂ (' + spo2 + '% — below 95%, evaluate respiratory status)');
+  if (spo2 > 0 && spo2 < 90) vitalFlags.push('CRITICAL SpO₂ (' + spo2 + '% — requires urgent oxygen support)');
+  if (temp >= 38.0) vitalFlags.push('Fever (' + temp + '°C — above 38°C, consider infection)');
+  if (temp >= 39.5) vitalFlags.push('High Fever (' + temp + '°C — investigate source urgently)');
+  if (temp > 0 && temp < 36.0) vitalFlags.push('Hypothermia (' + temp + '°C — below 36°C)');
+
+  const vitalsAssessment = vitalFlags.length > 0
+    ? vitalFlags.join('. ') + '.'
+    : 'All recorded vitals are within normal limits for Indian adult population (ICMR norms).';
+
+  // ── Rule-based differential diagnosis (Section 5) ────────────────────────
+  const differentials = [];
+
+  // Chest / Cardiac
+  if (c.includes('chest') || c.includes('heart') || concern === 'Chest / Heart') {
+    if (c.includes('radiat') || c.includes('left arm') || c.includes('jaw'))
+      differentials.push('Acute Coronary Syndrome (ACS) / NSTEMI — chest pain with radiation pattern warrants ECG and troponin');
+    else if (systolic >= 140)
+      differentials.push('Hypertensive Chest Pain — elevated BP with chest discomfort, rule out aortic involvement');
+    else
+      differentials.push('Musculoskeletal Chest Pain / Costochondritis — non-radiating chest discomfort, common in outpatient setting');
+    differentials.push('Gastroesophageal Reflux Disease (GERD) — burning chest pain, worsens after meals, very prevalent in India');
+  }
+
+  // Respiratory
+  if (c.includes('breath') || c.includes('cough') || c.includes('wheez') || concern === 'Breathing' || spo2 < 95) {
+    differentials.push('Acute Bronchitis / URTI — productive cough, low-grade fever, seasonal pattern');
+    if (spo2 < 93) differentials.push('Pneumonia / Lower Respiratory Tract Infection — low SpO₂, requires chest X-ray');
+    if (c.includes('wheez') || cond.includes('asthma')) differentials.push('Bronchial Asthma exacerbation — wheezing, breathlessness, known or new onset');
+  }
+
+  // Fever / Infection
+  if (temp >= 38 || c.includes('fever') || c.includes('chills') || concern === 'Fever / Infection') {
+    differentials.push('Viral Fever / Dengue / Influenza — fever with myalgia, very common in India; check platelet count');
+    if (c.includes('urin') || c.includes('burning')) differentials.push('Urinary Tract Infection (UTI) — dysuria with fever, send urine culture');
+    differentials.push('Malaria — endemic in region, fever with chills, check peripheral smear / RDT');
+  }
+
+  // GI
+  if (c.includes('stomach') || c.includes('abdomen') || c.includes('nausea') || c.includes('vomit') || concern === 'Stomach / GI') {
+    differentials.push('Acute Gastroenteritis — nausea, vomiting, loose stools, dietary history relevant');
+    differentials.push('Peptic Ulcer Disease / Gastritis — epigastric pain, H. pylori common in India');
+    if (c.includes('right') || c.includes('jaundice')) differentials.push('Hepatitis / Biliary Pathology — right upper quadrant pain, check LFT');
+  }
+
+  // Head / Neuro
+  if (c.includes('head') || c.includes('dizz') || c.includes('vertigo') || concern === 'Head / Neuro') {
+    if (systolic >= 140) differentials.push('Hypertensive Headache — BP elevated, headache pattern needs evaluation');
+    differentials.push('Tension-Type Headache — most common headache type, bilateral, stress-related');
+    if (c.includes('dizz') || c.includes('vertigo')) differentials.push('Benign Paroxysmal Positional Vertigo (BPPV) — positional dizziness, Dix-Hallpike test recommended');
+  }
+
+  // Diabetes-related
+  if (cond.includes('diabet') || c.includes('diabet') || c.includes('sugar') || c.includes('dry mouth') || c.includes('thirst')) {
+    differentials.push('Uncontrolled Diabetes Mellitus / Poor Glycaemic Control — dry mouth, polydipsia, check HbA1c and fasting glucose');
+    if (c.includes('miss') || c.includes('skip') || c.includes('medication')) differentials.push('Medication Non-Adherence — patient reports missing doses; assess barriers and reinforce adherence counselling');
+  }
+
+  // Musculoskeletal
+  if (c.includes('joint') || c.includes('muscle') || c.includes('back') || c.includes('pain') || concern === 'Musculoskeletal') {
+    differentials.push('Musculoskeletal Pain / Myalgia — localised pain, assess for injury or overuse');
+    if (age > 40) differentials.push('Osteoarthritis / Degenerative Joint Disease — age-related joint pain, X-ray of affected joint');
+  }
+
+  // Generic if nothing matched
+  if (differentials.length === 0) {
+    differentials.push('Functional / Psychosomatic Disorder — symptoms without clear organic cause, stress and lifestyle factors relevant in Indian urban population');
+    differentials.push('Nutritional Deficiency — Vitamin D, B12, and Iron deficiency extremely common in India; basic haematology warranted');
+    differentials.push('Viral Illness / URTI — most common outpatient presentation; symptomatic management appropriate');
+  }
+
+  const diffSection = differentials.slice(0, 3).map((d, i) => (i+1) + '. ' + d).join('\n');
+
+  // ── Rule-based investigations (Section 6) ────────────────────────────────
+  const investigations = [];
+
+  // Always baseline
+  investigations.push('Complete Blood Count (CBC) with differential — baseline for all new presentations');
+
+  // Diabetes
+  if (cond.includes('diabet') || c.includes('diabet') || c.includes('sugar') || c.includes('dry mouth')) {
+    investigations.push('Fasting Blood Glucose + HbA1c — to assess glycaemic control');
+    investigations.push('Urine routine / microalbumin — screen for diabetic nephropathy');
+  }
+
+  // Hypertension / cardiac
+  if (systolic >= 140 || cond.includes('hypertension') || cond.includes('bp') || concern === 'Chest / Heart') {
+    investigations.push('12-lead ECG — evaluate cardiac status given BP / chest concern');
+    investigations.push('Renal function test (Creatinine, BUN) + Electrolytes — hypertension workup');
+    investigations.push('Lipid profile (if not done in last 6 months)');
+  }
+
+  // Fever / infection
+  if (temp >= 38 || c.includes('fever')) {
+    investigations.push('Dengue NS1 Antigen + IgM/IgG — mandatory in fever workup in India');
+    investigations.push('Malaria RDT / Peripheral smear — endemic risk');
+    investigations.push('Widal test / Blood culture if typhoid suspected');
+  }
+
+  // Respiratory
+  if (spo2 < 95 || c.includes('cough') || c.includes('breath') || concern === 'Breathing') {
+    investigations.push('Chest X-ray PA view — evaluate pulmonary status');
+    investigations.push('Sputum examination if productive cough > 2 weeks (rule out TB)');
+  }
+
+  // Lipids for older / obese
+  if (age > 35 || parseInt(v.wt) > 80) {
+    investigations.push('Lipid profile — cardiovascular risk assessment');
+  }
+
+  // Thyroid if fatigue / weight issues
+  if (c.includes('tired') || c.includes('fatigue') || c.includes('weight')) {
+    investigations.push('Thyroid function test (TSH) — rule out thyroid dysfunction');
+  }
+
+  // Liver / GI
+  if (c.includes('abdomen') || c.includes('jaundice') || c.includes('liver') || concern === 'Stomach / GI') {
+    investigations.push('Liver function test (LFT) + Ultrasound abdomen');
+    investigations.push('Hepatitis B surface antigen (HBsAg) — high prevalence in India');
+  }
+
+  // Vitamin deficiencies
+  investigations.push('Vitamin D + Vitamin B12 + Iron studies — deficiencies extremely prevalent in Indian population');
+
+  const invSection = investigations.slice(0, 6).map((inv, i) => (i+1) + '. ' + inv).join('\n');
+
+  // ── Triage ────────────────────────────────────────────────────────────────
+  let triage;
+  const isCritical = spo2 > 0 && spo2 < 90 || systolic >= 180 || (systolic > 0 && systolic < 80) || hr > 150 || temp >= 40;
+  const isUrgent   = sev >= 7 || spo2 < 95 || systolic >= 160 || hr > 120 || temp >= 39;
+  if (isCritical)  triage = 'EMERGENCY — Critical vital signs detected. Requires immediate medical attention.';
+  else if (isUrgent) triage = 'URGENT — Severity ' + sev + '/10 or abnormal vitals. Recommend same-day evaluation.';
+  else               triage = 'ROUTINE — Severity ' + sev + '/10. Scheduled consultation appropriate within 48–72 hours.';
+
+  // ── Doctor's attention flags ───────────────────────────────────────────────
+  const flags = [...vitalFlags];
+  if (sev >= 7) flags.push('Patient-reported severity is high (' + sev + '/10)');
+  if (duration === '1 month+' || duration === 'Chronic') flags.push('Chronic/prolonged complaint — needs systematic workup');
+  if (cond) flags.push('Known comorbidities: ' + p.conditions);
+  if (meds) flags.push('Current medications: ' + p.meds + ' — check for interactions');
+  const flagSection = flags.length > 0
+    ? flags.map((f, i) => (i+1) + '. ' + f).join('\n')
+    : 'No specific flags beyond routine clinical assessment.';
+
   return `PRE-CONSULTATION REPORT — SAMARTHAA MED
 Generated: ${now} | Reference: ${generateConsultId()}
 
 1. PATIENT SUMMARY
 Name: ${p.fname} ${p.lname} | Age: ${p.age} | Sex: ${p.sex}
 Known Conditions: ${p.conditions || 'None reported'}
-Medications: ${p.meds || 'None'}
+Current Medications: ${p.meds || 'None'}
 Allergies: ${p.allergies || 'None'}
 
 2. PRESENTING COMPLAINTS
 ${complaint}
-Duration: ${duration} | Severity: ${severity}/10 | Concern Area: ${concern}
+Duration: ${duration} | Severity: ${severity}/10 | Primary Concern: ${concern}
 
-3. VITAL SIGNS
-${vitals}
+3. VITAL SIGNS ASSESSMENT
+${vitals || 'No vitals recorded.'}
+
+Assessment: ${vitalsAssessment}
 
 4. VISUAL ASSESSMENT
 ${state.visualObs || 'Camera assessment not performed.'}
 
 5. PRELIMINARY DIFFERENTIAL CONSIDERATIONS
-To be determined by the attending physician based on clinical examination.
+Based on the presenting complaints, vitals, and history, the following conditions are considered (not a diagnosis):
+
+${diffSection}
 
 6. RECOMMENDED INVESTIGATIONS
-To be ordered by the attending physician based on clinical findings.
+The following tests are suggested for the attending physician to consider:
+
+${invSection}
 
 7. TRIAGE PRIORITY
-${parseInt(severity) >= 8 ? 'URGENT — Severity ≥8/10. Recommend prompt evaluation.' :
-  parseInt(severity) >= 5 ? 'MODERATE — Routine consultation advised.' :
-  'ROUTINE — Scheduled consultation appropriate.'}
+${triage}
 
-8. POINTS FOR DOCTOR\'S ATTENTION
-Patient has self-reported severity of ${severity}/10.
-Duration: ${duration}. Primary area of concern: ${concern}.
+8. POINTS FOR DOCTOR'S ATTENTION
+${flagSection}
 
 9. DISCLAIMER
-This is an AI-generated pre-consultation summary. It is NOT a medical diagnosis.
-It must be reviewed and validated by a licensed physician before clinical use.
-Not a substitute for professional medical examination.`;
+This is a rule-based pre-consultation summary generated without AI due to connectivity issues. It is NOT a medical diagnosis. It must be reviewed and validated by a licensed physician before clinical use. Not a substitute for professional medical examination and clinical judgment.`;
 }
 
 // ═══════════════════════════════════════════════════════════
