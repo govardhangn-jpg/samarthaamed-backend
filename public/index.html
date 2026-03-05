@@ -4927,7 +4927,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.12' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.13' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -12656,14 +12656,11 @@ Please provide clinical guidance on management.`;
 
   function _buildReportURL(c) {
     try {
-      // Trim report to essentials — full report can be 3000+ chars which breaks URLs
-      // WhatsApp and browsers have ~8000 char URL limits
       var payload = JSON.stringify({
         id:          c.id,
         status:      c.status,
         patient:     c.patient,
         vitals:      c.vitals,
-        // Truncate report to 2500 chars to stay within URL limits
         report:      (c.report || '').substring(0, 2500),
         visualObs:   c.visualObs,
         doctorNotes: c.doctorNotes,
@@ -12672,19 +12669,19 @@ Please provide clinical guidance on management.`;
         timestamp:   c.timestamp
       });
 
-      // Unicode-safe base64: TextEncoder → Uint8Array → base64
-      // This handles Hindi, Tamil, emoji in complaints correctly
+      // Unicode-safe base64
       var bytes = new TextEncoder().encode(payload);
       var binary = '';
       bytes.forEach(function(b) { binary += String.fromCharCode(b); });
       var b64    = btoa(binary);
+      // base64url (no +, /, = chars that break URLs)
       var b64url = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
 
-      return 'https://samarthaamed.netlify.app/report-viewer.html#' + b64url;
+      // Use ?d= query param NOT #hash — hash gets stripped by WhatsApp URL parser
+      return 'https://samarthaamed.netlify.app/report-viewer.html?d=' + b64url;
     } catch(e) {
       console.error('URL encode error:', e);
-      // Fallback — just pass reference ID, viewer shows minimal info
-      return 'https://samarthaamed.netlify.app/report-viewer.html#ref=' + encodeURIComponent(c.id);
+      return 'https://samarthaamed.netlify.app/report-viewer.html?ref=' + encodeURIComponent(c.id);
     }
   }
 

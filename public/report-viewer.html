@@ -169,9 +169,22 @@ body {
 // URL format: /report-viewer.html#<base64url-encoded-json>
 
 (function() {
-  var hash = location.hash.slice(1); // strip leading #
+  // Read from ?d= query parameter (hash gets stripped by WhatsApp)
+  // Also support legacy #hash links for backwards compatibility
+  var encoded = null;
 
-  if (!hash) {
+  var qs = location.search; // e.g. ?d=eyJ...
+  if (qs) {
+    var match = qs.match(/[?&]d=([^&]+)/);
+    if (match) encoded = match[1];
+  }
+
+  // Legacy hash fallback
+  if (!encoded && location.hash) {
+    encoded = location.hash.slice(1);
+  }
+
+  if (!encoded) {
     showError('No Report Found',
       'This link does not contain a report. Please ask your doctor to resend the WhatsApp message.');
     return;
@@ -180,7 +193,7 @@ body {
   var data;
   try {
     // base64url → base64 → Uint8Array → UTF-8 string → JSON
-    var b64 = hash.replace(/-/g, '+').replace(/_/g, '/');
+    var b64 = encoded.replace(/-/g, '+').replace(/_/g, '/');
     var padded = b64 + '==='.slice((b64.length + 3) % 4);
     var binary = atob(padded);
     var bytes  = new Uint8Array(binary.length);
