@@ -1,7 +1,10 @@
 [build]
-  command = ""
+  command = "echo 'No build needed'"
   publish = "public"
   functions = "netlify/functions"
+
+[build.environment]
+  NODE_VERSION = "18"
 
 [build.processing]
   skip_processing = true
@@ -18,7 +21,7 @@
   to     = "/.netlify/functions/orthanc-proxy"
   status = 200
 
-# All other routes → SPA index (patient.html is a real file so Netlify serves it directly)
+# All other routes → SPA index
 [[redirects]]
   from   = "/*"
   to     = "/index.html"
