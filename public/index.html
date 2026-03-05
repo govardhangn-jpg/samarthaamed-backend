@@ -4927,7 +4927,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.11' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.12' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -12710,9 +12710,8 @@ Please provide clinical guidance on management.`;
       '📋 *Reference No:* ' + c.id + '\n' +
       '🕐 *Approved:* ' + new Date(c.approvedAt).toLocaleString('en-IN') + '\n\n' +
       (c.doctorNotes ? '📝 *Doctor\'s Note:* ' + c.doctorNotes + '\n\n' : '') +
-      '📄 *View your full report here:*\n' + reportURL + '\n\n' +
-      '_Tap the link to view, print or save your report. You can show this to your doctor at any time._\n\n' +
-      '_SAMARTHAA MED · samarthaamed.netlify.app_';
+      '📄 *Tap below to view your validated report:*\n' + reportURL + '\n\n' +
+      '_You can view, print or show this report to any doctor at any time._';
 
     var url = 'https://wa.me/' + rawPhone + '?text=' + encodeURIComponent(msg);
     window.open(url, '_blank');
