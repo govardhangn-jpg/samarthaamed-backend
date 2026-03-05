@@ -567,17 +567,18 @@ textarea { resize: vertical; min-height: 80px; }
     <div class="device-panel" id="devicePanel">
       <div class="device-icon">🩺</div>
       <div class="device-info">
-        <div class="device-title">Kiosk Health Devices</div>
+        <div class="device-title">Connect Omron BP Monitor</div>
         <div class="device-desc">
-          Connect to the BP machine, pulse oximeter, or thermometer at this kiosk.
-          Readings will populate automatically via Bluetooth/USB.
+          <strong>Step 1:</strong> Press <strong>START</strong> on the Omron monitor to take a reading.<br>
+          <strong>Step 2:</strong> Wait for the reading to complete and be stored (beep).<br>
+          <strong>Step 3:</strong> The Bluetooth 🔵 icon will flash on the monitor — tap <strong>Scan &amp; Connect</strong> below within 3 minutes.
         </div>
-        <div class="device-status searching" id="deviceStatus">
-          <span>🔍</span> Searching for devices…
+        <div class="device-status" id="deviceStatus" style="color:var(--text3)">
+          <span>ℹ️</span> Follow steps above, then tap Scan
         </div>
         <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
-          <button class="btn btn-ghost" style="padding:6px 12px;font-size:0.78rem" onclick="scanDevices()">🔄 Scan Devices</button>
-          <button class="btn btn-outline" style="padding:6px 12px;font-size:0.78rem" onclick="simulateDeviceRead()">📡 Simulate BP Read</button>
+          <button class="btn btn-primary" style="padding:8px 16px;font-size:0.82rem" onclick="scanDevices()">📡 Scan &amp; Connect</button>
+          <button class="btn btn-ghost" style="padding:8px 12px;font-size:0.78rem" onclick="simulateDeviceRead()">🧪 Demo Read</button>
         </div>
       </div>
     </div>
@@ -937,94 +938,219 @@ function setVital(key, val) {
   if (cEl) cEl.classList.toggle('has-value', !!val);
 }
 
-// Scan for BLE/USB devices
+// ── Device profiles ────────────────────────────────────────────────────────
+// Omron HEM-7143T1A and similar models advertise with name prefix "BP"
+// and use the standard blood_pressure GATT service (0x1810) for indications.
+// The device must be in "transfer mode": press START on the monitor after
+// the last reading is stored — it will flash the Bluetooth icon.
+const DEVICE_PROFILES = [
+  // Omron Connect models (HEM-7143, HEM-7156, HEM-7155, HEM-7361 etc.)
+  // Device name starts with "BP" or "BLEsmart" or "HEM"
+  { filters: [{ namePrefix: 'BP'       }], optionalServices: [0x1810, 0x180D, 0x1809, 0x180F, 0x1800] },
+  { filters: [{ namePrefix: 'BLEsmart'}], optionalServices: [0x1810, 0x180D, 0x1809, 0x180F, 0x1800] },
+  { filters: [{ namePrefix: 'HEM'      }], optionalServices: [0x1810, 0x180D, 0x1809, 0x180F, 0x1800] },
+  { filters: [{ namePrefix: 'OMRON'    }], optionalServices: [0x1810, 0x180D, 0x1809, 0x180F, 0x1800] },
+  // Standard GATT health devices (other brands)
+  { filters: [{ services: [0x1810] }], optionalServices: [0x180D, 0x1809, 0x180F] }, // BP
+  { filters: [{ services: [0x180D] }], optionalServices: [0x1810, 0x1809, 0x180F] }, // HR
+];
+
 async function scanDevices() {
   const statusEl = document.getElementById('deviceStatus');
-  statusEl.innerHTML = '<span>🔍</span> Scanning for BLE health devices…';
+
+  if (!('bluetooth' in navigator)) {
+    statusEl.innerHTML = '<span>⚠️</span> Bluetooth not available — use Chrome on Android/desktop';
+    statusEl.className = 'device-status error';
+    return;
+  }
+
+  // ── IMPORTANT: Put Omron into transfer mode first ──────────────
+  // Show instruction before opening the browser picker
+  statusEl.innerHTML =
+    '<span>📋</span> <strong>First:</strong> Press START on your Omron monitor to take a reading. ' +
+    'After the reading is stored, the Bluetooth icon (🔵) will flash — then tap Scan below.';
   statusEl.className = 'device-status searching';
 
-  // Try Web Bluetooth API (supported in Chrome on Android/desktop)
-  if ('bluetooth' in navigator) {
-    try {
-      statusEl.innerHTML = '<span>📡</span> Requesting Bluetooth device…';
-      // Blood pressure monitor service UUID (standard BLE Health Device Profile)
-      const device = await navigator.bluetooth.requestDevice({
-        filters: [
-          { services: ['blood_pressure'] },
-          { services: ['heart_rate'] },
-          { services: ['health_thermometer'] },
-          { services: ['pulse_oximeter'] }
-        ],
-        optionalServices: ['battery_service', 'device_information']
-      });
-      statusEl.innerHTML = '<span>✅</span> Device found: ' + device.name;
-      statusEl.className = 'device-status connected';
-      state.deviceConnected = true;
-      showToast('✅ Device connected: ' + device.name);
+  await new Promise(r => setTimeout(r, 100)); // let DOM update
 
-      // Connect and read characteristics
-      const server = await device.gatt.connect();
-      await readBPFromDevice(server);
-    } catch(e) {
-      if (e.name === 'NotFoundError') {
-        statusEl.innerHTML = '<span>ℹ️</span> No compatible device selected';
-      } else {
-        statusEl.innerHTML = '<span>⚠️</span> ' + e.message;
-      }
-      statusEl.className = 'device-status error';
+  // Try each device profile in sequence — show picker for each
+  // In practice we try the most likely one first (Omron BP prefix)
+  let device = null;
+  let lastErr = '';
+
+  statusEl.innerHTML = '<span>📡</span> Opening device picker — select your BP monitor from the list…';
+
+  try {
+    // acceptAllDevices with optionalServices — shows ALL nearby BLE devices
+    // This is the most permissive scan and will find Omron even with proprietary UUIDs
+    device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [
+        0x1810,  // Blood Pressure (standard)
+        0x180D,  // Heart Rate (standard)
+        0x1809,  // Health Thermometer (standard)
+        0x180F,  // Battery Service
+        0x1800,  // Generic Access
+        0x1801,  // Generic Attribute
+        // Omron proprietary service UUIDs (known from reverse engineering)
+        'ecbe3980-c9a2-11e1-b1bd-0002a5d5c51b',  // Omron custom service
+        'bloodpressure',
+      ]
+    });
+  } catch(e) {
+    lastErr = e.name;
+    if (e.name === 'NotFoundError') {
+      statusEl.innerHTML = '<span>ℹ️</span> No device selected. Select your monitor from the picker.';
+    } else if (e.name === 'NotAllowedError') {
+      statusEl.innerHTML = '<span>⚠️</span> Bluetooth permission denied — allow Bluetooth in browser settings';
+    } else {
+      statusEl.innerHTML = '<span>⚠️</span> ' + e.message;
     }
-  } else {
-    statusEl.innerHTML = '<span>⚠️</span> Bluetooth not available — use manual entry or try Chrome on Android';
+    statusEl.className = 'device-status error';
+    return;
+  }
+
+  statusEl.innerHTML = '<span>🔄</span> Connecting to ' + (device.name || 'device') + '…';
+  statusEl.className = 'device-status searching';
+  state.deviceConnected = false;
+
+  try {
+    const server = await device.gatt.connect();
+    state.deviceConnected = true;
+    statusEl.innerHTML = '<span>✅</span> Connected: ' + (device.name || 'BP Monitor');
+    statusEl.className = 'device-status connected';
+    showToast('✅ Connected to ' + (device.name || 'BP Monitor'));
+
+    // Discover what services the device actually has
+    await discoverAndRead(server, device.name || '');
+
+  } catch(e) {
+    statusEl.innerHTML = '<span>⚠️</span> Connection failed: ' + e.message +
+      ' — make sure the Bluetooth icon is flashing on the monitor';
     statusEl.className = 'device-status error';
   }
 }
 
-async function readBPFromDevice(server) {
+async function discoverAndRead(server, deviceName) {
+  const statusEl = document.getElementById('deviceStatus');
+  let gotReading = false;
+
+  // ── 1. Try standard Blood Pressure service (0x1810) ──────────────────────
+  // Omron HEM-7143T1A uses INDICATE (not NOTIFY) on this characteristic
   try {
-    const bpService   = await server.getPrimaryService('blood_pressure');
-    const bpChar      = await bpService.getCharacteristic('blood_pressure_measurement');
+    const bpService = await server.getPrimaryService(0x1810);
+    const bpChar    = await bpService.getCharacteristic(0x2A35); // BP Measurement
+
+    // Omron uses indications — must call startNotifications() which handles both
     await bpChar.startNotifications();
     bpChar.addEventListener('characteristicvaluechanged', (e) => {
-      const val = e.target.value;
-      // Parse Blood Pressure Measurement characteristic (IEEE 11073 format)
-      const flags    = val.getUint8(0);
-      const systolic = val.getUint16(1, true);
-      const diastolic= val.getUint16(3, true);
-      const bp = systolic + '/' + diastolic;
-      document.getElementById('vi_bp').value = bp;
-      setVital('bp', bp);
-      markDeviceCard('bp');
-      showToast('💓 BP reading received: ' + bp + ' mmHg');
+      const reading = parseBPMeasurement(e.target.value);
+      if (reading) {
+        document.getElementById('vi_bp').value = reading.bp;
+        setVital('bp', reading.bp);
+        markDeviceCard('bp');
+        if (reading.pulse) {
+          document.getElementById('vi_hr').value = reading.pulse;
+          setVital('hr', String(reading.pulse));
+          markDeviceCard('hr');
+        }
+        statusEl.innerHTML = '<span>✅</span> Reading received: ' + reading.bp + ' mmHg' +
+          (reading.pulse ? ' | Pulse: ' + reading.pulse + ' bpm' : '');
+        showToast('💓 BP: ' + reading.bp + ' mmHg' + (reading.pulse ? ' | HR: ' + reading.pulse : ''));
+        gotReading = true;
+      }
     });
-  } catch(e) { console.warn('BP read error:', e.message); }
 
-  // Heart rate
+    statusEl.innerHTML = '<span>✅</span> Ready — take a reading on your monitor now';
+    return;
+  } catch(e) {
+    console.log('Standard BP service not found:', e.message);
+  }
+
+  // ── 2. Try Heart Rate service (0x180D) ────────────────────────────────────
   try {
-    const hrService = await server.getPrimaryService('heart_rate');
-    const hrChar    = await hrService.getCharacteristic('heart_rate_measurement');
+    const hrService = await server.getPrimaryService(0x180D);
+    const hrChar    = await hrService.getCharacteristic(0x2A37);
     await hrChar.startNotifications();
     hrChar.addEventListener('characteristicvaluechanged', (e) => {
-      const hr = e.target.getUint8(1);
+      const flags = e.target.getUint8(0);
+      const hr = (flags & 0x01) ? e.target.getUint16(1, true) : e.target.getUint8(1);
       document.getElementById('vi_hr').value = hr;
       setVital('hr', String(hr));
       markDeviceCard('hr');
-      showToast('❤️ HR reading: ' + hr + ' bpm');
+      showToast('❤️ HR: ' + hr + ' bpm');
     });
+    gotReading = true;
   } catch(e) {}
 
-  // SpO2
+  // ── 3. Enumerate all services and log UUIDs (helps debugging) ────────────
+  if (!gotReading) {
+    try {
+      const services = await server.getPrimaryServices();
+      const uuids = services.map(s => s.uuid).join(', ');
+      console.log('Device services found:', uuids);
+      statusEl.innerHTML =
+        '<span>⚠️</span> Connected but could not read vitals automatically. ' +
+        'Services: ' + uuids.substring(0, 60) + '… — enter readings manually below.';
+    } catch(e) {
+      statusEl.innerHTML = '<span>⚠️</span> Connected — take a reading on the monitor to transfer data';
+    }
+    statusEl.className = 'device-status error';
+  }
+}
+
+// ── Parse standard BP Measurement characteristic (0x2A35) ────────────────────
+// IEEE 11073-20601 format used by Omron HEM-7143T1A
+function parseBPMeasurement(dataView) {
   try {
-    const spo2Service = await server.getPrimaryService('pulse_oximeter');
-    const spo2Char    = await spo2Service.getCharacteristic(0x2A5F);
-    await spo2Char.startNotifications();
-    spo2Char.addEventListener('characteristicvaluechanged', (e) => {
-      const spo2 = e.target.getUint8(3);
-      document.getElementById('vi_spo2').value = spo2;
-      setVital('spo2', String(spo2));
-      markDeviceCard('spo2');
-      showToast('🫁 SpO₂ reading: ' + spo2 + '%');
-    });
-  } catch(e) {}
+    const flags    = dataView.getUint8(0);
+    const unit     = (flags & 0x01) ? 'kPa' : 'mmHg'; // bit0: 0=mmHg, 1=kPa
+    const hasTime  = !!(flags & 0x02);
+    const hasPulse = !!(flags & 0x04);
+
+    let systolic, diastolic, map;
+
+    if (unit === 'mmHg') {
+      // SFLOAT (16-bit) values
+      systolic  = parseSFloat(dataView, 1);
+      diastolic = parseSFloat(dataView, 3);
+      map       = parseSFloat(dataView, 5);
+    } else {
+      // kPa — convert to mmHg
+      systolic  = Math.round(parseSFloat(dataView, 1) * 7.5006);
+      diastolic = Math.round(parseSFloat(dataView, 3) * 7.5006);
+    }
+
+    let pulse = null;
+    if (hasPulse) {
+      const pulseOffset = 7 + (hasTime ? 7 : 0);
+      pulse = Math.round(parseSFloat(dataView, pulseOffset));
+    }
+
+    if (!systolic || systolic < 50 || systolic > 300) return null;
+
+    return {
+      bp: Math.round(systolic) + '/' + Math.round(diastolic),
+      systolic: Math.round(systolic),
+      diastolic: Math.round(diastolic),
+      pulse: pulse
+    };
+  } catch(e) {
+    console.warn('BP parse error:', e.message);
+    return null;
+  }
+}
+
+// IEEE 11073 SFLOAT (16-bit): upper 4 bits = exponent, lower 12 bits = mantissa
+function parseSFloat(dataView, offset) {
+  const raw      = dataView.getUint16(offset, true);
+  const exponent = raw >> 12;
+  let mantissa   = raw & 0x0FFF;
+  // Sign-extend 12-bit mantissa
+  if (mantissa >= 0x0800) mantissa -= 0x1000;
+  // Sign-extend 4-bit exponent
+  const exp = exponent >= 8 ? exponent - 16 : exponent;
+  return mantissa * Math.pow(10, exp);
 }
 
 function markDeviceCard(key) {
