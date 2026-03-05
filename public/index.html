@@ -4927,7 +4927,7 @@
 
 <script>
   const views = {
-    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.10' },
+    dashboard: { title: 'Clinical Dashboard', sub: 'Monday, 02 March 2026 · AIIMS Delhi · v5.11' },
     consult:   { title: 'AI Consultation', sub: 'Priya Krishnamurthy · Active Session' },
     patients:  { title: 'Patient Registry', sub: '482 patients · 40+ specializations' },
     risk:      { title: 'Predictive Risk Engine', sub: 'ML models · 6–18 month prediction window' },
@@ -12591,22 +12591,6 @@ Please provide clinical guidance on management.`;
 
   function _showApprovalDelivery(c) {
     var p = c.patient;
-    var phone = (p.phone || '').replace(/[^0-9]/g, '');
-    if (phone.length === 10) phone = '91' + phone; // add India country code
-
-    // Build WhatsApp message
-    var msg =
-      '✅ *SAMARTHAA MED — Consultation Report Ready*\n\n' +
-      'Dear ' + p.fname + ' ' + p.lname + ',\n\n' +
-      'Your Video AI Consultation report has been reviewed and approved by your doctor.\n\n' +
-      '📋 *Reference No:* ' + c.id + '\n' +
-      '👨‍⚕️ *Reviewed by:* ' + c.approvedBy + '\n' +
-      '🕐 *Approved:* ' + new Date(c.approvedAt).toLocaleString('en-IN') + '\n\n' +
-      '📥 To collect your printed report, show this reference number at the reception desk.\n\n' +
-      '_SAMARTHAA MED · samarthaamed.netlify.app_';
-
-    var encodedMsg = encodeURIComponent(msg);
-    var waURL = 'https://wa.me/' + phone + '?text=' + encodedMsg;
 
     // Update modal header
     document.getElementById('vcModalTitle').textContent = '✅ Report Approved — Share with Patient';
@@ -12671,28 +12655,36 @@ Please provide clinical guidance on management.`;
   }
 
   function _buildReportURL(c) {
-    // Encode the full consultation data into the URL hash
-    // patient can open this link anytime — no backend, no expiry
     try {
+      // Trim report to essentials — full report can be 3000+ chars which breaks URLs
+      // WhatsApp and browsers have ~8000 char URL limits
       var payload = JSON.stringify({
-        id:         c.id,
-        status:     c.status,
-        patient:    c.patient,
-        vitals:     c.vitals,
-        report:     c.report,
-        visualObs:  c.visualObs,
-        doctorNotes:c.doctorNotes,
-        approvedBy: c.approvedBy,
-        approvedAt: c.approvedAt,
-        timestamp:  c.timestamp
+        id:          c.id,
+        status:      c.status,
+        patient:     c.patient,
+        vitals:      c.vitals,
+        // Truncate report to 2500 chars to stay within URL limits
+        report:      (c.report || '').substring(0, 2500),
+        visualObs:   c.visualObs,
+        doctorNotes: c.doctorNotes,
+        approvedBy:  c.approvedBy,
+        approvedAt:  c.approvedAt,
+        timestamp:   c.timestamp
       });
-      // base64url encode (URL-safe, no padding issues)
-      var b64 = btoa(encodeURIComponent(payload).replace(/%([0-9A-F]{2})/g, function(m, p){ return String.fromCharCode('0x'+p); }));
-      var b64url = b64.replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+
+      // Unicode-safe base64: TextEncoder → Uint8Array → base64
+      // This handles Hindi, Tamil, emoji in complaints correctly
+      var bytes = new TextEncoder().encode(payload);
+      var binary = '';
+      bytes.forEach(function(b) { binary += String.fromCharCode(b); });
+      var b64    = btoa(binary);
+      var b64url = b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+
       return 'https://samarthaamed.netlify.app/report-viewer.html#' + b64url;
     } catch(e) {
       console.error('URL encode error:', e);
-      return 'https://samarthaamed.netlify.app/report-viewer.html';
+      // Fallback — just pass reference ID, viewer shows minimal info
+      return 'https://samarthaamed.netlify.app/report-viewer.html#ref=' + encodeURIComponent(c.id);
     }
   }
 
