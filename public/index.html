@@ -8244,14 +8244,7 @@ INVESTIGATIONS:
     }
     const invitation = validInvitations[invitationCode];
 
-    // 2. Validate email matches invitation record (case-insensitive)
-    if (invitation.email && email && invitation.email.toLowerCase() !== email) {
-      showLoginError('Email address does not match this invitation code.');
-      resetLoginButton();
-      return;
-    }
-
-    // 3. Password length check
+    // 2. Password length check
     if (password.length < 6) {
       showLoginError('Password must be at least 6 characters.');
       resetLoginButton();
@@ -8925,11 +8918,17 @@ INVESTIGATIONS:
 
   // Check session on page load
   document.addEventListener('DOMContentLoaded', async function() {
-    const hasSession = await checkExistingSession();
-    if (!hasSession) {
-      // No valid session, show login screen
-      document.getElementById('loginScreen').style.display = 'flex';
-      document.getElementById('mainApp').style.display = 'none';
+    // Always show login screen first, then check session
+    const loginScreen = document.getElementById('loginScreen');
+    const mainApp = document.getElementById('mainApp');
+    if (loginScreen) loginScreen.style.display = 'flex';
+    if (mainApp) mainApp.style.display = 'none';
+    // Now validate session — will call showMainApp() if valid
+    try {
+      await checkExistingSession();
+    } catch(e) {
+      console.warn('Session check failed:', e.message);
+      // Stay on login screen
     }
   });
 
