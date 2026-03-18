@@ -41,16 +41,12 @@
 
 html {
   font-size: 15px;
-  /* overflow-x on html, NOT body — body overflow kills Safari iOS scroll */
-  overflow-x: clip;
 }
 
 body {
   font-family: var(--dm);
   background: var(--bg);
   color: var(--text1);
-  min-height: 100vh;
-  /* NO overflow property on body — Safari iOS interprets it as a scroll trap */
 }
 
 /* ── Scrollbar ───────────────────────────────────────────── */
@@ -60,14 +56,12 @@ body {
 
 /* ── Header ─────────────────────────────────────────────── */
 .header {
-  position: sticky; top: 0; z-index: 100;
+  position: relative;
   background: var(--bg);
   border-bottom: 1px solid var(--border);
   padding: 0 24px;
   height: 60px;
   display: flex; align-items: center; justify-content: space-between;
-  /* Prevent Safari from treating this as a scroll container */
-  -webkit-transform: translateZ(0);
 }
 .logo { display: flex; align-items: center; gap: 12px; }
 .logo-icon {
@@ -440,32 +434,6 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* ── Mobile ─────────────────────────────────────────────── */
 @media (max-width: 600px) {
-  /*
-   * SAFARI iOS SCROLL FIX — all four rules are required:
-   * 1. html overflow-x:clip (not hidden — hidden creates scroll container)
-   * 2. body has NO overflow at all
-   * 3. body height is auto (not 100vh — traps scroll on Safari)
-   * 4. touch-action:pan-y on body allows vertical swipe
-   */
-  html {
-    overflow-x: clip;
-  }
-  body {
-    height: auto;
-    min-height: 100vh;
-    touch-action: pan-y;
-    -webkit-overflow-scrolling: touch;
-  }
-  /* Disable sticky header on mobile — Safari sticky + overflow-x:clip
-     can still block scroll in some iOS versions. Use relative instead. */
-  .header {
-    position: relative;
-    top: auto;
-  }
-  .step-bar {
-    position: relative;
-    top: auto;
-  }
   .main { padding: 16px 12px 80px; }
   .form-row { grid-template-columns: 1fr; }
   .form-row.three { grid-template-columns: 1fr 1fr; }
@@ -934,7 +902,16 @@ function goTo(n) {
     if (l) l.classList.toggle('done', i < n);
   }
 
-  window.scrollTo({ top: 0, behavior: 'smooth' });
+  // Safari iOS needs a tick after display:block before it recalculates
+  // document height — without this, scroll stays locked after screen switch
+  requestAnimationFrame(() => {
+    window.scrollTo(0, 0);
+    // Force Safari to acknowledge the new document height
+    document.documentElement.style.minHeight = 'initial';
+    requestAnimationFrame(() => {
+      document.documentElement.style.minHeight = '';
+    });
+  });
 }
 
 function validateStep(n) {
