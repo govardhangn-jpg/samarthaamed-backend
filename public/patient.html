@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SAMARTHAA MED — Video AI Consultation</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -46,6 +46,8 @@ body {
   color: var(--text1);
   min-height: 100vh;
   overflow-x: hidden;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 /* ── Scrollbar ───────────────────────────────────────────── */
@@ -433,13 +435,22 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* ── Mobile ─────────────────────────────────────────────── */
 @media (max-width: 600px) {
-  .main { padding: 16px 12px 32px; }
+  html, body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    height: auto;
+  }
+  .main { padding: 16px 12px 48px; }
   .form-row { grid-template-columns: 1fr; }
   .form-row.three { grid-template-columns: 1fr 1fr; }
   .vitals-grid { grid-template-columns: repeat(2, 1fr); }
   .step-label { display: none; }
   .btn-lg { padding: 13px 20px; font-size: 0.9rem; }
   .section-head h2 { font-size: 1.25rem; }
+  .btn-row { flex-wrap: wrap; }
+  .btn-row .btn { flex: 1 1 auto; min-width: 120px; }
+  .card { padding: 16px; }
+  .report-box { max-height: 300px; }
 }
 </style>
 </head>
