@@ -38,15 +38,19 @@
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { font-size: 15px; }
+
+html {
+  font-size: 15px;
+  height: 100%;
+  overflow-x: hidden;
+}
 
 body {
   font-family: var(--dm);
   background: var(--bg);
   color: var(--text1);
-  min-height: 100vh;
-  overflow-x: hidden;
-  overflow-y: auto;
+  min-height: 100%;
+  position: relative;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -435,12 +439,22 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* ── Mobile ─────────────────────────────────────────────── */
 @media (max-width: 600px) {
-  html, body {
-    overflow-y: auto;
-    -webkit-overflow-scrolling: touch;
+  /* Safari iOS fix: overflow-x:hidden on body kills vertical scroll.
+     Use overflow:visible on body and clip only on html. */
+  html {
+    overflow-x: clip;
+    overflow-y: visible;
     height: auto;
+    min-height: 100%;
   }
-  .main { padding: 16px 12px 48px; }
+  body {
+    overflow: visible;
+    height: auto;
+    min-height: 100%;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-y;
+  }
+  .main { padding: 16px 12px 80px; }
   .form-row { grid-template-columns: 1fr; }
   .form-row.three { grid-template-columns: 1fr 1fr; }
   .vitals-grid { grid-template-columns: repeat(2, 1fr); }
