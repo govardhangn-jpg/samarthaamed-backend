@@ -41,17 +41,16 @@
 
 html {
   font-size: 15px;
-  height: 100%;
-  overflow-x: hidden;
+  /* overflow-x on html, NOT body — body overflow kills Safari iOS scroll */
+  overflow-x: clip;
 }
 
 body {
   font-family: var(--dm);
   background: var(--bg);
   color: var(--text1);
-  min-height: 100%;
-  position: relative;
-  -webkit-overflow-scrolling: touch;
+  min-height: 100vh;
+  /* NO overflow property on body — Safari iOS interprets it as a scroll trap */
 }
 
 /* ── Scrollbar ───────────────────────────────────────────── */
@@ -67,6 +66,8 @@ body {
   padding: 0 24px;
   height: 60px;
   display: flex; align-items: center; justify-content: space-between;
+  /* Prevent Safari from treating this as a scroll container */
+  -webkit-transform: translateZ(0);
 }
 .logo { display: flex; align-items: center; gap: 12px; }
 .logo-icon {
@@ -125,9 +126,9 @@ body {
 }
 
 /* ── Section screens ─────────────────────────────────────── */
-.screen { display: none; animation: fadeUp .35s ease; }
-.screen.active { display: block; }
-@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:none} }
+.screen { display: none; }
+.screen.active { display: block; animation: fadeUp .35s ease; }
+@keyframes fadeUp { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
 
 /* ── Section titles ──────────────────────────────────────── */
 .section-head { margin-bottom: 24px; }
@@ -439,20 +440,31 @@ textarea { resize: vertical; min-height: 80px; }
 
 /* ── Mobile ─────────────────────────────────────────────── */
 @media (max-width: 600px) {
-  /* Safari iOS fix: overflow-x:hidden on body kills vertical scroll.
-     Use overflow:visible on body and clip only on html. */
+  /*
+   * SAFARI iOS SCROLL FIX — all four rules are required:
+   * 1. html overflow-x:clip (not hidden — hidden creates scroll container)
+   * 2. body has NO overflow at all
+   * 3. body height is auto (not 100vh — traps scroll on Safari)
+   * 4. touch-action:pan-y on body allows vertical swipe
+   */
   html {
     overflow-x: clip;
-    overflow-y: visible;
-    height: auto;
-    min-height: 100%;
   }
   body {
-    overflow: visible;
     height: auto;
-    min-height: 100%;
-    -webkit-overflow-scrolling: touch;
+    min-height: 100vh;
     touch-action: pan-y;
+    -webkit-overflow-scrolling: touch;
+  }
+  /* Disable sticky header on mobile — Safari sticky + overflow-x:clip
+     can still block scroll in some iOS versions. Use relative instead. */
+  .header {
+    position: relative;
+    top: auto;
+  }
+  .step-bar {
+    position: relative;
+    top: auto;
   }
   .main { padding: 16px 12px 80px; }
   .form-row { grid-template-columns: 1fr; }
