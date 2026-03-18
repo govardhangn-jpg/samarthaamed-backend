@@ -2129,6 +2129,27 @@ document.addEventListener('DOMContentLoaded', () => {
       s.className = 'device-status';
     }
   }, 1500);
+
+  // ── Safari iOS keyboard scroll fix ──────────────────────
+  // When keyboard opens on iPhone Safari, the viewport shrinks
+  // but the page doesn't scroll to keep the focused input visible.
+  // This forces the input into view after keyboard animation settles.
+  if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+    document.querySelectorAll('input, select, textarea').forEach(el => {
+      el.addEventListener('focus', () => {
+        setTimeout(() => {
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 400);
+      });
+    });
+
+    // Also fix: Safari iOS sometimes needs a resize event to recalculate
+    // scrollable height after the page first loads
+    window.addEventListener('load', () => {
+      document.body.style.webkitTransform = 'scale(1)';
+      setTimeout(() => { document.body.style.webkitTransform = ''; }, 100);
+    });
+  }
 });
 </script>
 </body>

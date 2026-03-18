@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Scroll Test — Samarthaa Med</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: sans-serif;
+    background: #fff;
+    color: #1f2937;
+    padding: 20px;
+  }
+  h1 { color: #b91c1c; margin-bottom: 8px; }
+  .field { margin-bottom: 16px; }
+  label { display: block; font-size: 12px; font-weight: 600; color: #9ca3af; text-transform: uppercase; margin-bottom: 4px; }
+  input, select {
+    width: 100%; padding: 10px 12px;
+    border: 1.5px solid #fecaca;
+    border-radius: 10px;
+    font-size: 16px; /* 16px prevents Safari auto-zoom on focus */
+    color: #1f2937;
+    background: #fff;
+    outline: none;
+    -webkit-appearance: none;
+  }
+  input:focus, select:focus { border-color: #b91c1c; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .btn {
+    display: block; width: 100%;
+    background: #b91c1c; color: #fff;
+    border: none; border-radius: 10px;
+    padding: 14px; font-size: 16px; font-weight: 600;
+    cursor: pointer; margin-top: 24px;
+  }
+  .note {
+    background: #fef2f2; border-left: 3px solid #f59e0b;
+    padding: 10px 14px; font-size: 13px; color: #6b7280;
+    margin-top: 16px; border-radius: 0 8px 8px 0;
+  }
+  .status {
+    position: fixed; bottom: 16px; right: 16px;
+    background: #1f2937; color: #fff;
+    padding: 8px 14px; border-radius: 8px;
+    font-size: 13px; font-weight: 600;
+  }
+</style>
+</head>
+<body>
+
+<h1>🏥 SAMARTHAA MED</h1>
+<p style="color:#6b7280; font-size:14px; margin-bottom:24px;">Scroll test — patient registration</p>
+
+<div class="field">
+  <label>First Name *</label>
+  <input type="text" placeholder="Ravi" autocomplete="given-name">
+</div>
+
+<div class="field">
+  <label>Last Name *</label>
+  <input type="text" placeholder="Kumar" autocomplete="family-name">
+</div>
+
+<div class="row">
+  <div class="field">
+    <label>Age *</label>
+    <input type="number" placeholder="35">
+  </div>
+  <div class="field">
+    <label>Sex *</label>
+    <select>
+      <option value="">Select</option>
+      <option>Male</option>
+      <option>Female</option>
+      <option>Other</option>
+    </select>
+  </div>
+</div>
+
+<div class="field">
+  <label>Phone *</label>
+  <input type="tel" placeholder="9876543210" autocomplete="tel">
+</div>
+
+<div class="field">
+  <label>Known Conditions</label>
+  <input type="text" placeholder="e.g. Diabetes, Hypertension">
+</div>
+
+<div class="field">
+  <label>Current Medications</label>
+  <input type="text" placeholder="e.g. Metformin 500mg">
+</div>
+
+<div class="field">
+  <label>Allergies</label>
+  <input type="text" placeholder="e.g. Penicillin">
+</div>
+
+<div class="note">
+  ⚠️ This is an AI-assisted pre-consultation tool. The generated report will be reviewed and validated by a licensed doctor before being shared with you.
+</div>
+
+<button class="btn">Continue → Vitals</button>
+
+<div class="status" id="status">Loading…</div>
+
+<script>
+  // Show scroll position so we can confirm scrolling works
+  window.addEventListener('scroll', () => {
+    document.getElementById('status').textContent = 'scrollY: ' + Math.round(window.scrollY) + 'px ✓';
+  });
+
+  document.getElementById('status').textContent =
+    'doc height: ' + document.documentElement.scrollHeight +
+    'px | vh: ' + window.innerHeight + 'px';
+</script>
+</body>
+</html>
