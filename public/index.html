@@ -4571,6 +4571,60 @@
       </div>
       <!-- end: view-radiology -->
 
+    
+<style>
+@keyframes spin { from{transform:rotate(0deg)}to{transform:rotate(360deg)} }
+@keyframes pulse { 0%,100%{opacity:.6}50%{opacity:.3} }
+</style>
+
+      <!-- ══════════════════════════════════════════════════════════
+           SECOND OPINION CENTRE — view-secondopinion
+      ══════════════════════════════════════════════════════════ -->
+      <div class="view" id="view-secondopinion">
+      <div class="sop-view-inner" id="sopViewInner">
+
+        <!-- Top action bar -->
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
+          <div>
+            <div style="font-family:var(--syne);font-weight:800;font-size:1.15rem;color:var(--teal)">🔬 Second Opinion Centre</div>
+            <div style="font-size:0.75rem;color:var(--text3);margin-top:2px">Specialist second opinion · Diagnostics partner portal · Doctor-verified reports</div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <button onclick="sopShowNewForm()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:0.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
+              ＋ New Request
+            </button>
+            <button onclick="sopShowList()" style="background:var(--navy3);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:0.85rem;cursor:pointer">
+              📋 All Requests
+            </button>
+          </div>
+        </div>
+
+        <!-- Stats strip -->
+        <div class="sop-stats-strip" id="sopStatsStrip">
+          <div style="background:var(--navy3);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
+            <div style="font-size:1.6rem;font-weight:800;font-family:var(--syne);color:var(--teal)" id="sopStatTotal">0</div>
+            <div style="font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px">Total</div>
+          </div>
+          <div style="background:var(--gold-dim);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px 14px">
+            <div style="font-size:1.6rem;font-weight:800;font-family:var(--syne);color:var(--gold)" id="sopStatPending">0</div>
+            <div style="font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px">Awaiting Review</div>
+          </div>
+          <div style="background:var(--green-dim);border:1px solid rgba(5,150,105,.2);border-radius:10px;padding:12px 14px">
+            <div style="font-size:1.6rem;font-weight:800;font-family:var(--syne);color:var(--green)" id="sopStatApproved">0</div>
+            <div style="font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px">Approved</div>
+          </div>
+          <div style="background:var(--red-dim);border:1px solid rgba(220,38,38,.15);border-radius:10px;padding:12px 14px">
+            <div style="font-size:1.6rem;font-weight:800;font-family:var(--syne);color:var(--red)" id="sopStatRevision">0</div>
+            <div style="font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px">Needs Revision</div>
+          </div>
+        </div>
+
+        <!-- Main content area — toggled between list / new-form / review -->
+        <div id="sopMainArea"></div>
+
+      </div><!-- /sop-view-inner -->
+      </div><!-- /view-secondopinion -->
+
     </div><!-- end: .content -->
   </div><!-- end: .main -->
 </div><!-- end: .app -->
@@ -14823,58 +14877,7 @@ ${req.fee?`<p style="margin-top:10pt;color:#15803d;font-weight:bold">Consultatio
 </script>
 
 
-<style>
-@keyframes spin { from{transform:rotate(0deg)}to{transform:rotate(360deg)} }
-@keyframes pulse { 0%,100%{opacity:.6}50%{opacity:.3} }
-</style>
 
-      <!-- ══════════════════════════════════════════════════════════
-           SECOND OPINION CENTRE — view-secondopinion
-      ══════════════════════════════════════════════════════════ -->
-      <div class="view" id="view-secondopinion">
-      <div class="sop-view-inner" id="sopViewInner">
-
-        <!-- Top action bar -->
-        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
-          <div>
-            <div style="font-family:var(--syne);font-weight:800;font-size:1.15rem;color:var(--teal)">🔬 Second Opinion Centre</div>
-            <div style="font-size:0.75rem;color:var(--text3);margin-top:2px">Specialist second opinion · Diagnostics partner portal · Doctor-verified reports</div>
-          </div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap">
-            <button onclick="sopShowNewForm()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:9px 18px;font-size:0.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px">
-              ＋ New Request
-            </button>
-            <button onclick="sopShowList()" style="background:var(--navy3);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:9px 14px;font-size:0.85rem;cursor:pointer">
-              📋 All Requests
-            </button>
-          </div>
-        </div>
-
-        <!-- Stats strip -->
-        <div class="sop-stats-strip" id="sopStatsStrip">
-          <div style="background:var(--navy3);border:1px solid var(--border);border-radius:10px;padding:12px 14px">
-            <div style="font-size:1.6rem;font-weight:800;font-family:var(--syne);color:var(--teal)" id="sopStatTotal">0</div>
-            <div style="font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px">Total</div>
-          </div>
-          <div style="background:var(--gold-dim);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:12px 14px">
-            <div style="font-size:1.6rem;font-weight:800;font-family:var(--syne);color:var(--gold)" id="sopStatPending">0</div>
-            <div style="font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px">Awaiting Review</div>
-          </div>
-          <div style="background:var(--green-dim);border:1px solid rgba(5,150,105,.2);border-radius:10px;padding:12px 14px">
-            <div style="font-size:1.6rem;font-weight:800;font-family:var(--syne);color:var(--green)" id="sopStatApproved">0</div>
-            <div style="font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px">Approved</div>
-          </div>
-          <div style="background:var(--red-dim);border:1px solid rgba(220,38,38,.15);border-radius:10px;padding:12px 14px">
-            <div style="font-size:1.6rem;font-weight:800;font-family:var(--syne);color:var(--red)" id="sopStatRevision">0</div>
-            <div style="font-size:0.72rem;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-top:2px">Needs Revision</div>
-          </div>
-        </div>
-
-        <!-- Main content area — toggled between list / new-form / review -->
-        <div id="sopMainArea"></div>
-
-      </div><!-- /sop-view-inner -->
-      </div><!-- /view-secondopinion -->
 
       <nav class="mobile-bottom-nav" id="mobileBottomNav">
   <button class="mobile-nav-item active" onclick="showView('dashboard')"><span class="mobile-nav-icon">🏠</span><span class="mobile-nav-label">Dashboard</span></button>
