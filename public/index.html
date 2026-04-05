@@ -2147,7 +2147,7 @@
         <div class="nav-item" onclick="showView('analytics')">
           <span class="nav-icon">📈</span> Analytics
         </div>
-        <div class="nav-item" onclick="showView('secondopinion')">
+        <div class="nav-item" onclick="showView('secondopinion');setTimeout(function(){if(window.sopShowList)window.sopShowList();},80)">
           <span class="nav-icon">🔬</span> Second Opinion
           <span class="nav-badge" id="sopNavBadge" style="display:none">0</span>
         </div>
@@ -14769,7 +14769,53 @@ ${req.fee?`<p style="margin-top:10pt;color:#15803d;font-weight:bold">Consultatio
 // ── showView hook for secondopinion ─────────────────────────────────
 
 // ── Init ───────────────────────────────────────────────────────────────
-setTimeout(()=>{ if(window.sopRefreshStats) window.sopRefreshStats(); }, 800);
+// Robust init: render list whenever view-secondopinion becomes visible
+(function() {
+  function tryRender() {
+    var view = document.getElementById('view-secondopinion');
+    if (!view) return;
+    if (view.classList.contains('active') || view.style.display !== 'none') {
+      if (window.sopShowList) window.sopShowList();
+    }
+  }
+
+  // 1. On DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(tryRender, 100); });
+  } else {
+    setTimeout(tryRender, 100);
+  }
+
+  // 2. MutationObserver — fires whenever any class/style changes on the view
+  setTimeout(function() {
+    var view = document.getElementById('view-secondopinion');
+    if (!view) return;
+    var obs = new MutationObserver(function(muts) {
+      for (var i = 0; i < muts.length; i++) {
+        if (muts[i].attributeName === 'class' || muts[i].attributeName === 'style') {
+          if (view.classList.contains('active')) {
+            if (window.sopShowList) window.sopShowList();
+          }
+          break;
+        }
+      }
+    });
+    obs.observe(view, { attributes: true });
+  }, 500);
+
+  // 3. Periodic check for first 5 seconds
+  var checks = 0;
+  var interval = setInterval(function() {
+    checks++;
+    var view = document.getElementById('view-secondopinion');
+    var area = document.getElementById('sopMainArea');
+    if (view && view.classList.contains('active') && area && !area.innerHTML.trim()) {
+      if (window.sopShowList) window.sopShowList();
+    }
+    if (checks >= 10) clearInterval(interval);
+  }, 500);
+
+})();
 
 })(); // end IIFE
 
@@ -14786,7 +14832,7 @@ setTimeout(()=>{ if(window.sopRefreshStats) window.sopRefreshStats(); }, 800);
            SECOND OPINION CENTRE — view-secondopinion
       ══════════════════════════════════════════════════════════ -->
       <div class="view" id="view-secondopinion">
-      <div class="sop-view-inner">
+      <div class="sop-view-inner" id="sopViewInner">
 
         <!-- Top action bar -->
         <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:20px">
