@@ -1792,10 +1792,13 @@
     padding: 22px 24px 40px;
     max-width: 100%;
     box-sizing: border-box;
+    min-height: 100%;
   }
   #view-secondopinion {
-    padding: 22px 24px 40px;
-    overflow-y: visible;  /* let .content scroll */
+    padding: 0;
+    overflow-y: visible;
+    height: auto;
+    min-height: 100%;
   }
   .sop-stats-strip {
     display: grid;
@@ -1859,6 +1862,10 @@
     /* View padding resets (content area handles padding) */
     .sop-view-inner {
       padding: 14px 16px 76px !important;
+    }
+    #view-secondopinion {
+      height: auto !important;
+      overflow-y: visible !important;
     }
 
     /* SOP form: single column on mobile */
@@ -3767,9 +3774,22 @@
       <!-- ── IMAGING AI VIEW ── -->
       <div class="view" id="view-imaging" style="overflow-y:auto;height:100%">
         <div class="imaging-view" style="overflow-y:visible">
-          <div style="margin-bottom:18px">
-            <div class="section-title">🩻 Imaging AI Analysis</div>
-            <div class="section-sub">Upload X-rays, ECGs, CT scans, fundus images or ultrasounds for AI-powered analysis</div>
+          <div style="margin-bottom:14px;display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:12px">
+            <div>
+              <div class="section-title">🩻 Imaging AI Analysis</div>
+              <div class="section-sub">Upload images or enter report values — get specialist-level clinical interpretation</div>
+            </div>
+            <!-- Input mode toggle -->
+            <div style="display:flex;background:var(--navy3);border:1px solid var(--border);border-radius:10px;padding:3px;gap:2px">
+              <button id="imgModeUpload" onclick="setImagingMode('upload')"
+                style="padding:7px 16px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;font-family:var(--dm);background:var(--teal);color:#fff;transition:all .2s">
+                📷 Upload Image
+              </button>
+              <button id="imgModeValues" onclick="setImagingMode('values')"
+                style="padding:7px 16px;border-radius:8px;border:none;cursor:pointer;font-size:0.78rem;font-weight:600;font-family:var(--dm);background:transparent;color:var(--text3);transition:all .2s">
+                📋 Enter Report Values
+              </button>
+            </div>
           </div>
 
           <!-- Scan type selector -->
@@ -3814,6 +3834,65 @@
                       <div class="form-group"><label class="form-label">Patient</label><select class="form-select" id="imagingPatientSelect"><option value="">— Select patient —</option></select></div>
                       <div class="form-group"><label class="form-label">Clinical Indication</label><input class="form-input" id="imagingIndication" placeholder="e.g. Chest pain, SOB, screening"></div>
                     </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Report Values Panel (hidden by default) -->
+              <div id="imgValuesPanel" style="display:none;margin-top:14px">
+                <div class="card">
+                  <div class="card-header">
+                    <span class="card-title">📋 Enter Report Values / Findings</span>
+                    <span style="font-size:0.72rem;color:var(--text3)">Type or paste from report — Claude interprets clinically</span>
+                  </div>
+                  <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+
+                    <!-- Modality-specific rows shown by JS -->
+                    <div class="form-group">
+                      <label class="form-label">Modality / Report Type *</label>
+                      <select class="form-select" id="ivModality" onchange="updateValueFields()">
+                        <option value="xray">Chest X-Ray</option>
+                        <option value="ecg">ECG / 12-Lead</option>
+                        <option value="ct">CT Scan</option>
+                        <option value="mri">MRI</option>
+                        <option value="echo">Echocardiogram</option>
+                        <option value="usg">Ultrasound / USG</option>
+                        <option value="fundus">Fundus / Ophthalmology</option>
+                        <option value="mammogram">Mammogram</option>
+                        <option value="bone">Bone Densitometry (DEXA)</option>
+                        <option value="nuclear">Nuclear Medicine / PET</option>
+                        <option value="other">Other Imaging</option>
+                      </select>
+                    </div>
+
+                    <div id="ivDynamicFields">
+                      <!-- Fields injected by updateValueFields() -->
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Radiologist / Reporting Doctor's Impression</label>
+                      <textarea class="form-input" id="ivImpression" rows="3" placeholder="Paste the radiologist's conclusion or impression exactly as written in the report…" style="resize:vertical"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Key Measurements / Values</label>
+                      <textarea class="form-input" id="ivMeasurements" rows="2" placeholder="e.g. CTR 0.62, EF 35%, Aortic root 4.1cm, LV wall thickness 14mm…" style="resize:vertical"></textarea>
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Radiologist's Diagnosis / Conclusion</label>
+                      <input class="form-input" id="ivDiagnosis" placeholder="e.g. Cardiomegaly with bilateral pleural effusion, features of CCF">
+                    </div>
+
+                    <div class="form-group">
+                      <label class="form-label">Any Incidental Findings</label>
+                      <input class="form-input" id="ivIncidental" placeholder="e.g. Hepatomegaly noted, adrenal nodule, calcified granuloma">
+                    </div>
+
+                    <button onclick="analyzeReportValues()"
+                      style="width:100%;padding:11px;background:var(--teal);color:#fff;border:none;border-radius:8px;font-size:0.9rem;font-weight:700;cursor:pointer;font-family:var(--dm)">
+                      🔬 Analyse Report Values
+                    </button>
                   </div>
                 </div>
               </div>
@@ -3877,7 +3956,7 @@
       </div>
 
       <!-- ── VIDEO AI CONSULTATION REVIEW (Doctor Side) ── -->
-      <div class="view" id="view-videoconsult">
+      <div class="view" id="view-videoconsult" style="overflow-y:auto">
         <div class="patients-view" style="padding:22px">
 
           <!-- Header -->
@@ -5491,16 +5570,23 @@
     }
 
     const patientCtx = getActivePatientContext();
-    const systemPrompt = `You are Samarthaa, a senior AI clinical decision-support assistant for Indian doctors.
-${patientCtx}
+    const systemPrompt = `You are Samarthaa, a senior clinical decision-support assistant for Indian doctors. ${patientCtx}
 
-Guidelines:
-- Follow ICMR 2024, NHP, WHO SEARO, and CSI protocols for Indian patient populations
-- Cite specific guideline names when making recommendations
-- Flag critical/urgent findings clearly
-- Keep responses concise and clinically actionable
-- Use generic drug names (Jan Aushadhi generics preferred)
-- Respond in the same language the doctor uses (English or Hindi)`;
+CLINICAL DECISION FRAMEWORK:
+1. TRIAGE FIRST: For any acute/emergency presentation, state the triage level and time-critical actions before anything else.
+2. EVIDENCE BASE: Cite specific Indian and international guidelines — ICMR 2024, NHM, CSI (Cardiological Society of India), RSSDI (diabetes), API (physicians), IAP (paediatrics), NACO (HIV), NTEP (TB), WHO SEARO, ACC/AHA, ESC, KDIGO — whichever is most relevant.
+3. DIFFERENTIALS: List top 3 differentials with probability and key distinguishing features.
+4. INVESTIGATIONS: Prioritise by clinical urgency and cost-effectiveness for Indian settings. State normal reference ranges.
+5. MANAGEMENT: 
+   - Drugs: Jan Aushadhi generic name, dose, route, frequency, duration. Flag contraindications.
+   - Check interactions with patient's current medications.
+   - State monitoring parameters and follow-up targets.
+6. RED FLAGS: Always explicitly flag any features requiring immediate escalation or specialist referral.
+7. PATIENT COUNSELLING: One key point the patient/family must understand.
+
+FORMAT: Use short paragraphs with clear headers when multiple topics are covered. For drug lists use: Drug (Dose / Route / Frequency / Duration). Always end with the single most important next clinical action.
+
+Respond in the same language the doctor uses (English, Hindi, or regional Indian languages).`;
 
     callClaudeAI(apiMessages, systemPrompt)
       .then(raw => {
@@ -9373,7 +9459,291 @@ Clinical Scores: ${(profile.scores||[]).map(s=>`${s[0]}: ${s[1]}`).join(' | ')}`
     return data.content[0].text.trim();
   }
 
-  let radiologyReports = [];
+  
+// ══════════════════════════════════════════════════════════════
+//   IMAGING MODE TOGGLE — Upload Image vs Enter Report Values
+// ══════════════════════════════════════════════════════════════
+
+function setImagingMode(mode) {
+  const uploadSection = document.getElementById('uploadZone')?.closest('div.imaging-grid > div') ||
+                        document.getElementById('uploadZone')?.parentElement?.parentElement;
+  const valuesPanel   = document.getElementById('imgValuesPanel');
+  const btnUpload     = document.getElementById('imgModeUpload');
+  const btnValues     = document.getElementById('imgModeValues');
+
+  if (mode === 'upload') {
+    if (valuesPanel) valuesPanel.style.display = 'none';
+    // Show the upload zone and its controls
+    const upZone = document.getElementById('uploadZone');
+    if (upZone) upZone.style.display = '';
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    // restore analyzeBtn visibility if image loaded
+    const img = document.getElementById('uploadedImage');
+    if (analyzeBtn && img && img.src && img.style.display !== 'none') analyzeBtn.style.display = '';
+
+    if (btnUpload) { btnUpload.style.background = 'var(--teal)'; btnUpload.style.color = '#fff'; }
+    if (btnValues) { btnValues.style.background = 'transparent'; btnValues.style.color = 'var(--text3)'; }
+  } else {
+    if (valuesPanel) valuesPanel.style.display = 'block';
+    // Collapse upload zone visually so values panel is prominent
+    const upZone = document.getElementById('uploadZone');
+    if (upZone) upZone.style.display = 'none';
+    const analyzeBtn = document.getElementById('analyzeBtn');
+    if (analyzeBtn) analyzeBtn.style.display = 'none';
+
+    if (btnValues) { btnValues.style.background = 'var(--teal)'; btnValues.style.color = '#fff'; }
+    if (btnUpload) { btnUpload.style.background = 'transparent'; btnUpload.style.color = 'var(--text3)'; }
+    updateValueFields();
+  }
+}
+
+// Modality-specific structured fields
+function updateValueFields() {
+  const mod = document.getElementById('ivModality')?.value || 'xray';
+  const container = document.getElementById('ivDynamicFields');
+  if (!container) return;
+
+  const fieldSets = {
+    xray: [
+      ['Cardiac Silhouette / CTR', 'e.g. Normal (CTR 0.48), Cardiomegaly (CTR 0.62)', 'ivCTR'],
+      ['Lung Fields', 'e.g. Clear, Consolidation right lower zone, Bilateral infiltrates, Pleural effusion', 'ivLungs'],
+      ['Mediastinum', 'e.g. Normal, Widened superior mediastinum, Tracheal deviation', 'ivMediastinum'],
+      ['Bones / Ribs', 'e.g. No acute bony abnormality, Rib fracture right 5th', 'ivBones'],
+    ],
+    ecg: [
+      ['Heart Rate (bpm)', 'e.g. 88 bpm', 'ivHR'],
+      ['Rhythm', 'e.g. Normal sinus rhythm, Atrial fibrillation, Sinus tachycardia', 'ivRhythm'],
+      ['PR interval (ms)', 'e.g. 160ms (normal)', 'ivPR'],
+      ['QRS duration (ms)', 'e.g. 90ms (normal)', 'ivQRS'],
+      ['QTc (ms)', 'e.g. 420ms, Prolonged 520ms', 'ivQTc'],
+      ['ST changes', 'e.g. ST elevation V1-V4 2mm, ST depression II III aVF', 'ivST'],
+      ['T-wave changes', 'e.g. T-wave inversion leads I aVL, Tall peaked T waves', 'ivTwave'],
+      ['Axis', 'e.g. Normal axis, Left axis deviation, Right axis deviation', 'ivAxis'],
+    ],
+    echo: [
+      ['EF % (Ejection Fraction)', 'e.g. EF 35% (severely reduced), EF 62% (normal)', 'ivEF'],
+      ['LV Size (LVEDD mm)', 'e.g. LVEDD 58mm (dilated), 48mm (normal)', 'ivLVSize'],
+      ['Wall Thickness (IVS/PW mm)', 'e.g. IVS 14mm (hypertrophied), 9mm (normal)', 'ivWallThick'],
+      ['Wall Motion', 'e.g. Normal, Anterior hypokinesia, Inferior akinesia', 'ivWallMotion'],
+      ['Valves', 'e.g. Moderate MR, Severe AS (AVA 0.8cm²), Mild AR', 'ivValves'],
+      ['Pericardium', 'e.g. No effusion, Small pericardial effusion, Tamponade features', 'ivPericardium'],
+      ['Diastolic Function', 'e.g. Grade I diastolic dysfunction, E/A 0.7, E/e\' 14', 'ivDiastolic'],
+    ],
+    ct: [
+      ['Region/Organ', 'e.g. CT Brain, CT Chest, CT Abdomen-Pelvis, HRCT Chest', 'ivCTRegion'],
+      ['Contrast', 'e.g. With contrast (IV), Without contrast, CTPA', 'ivContrast'],
+      ['Key Finding 1', 'e.g. Hypodense lesion right parietal lobe 3.2cm, Pulmonary embolism right lower lobe', 'ivCTFind1'],
+      ['Key Finding 2', 'e.g. Mediastinal lymphadenopathy, Hepatic cyst 2cm', 'ivCTFind2'],
+      ['Key Measurements', 'e.g. Aortic diameter 4.8cm, Nodule size 1.2cm, HU -80 (fat density)', 'ivCTMeas'],
+    ],
+    mri: [
+      ['Region', 'e.g. MRI Brain, MRI Spine (L/S), MRI Knee, MRI Breast', 'ivMRIRegion'],
+      ['Sequences', 'e.g. T1, T2, FLAIR, DWI, Gadolinium enhanced', 'ivMRISeq'],
+      ['Key Finding', 'e.g. T2 hyperintense lesion MS plaque, Disc prolapse L4-L5 with thecal sac compression', 'ivMRIFind'],
+      ['Enhancement', 'e.g. Rim-enhancing lesion, No abnormal enhancement, Heterogeneous enhancement', 'ivMRIEnhance'],
+    ],
+    usg: [
+      ['Organ/Region', 'e.g. USG Abdomen, USG Pelvis, USG Thyroid, Doppler Lower Limb', 'ivUSGOrgan'],
+      ['Liver', 'e.g. Normal size and echogenicity, Fatty liver Grade 2, Hepatomegaly', 'ivUSGLiver'],
+      ['Gallbladder', 'e.g. Normal, Cholelithiasis (2 stones 1.2cm), Thick wall 5mm', 'ivUSGGB'],
+      ['Kidneys', 'e.g. Right kidney 10cm normal, Left kidney mild hydronephrosis, Renal calculus 8mm', 'ivUSGKidney'],
+      ['Other finding', 'e.g. Free fluid in peritoneum, Ovarian cyst 4cm, Prostate enlarged 45cc', 'ivUSGOther'],
+    ],
+    fundus: [
+      ['Disc', 'e.g. Normal disc, Disc pallor, Papilloedema, Cup-disc ratio 0.7', 'ivDisc'],
+      ['Vessels', 'e.g. Normal, AV nicking, Copper wiring, Silver wiring', 'ivVessels'],
+      ['Macula', 'e.g. Normal foveal reflex, Hard exudates at macula, CSME', 'ivMacula'],
+      ['Retina', 'e.g. Normal, Dot-blot haemorrhages, NVD, NVE, Flame haemorrhages', 'ivRetina'],
+      ['Diagnosis', 'e.g. NPDR Moderate, PDR, Hypertensive retinopathy Grade 3', 'ivFundusDx'],
+    ],
+    mammogram: [
+      ['Composition (ACR)', 'e.g. A - Almost entirely fatty, B - Scattered, C - Heterogeneous dense, D - Extremely dense', 'ivMamComp'],
+      ['BI-RADS Category', 'e.g. BI-RADS 1 (Normal), BI-RADS 4B (Moderate suspicion), BI-RADS 5 (Highly suspicious)', 'ivBIRADS'],
+      ['Lesion description', 'e.g. Irregular spiculated mass 1.8cm upper outer quadrant right breast', 'ivMamLesion'],
+      ['Microcalcifications', 'e.g. None, Scattered punctate (benign), Clustered pleomorphic (suspicious)', 'ivMicrocalc'],
+    ],
+    bone: [
+      ['BMD Spine L1-L4 (T-score)', 'e.g. T-score -2.6 (Osteoporosis), -1.4 (Osteopenia), 0.2 (Normal)', 'ivBMDSpine'],
+      ['BMD Total Hip (T-score)', 'e.g. T-score -2.1 (Osteoporosis), -0.8 (Normal)', 'ivBMDHip'],
+      ['BMD Femoral Neck (T-score)', 'e.g. T-score -2.8', 'ivBMDFemur'],
+      ['FRAX 10-yr fracture risk', 'e.g. Hip fracture 4.2%, Major osteoporotic 18%', 'ivFRAX'],
+    ],
+    nuclear: [
+      ['Modality', 'e.g. Bone scan, PET-CT FDG, Thyroid scan, Stress MIBI', 'ivNuclMod'],
+      ['Tracer / Radiotracer', 'e.g. 99mTc-MDP, 18F-FDG, 131I, 99mTc-Sestamibi', 'ivTracer'],
+      ['Key Finding', 'e.g. Increased uptake right femur (metastasis?), Focal FDG-avid lesion SUVmax 8.2', 'ivNuclFind'],
+      ['SUV max (PET)', 'e.g. SUVmax 12.4 mediastinal node, 3.1 right lung nodule', 'ivSUV'],
+    ],
+    other: [
+      ['Imaging type', 'e.g. Fluoroscopy, Angiogram, IVU, Barium study', 'ivOtherType'],
+      ['Body region', 'e.g. Abdomen, Pelvis, Limb, Chest', 'ivOtherRegion'],
+      ['Key finding', 'e.g. Filling defect, Stenosis, Contrast leak', 'ivOtherFind'],
+    ]
+  };
+
+  const fields = fieldSets[mod] || fieldSets['other'];
+  container.innerHTML = fields.map(([label, placeholder, id]) => `
+    <div class="form-group">
+      <label class="form-label">${label}</label>
+      <input class="form-input" id="${id}" placeholder="${placeholder}">
+    </div>`).join('');
+}
+
+// Analyse the entered report values using Claude
+async function analyzeReportValues() {
+  const mod        = document.getElementById('ivModality')?.value || 'xray';
+  const impression = (document.getElementById('ivImpression')?.value || '').trim();
+  const diagnosis  = (document.getElementById('ivDiagnosis')?.value || '').trim();
+  const measurements = (document.getElementById('ivMeasurements')?.value || '').trim();
+  const incidental   = (document.getElementById('ivIncidental')?.value || '').trim();
+  const indication   = (document.getElementById('imagingIndication')?.value || '').trim();
+  const patientCtx   = getActivePatientContext();
+
+  if (!impression && !diagnosis) {
+    showToast('⚠️', 'Missing data', 'Please enter at least the radiologist\'s impression or diagnosis');
+    return;
+  }
+
+  // Collect all dynamic field values
+  const dynFields = [];
+  document.querySelectorAll('#ivDynamicFields input').forEach(el => {
+    const label = el.closest('.form-group')?.querySelector('.form-label')?.textContent || el.id;
+    const val = el.value.trim();
+    if (val) dynFields.push(`${label}: ${val}`);
+  });
+
+  // Build the prompt
+  const modNames = {xray:'Chest X-Ray',ecg:'ECG / 12-Lead',ct:'CT Scan',mri:'MRI',echo:'Echocardiogram',usg:'Ultrasound / USG',fundus:'Fundus / Ophthalmology',mammogram:'Mammogram',bone:'Bone Densitometry (DEXA)',nuclear:'Nuclear Medicine / PET',other:'Imaging Report'};
+  const modName = modNames[mod] || 'Imaging Report';
+
+  const prompt = `IMAGING REPORT ANALYSIS REQUEST
+Modality: ${modName}
+Clinical Indication: ${indication || 'Not specified'}
+${patientCtx}
+
+REPORT VALUES SUBMITTED:
+${dynFields.length ? dynFields.join('\n') : '(No structured values entered)'}
+
+Radiologist's Impression:
+${impression || '(Not provided)'}
+
+Radiologist's Diagnosis/Conclusion:
+${diagnosis || '(Not provided)'}
+
+Key Measurements:
+${measurements || '(Not provided)'}
+
+Incidental Findings:
+${incidental || 'None noted'}
+
+Please provide a comprehensive clinical interpretation as follows:
+
+1. SUMMARY OF FINDINGS
+Restate the key findings in clear clinical language, graded by significance.
+
+2. CLINICAL SIGNIFICANCE
+Explain what these findings mean clinically — correlation with the patient's symptoms, comorbidities, and current medications.
+
+3. ASSESSMENT / WORKING DIAGNOSIS
+State the most likely diagnosis and confidence level. Include relevant scoring systems (e.g. BI-RADS for mammogram, T-score interpretation for DEXA, TIMI for ECG, LV grading for echo).
+
+4. DIFFERENTIAL DIAGNOSES
+List 2-3 alternatives with brief clinical reasoning.
+
+5. RECOMMENDED MANAGEMENT
+a) Immediate actions (if any urgency)
+b) Additional investigations to clarify or stage the finding
+c) Treatment or intervention recommendations per ICMR/NHM/specialty guidelines
+d) Referral recommendations
+
+6. RED FLAGS / URGENT FEATURES
+List any findings requiring immediate escalation.
+
+7. FOLLOW-UP PLAN
+Specify timing for repeat imaging or review.
+
+Cite relevant guidelines (ICMR, ACC/AHA, ESC, BI-RADS, WHO, etc.) where applicable.`;
+
+  // Show loading in results panel
+  const resultBody = document.getElementById('imagingResultBody');
+  const analyzeAnim = document.getElementById('analyzingAnim');
+  const imagingDefault = document.getElementById('imagingDefault');
+  const imagingResults = document.getElementById('imagingResults');
+
+  if (imagingDefault) imagingDefault.style.display = 'none';
+  if (imagingResults) imagingResults.style.display = 'none';
+  if (analyzeAnim) analyzeAnim.style.display = 'flex';
+  document.getElementById('radiologyAnalysisSection') && (document.getElementById('radiologyAnalysisSection').style.display = 'none');
+
+  showToast('🔬', 'Analysing', `${modName} report values — processing…`);
+
+  try {
+    const sysPrompt = `You are SamarthaaMed Imaging AI, an expert radiologist and clinical imaging specialist. Analyse the imaging report values and provide a comprehensive, evidence-based clinical interpretation. Follow ICMR, NHM, ACC/AHA, ESC, and relevant specialty guidelines. Be specific, clinically actionable, and cite guidelines by name. Do not use markdown — use numbered sections with ALL-CAPS headers.`;
+
+    const result = await callClaudeAI([{ role: 'user', content: prompt }], sysPrompt);
+
+    if (analyzeAnim) analyzeAnim.style.display = 'none';
+
+    // Render using the existing radiology renderer or a simple renderer
+    const lines = result.split('\n');
+    let html = `<div style="padding:4px 0">
+      <div style="background:var(--teal-dim);border:1px solid rgba(185,28,28,.2);border-radius:8px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+        <span style="font-size:1.2rem">📋</span>
+        <div>
+          <div style="font-weight:700;font-size:0.85rem;color:var(--teal)">${modName} — Report Values Analysis</div>
+          <div style="font-size:0.72rem;color:var(--text3);margin-top:2px">Based on submitted report values · ${new Date().toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit'})}</div>
+        </div>
+      </div>`;
+    const sectionColors = ['var(--teal)','var(--red)','var(--gold)','var(--gold)','var(--teal)','var(--red)','var(--green)'];
+    let secIdx = -1;
+    for (const line of lines) {
+      const t = line.trim();
+      if (!t) { html += '<div style="height:6px"></div>'; continue; }
+      const sm = t.match(/^(\d+)\.\s+([A-Z][A-Z\s\/&,\-]{3,})[:.]?\s*$/);
+      if (sm) {
+        secIdx++;
+        const col = sectionColors[secIdx % sectionColors.length];
+        html += `<div style="margin:14px 0 7px;padding:7px 12px;background:${col}15;border-left:3px solid ${col};border-radius:0 6px 6px 0">
+          <span style="font-family:var(--syne);font-weight:700;font-size:0.85rem;color:${col}">${t}</span></div>`;
+        continue;
+      }
+      if (/^[a-z]\)|^[a-z]\.\s/.test(t)) {
+        html += `<div style="padding:3px 0 3px 14px;border-left:2px solid var(--border2);margin:2px 0 2px 8px;font-size:0.82rem;color:var(--text2);line-height:1.65">${t}</div>`;
+        continue;
+      }
+      html += `<p style="font-size:0.83rem;color:var(--text1);line-height:1.75;margin-bottom:4px">${t}</p>`;
+    }
+    html += '</div>';
+
+    if (resultBody) {
+      resultBody.innerHTML = html;
+      resultBody.style.display = 'block';
+    }
+
+    // Update the model label
+    const modelLabel = document.getElementById('imagingModel');
+    if (modelLabel) modelLabel.textContent = `${modName} · Values analysis · ICMR/ACC/ESC guidelines`;
+
+    showToast('✅', 'Analysis Complete', `${modName} report interpreted successfully`);
+
+  } catch(err) {
+    console.error('Report values analysis error:', err);
+    if (analyzeAnim) analyzeAnim.style.display = 'none';
+    if (resultBody) {
+      resultBody.innerHTML = `<div style="padding:16px;background:var(--red-dim);border:1px solid var(--red);border-radius:10px;text-align:center">
+        <div style="font-size:1.5rem;margin-bottom:8px">⚠️</div>
+        <div style="font-weight:700;color:var(--red)">Analysis Failed</div>
+        <div style="font-size:0.8rem;color:var(--text2);margin-top:6px">${err.message}</div>
+      </div>`;
+      resultBody.style.display = 'block';
+    }
+    showToast('❌', 'Analysis Failed', err.message);
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+
+let radiologyReports = [];
   let currentRadiologyReport = null;
 
   // ── Loading skeleton ──────────────────────────────────────────────
@@ -10819,8 +11189,26 @@ _This is a digital prescription from SamarthaaMed AI-Assisted Clinical System_`;
     const patientCtx = getActivePatientContext();
     // Use emergency system prompt if set (emergency voice consult mode)
     const systemPrompt = voiceConsultation._emergencySystemPrompt ||
-      `You are Samarthaa, an AI clinical decision-support assistant speaking aloud to an Indian doctor during a patient consultation. ${patientCtx}
-Rules: Reply in 1–2 short spoken sentences only. Be direct, clinical, and empathetic. Cite ICMR 2024 or NHP guidelines when relevant. Match the language the doctor speaks (English/Hindi/Kannada etc.). No bullet points — this is spoken.`;
+      `You are Samarthaa, a senior clinical decision-support assistant for Indian doctors. ${patientCtx}
+
+Your role: Provide precise, evidence-based clinical guidance during live patient consultations.
+
+Clinical framework:
+- Always apply ICMR 2024 guidelines, National Health Mission (NHM) protocols, WHO SEARO recommendations, and specialty-specific Indian guidelines (CSI for cardiology, RSSDI for diabetes, API guidelines for internal medicine, IAP for paediatrics)
+- For acute presentations: prioritise triage, red flags, and time-critical interventions first
+- Drug recommendations: prefer Jan Aushadhi generics; state dose, route, frequency, and duration
+- Investigations: order by clinical priority and cost-effectiveness for Indian PHC/district hospital settings
+- Always flag contraindications given the patient's current medications and comorbidities
+- Mention drug interactions, allergy risks, and monitoring parameters
+- For chronic disease: address current control, target values, and escalation criteria
+
+Response format for voice:
+- Start with the most critical clinical point
+- Give 2-4 specific, actionable sentences
+- Cite the guideline by name if recommending a specific intervention
+- End with the single most important next step
+- Match the language the doctor uses (English, Hindi, Kannada, Tamil, etc.)
+- Never use bullet points — this is spoken aloud`;
     try {
       const raw = await callClaudeAI(msgs, systemPrompt);
       const aiResponse = raw.replace(/<[^>]+>/g, '').trim();
