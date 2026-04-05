@@ -13660,13 +13660,12 @@ Please provide clinical guidance on management.`;
       renderVCList();
     }
     if (id === 'secondopinion') {
-      // Defer so the view's display:block has been applied first
+      // Defer 50ms so display:block is applied, then render the list
       setTimeout(function() {
-        if (typeof sopRefreshStats === 'function') sopRefreshStats();
-        if (typeof sopShowList === 'function') sopShowList();
+        if (window.sopShowList) window.sopShowList();
         var sc = document.querySelector('.content');
         if (sc) sc.scrollTop = 0;
-      }, 30);
+      }, 50);
     }
   };
 
@@ -13709,7 +13708,7 @@ function sopFmt(iso) { if(!iso)return'—'; return new Date(iso).toLocaleDateStr
 function sopMakeId() { return 'SOP-'+Date.now().toString(36).toUpperCase().slice(-6); }
 
 // ── Stats ──────────────────────────────────────────────────────────────
-function sopRefreshStats() {
+window.sopRefreshStats = function sopRefreshStats() {
   const all = sopGetAll();
   const el = id => document.getElementById(id);
   if(el('sopStatTotal'))    el('sopStatTotal').textContent    = all.length;
@@ -14770,7 +14769,7 @@ ${req.fee?`<p style="margin-top:10pt;color:#15803d;font-weight:bold">Consultatio
 // ── showView hook for secondopinion ─────────────────────────────────
 
 // ── Init ───────────────────────────────────────────────────────────────
-setTimeout(()=>{ sopRefreshStats(); }, 800);
+setTimeout(()=>{ if(window.sopRefreshStats) window.sopRefreshStats(); }, 800);
 
 })(); // end IIFE
 
