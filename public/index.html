@@ -6593,22 +6593,120 @@ SHORT-TERM:
 
     renderQueueCards();
 
-    // Simulate extraction (staggered per file)
-    const delay = 1200 + (labReportQueue.length - 1) * 400;
-    setTimeout(() => {
-      // Build extracted data for this report
+    // Real AI extraction using Claude API
+    (async () => {
       const item = labReportQueue.find(r => r.id === id);
       if (!item) return;
-      item.data = item.profile.tests.map(testName => {
-        const def = labTestBank.find(t => t.name === testName);
-        if (!def) return null;
-        const val = def.samples[id % def.samples.length];
-        return { ...def, value: val };
-      }).filter(Boolean);
-      item.status = 'done';
+      try {
+        await _loadConfig();
+        const apiKey = getApiKey();
+        if (!apiKey) throw new Error('API key not configured');
+
+        const toDataUrl = (f) => new Promise((res, rej) => {
+          const fr = new FileReader();
+          fr.onload = e => res(e.target.result);
+          fr.onerror = rej;
+          fr.readAsDataURL(f);
+        });
+
+        const dataUrl = await toDataUrl(file);
+        const mimeType = file.type || 'application/pdf';
+        const b64 = dataUrl.split(',')[1];
+
+        const extractPrompt = `You are a medical data extraction AI. Extract ALL laboratory and diagnostic values from this report.
+
+Return ONLY a valid JSON array — no markdown, no text outside JSON:
+[
+  {
+    "name": "test name",
+    "value": "result value",
+    "unit": "unit or empty string",
+    "low": reference_range_low_as_number_or_null,
+    "high": reference_range_high_as_number_or_null,
+    "status": "H | L | N | C",
+    "category": "CBC | Biochemistry | Cardiac | Liver | Renal | Thyroid | Diabetes | Coagulation | Lipid | Imaging | ECG | Microbiology | Hormones | Other"
+  }
+]
+
+EXTRACTION RULES:
+- Extract EVERY value in the report — blood tests, urine, cultures, all values
+- For ECG reports: HR bpm, Rhythm, PR interval ms, QRS duration ms, QTc ms, Axis degrees, ST changes (each as a separate item)
+- For Chest X-Ray: CTR ratio, heart size, lung fields L/R, costophrenic angles, mediastinum width, any lesion size
+- For CT scans: organ sizes (liver cm, spleen cm, kidneys cm), lesion dimensions, lymph node sizes, aorta diameter
+- For MRI: lesion size and location, signal characteristics
+- For Echocardiogram: EF%, LVEDD mm, LVESD mm, IVS thickness mm, PW thickness mm, LA size mm, Aortic root mm, each valve (normal/abnormal)
+- For Ultrasound: organ sizes, any cysts/masses with dimensions, GB wall thickness
+- For Bone Density (DEXA): T-score spine, T-score hip, T-score femoral neck, Z-score
+- Use Indian ICMR / NABL reference ranges for H/L/N/C status
+- C (critical) = life-threatening value; H = above high; L = below low; N = within range
+- Return [] if truly nothing extractable`;
+
+        let msgContent;
+        if (mimeType.startsWith('image/')) {
+          msgContent = [
+            { type: 'image', source: { type: 'base64', media_type: mimeType, data: b64 } },
+            { type: 'text', text: 'Extract all values from this medical report image. Return JSON array only.' }
+          ];
+        } else {
+          // PDF — send as document
+          msgContent = [
+            { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: b64 } },
+            { type: 'text', text: `Extract all lab and diagnostic values from this report file: "${file.name}". Return JSON array only.` }
+          ];
+        }
+
+        const response = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true'
+          },
+          body: JSON.stringify({
+            model: 'claude-sonnet-4-6',
+            max_tokens: 3000,
+            temperature: 0.1,
+            system: extractPrompt,
+            messages: [{ role: 'user', content: msgContent }]
+          })
+        });
+
+        if (!response.ok) throw new Error('API ' + response.status);
+        const rd = await response.json();
+        const raw = (rd.content[0].text || '').trim()
+          .replace(/^```(?:json)?\s*/i,'').replace(/\s*```$/,'');
+        const extracted = JSON.parse(raw);
+
+        item.data = (Array.isArray(extracted) ? extracted : []).map(t => ({
+          name:     t.name  || 'Unknown',
+          unit:     t.unit  || '',
+          low:      parseFloat(t.low)  || 0,
+          high:     parseFloat(t.high) || 9999,
+          mode:     (t.status === 'H' || t.status === 'C') ? 'H' : (t.status === 'L' ? 'L' : 'N'),
+          value:    String(t.value || ''),
+          category: t.category || 'Other',
+          status:   t.status   || 'N'
+        }));
+        item.status = 'done';
+        item.aiExtracted = true;
+        showToast('✅','Extracted', item.data.length + ' values from ' + file.name);
+
+      } catch(err) {
+        console.warn('AI extraction error, using profile fallback:', err.message);
+        const item2 = labReportQueue.find(r => r.id === id);
+        if (item2) {
+          item2.data = item2.profile.tests.map(testName => {
+            const def = labTestBank.find(t => t.name === testName);
+            if (!def) return null;
+            return { ...def, value: def.samples[id % def.samples.length] };
+          }).filter(Boolean);
+          item2.status = 'done';
+        }
+      }
       renderQueueCards();
       rebuildMergedResults();
-    }, delay);
+    })()
   }
 
   function renderQueueCards() {
@@ -6885,31 +6983,106 @@ SHORT-TERM:
     document.getElementById('analyzeBtn').disabled = true;
 
     const patientCtx = getActivePatientContext();
-    const systemPrompt = `You are SamarthaaMed Imaging AI, an expert radiologist and clinical imaging specialist embedded in a clinical platform for Indian doctors.
-${patientCtx}
+    const systemPrompt = `You are Dr. SAMARTHAA Imaging AI — a senior radiologist and clinical imaging specialist for an Indian clinical platform. You provide expert-level structured analysis of ALL medical imaging modalities.
 
-Analyse the medical image provided and respond ONLY with a valid JSON object — no markdown, no text outside the JSON.
+PATIENT CONTEXT: ${patientCtx}
+
+Respond ONLY with a valid JSON object — absolutely no text outside the JSON, no markdown fences.
 
 JSON schema:
 {
-  "modality": "imaging type e.g. Chest X-Ray PA View / CT Brain / ECG 12-lead",
-  "quality": "brief technical quality comment",
+  "modality": "exact modality and view e.g. Chest X-Ray PA View / 12-Lead ECG / CT Brain with contrast / USG Abdomen",
+  "quality": "technical quality: positioning, exposure, artefacts, limitations",
   "findings": [
-    { "title": "finding name", "conf": "confidence % e.g. 91%", "level": "high|med|low", "desc": "clinical description with measurements and significance" }
+    {
+      "title": "finding name",
+      "conf": "confidence e.g. 94%",
+      "level": "critical|high|moderate|normal",
+      "desc": "detailed clinical description with measurements, location, characteristics"
+    }
   ],
-  "recommendation": "clinical recommendation with ICMR/AHA/WHO guideline reference",
-  "urgency": "routine|urgent|critical",
-  "impression": "overall 1-2 sentence radiological impression"
+  "measurements": { "key": "value with units" },
+  "impression": "2-3 sentence radiological impression with primary diagnosis",
+  "recommendation": "specific next steps citing ICMR 2024 / AHA / ESC / WHO / RSNA guidelines",
+  "urgency": "critical|urgent|high|routine",
+  "differentials": ["differential 1", "differential 2"]
 }
 
-Rules:
-- List 3–6 findings including both abnormal AND normal/reassuring ones
-- For chest X-ray: comment on heart size, lung fields, costophrenic angles, mediastinum, bones
-- For CT: comment on each relevant structure
-- For ECG: identify rhythm, rate, axis, intervals, ST changes, any arrhythmia
-- Use metric measurements (cm, mm) where applicable
-- Reference ICMR 2024, AHA, or WHO guidelines in recommendation
-- confidence % = how confident you are in that specific finding`;
+MODALITY-SPECIFIC RULES (apply the relevant section):
+
+CHEST X-RAY:
+- Heart: CTR ratio, cardiac silhouette shape (comment if CTR > 0.5 = cardiomegaly)
+- Lungs: each zone L and R — consolidation, effusion, pneumothorax, hyperinflation, nodules
+- Mediastinum: width, tracheal position, hilar shadows, aortic knuckle
+- Costophrenic angles: blunted (effusion) or sharp
+- Bones: rib fractures, clavicle, spine visible segments
+- Soft tissue: surgical emphysema, foreign bodies
+
+CT SCAN (Brain / Chest / Abdomen / Pelvis):
+- For CT Brain: midline shift mm, ventricular size, hyperdense/hypodense areas with HU if visible, sulcal effacement, herniation signs, bony calvarium
+- For CT Chest: lung windows (nodules with size/location/density HU, ground glass, consolidation, pleural), mediastinal windows (nodes > 1cm, vessels, heart), CTPA findings if contrast
+- For CT Abdomen: liver size and echogenicity, focal lesions with size, spleen size, kidneys (size, hydronephrosis grade, stones), pancreas, aorta diameter, lymph nodes, ascites
+- Always include HU values for lesions when determinable
+
+ECG (12-Lead):
+- Rate: bpm (calculated)
+- Rhythm: sinus/AF/flutter/junctional etc
+- Axis: normal/LAD/RAD/extreme with degrees
+- P waves: morphology, duration ms
+- PR interval: ms (normal 120-200ms)
+- QRS duration: ms (normal < 120ms), morphology (LBBB/RBBB criteria)
+- QT/QTc: ms (Bazett formula; QTc > 450ms men / 460ms women = prolonged)
+- ST segment: elevation/depression in which leads (mm), pattern (STEMI criteria: > 1mm in 2 contiguous limb leads or > 2mm precordial)
+- T waves: inversion, hyperacute, morphology per lead
+- Other: delta waves (WPW), epsilon waves, U waves, pacing spikes
+
+ECHOCARDIOGRAM:
+- LV function: EF% (Simpson's biplane), regional wall motion abnormalities per segment
+- LV dimensions: LVEDD mm, LVESD mm (normal: LVEDD 42-58mm, EF > 55%)
+- Wall thickness: IVS mm, PW mm (hypertrophy if > 12mm)
+- LA size: mm or volume ml
+- Aortic root: mm, ascending aorta mm
+- Valves: each valve — grade of regurgitation (mild/moderate/severe), stenosis (Vmax m/s, gradient mmHg, area cm²)
+- Pericardium: effusion size and distribution, tamponade features
+- Diastolic function: Grade (1-3), E/A ratio, E/e' ratio, LAVI
+
+ULTRASOUND (Abdomen / Pelvis / Other):
+- Liver: size (cm AP), echotexture (fatty grade 0-3), focal lesions (size, echogenicity, vascularity)
+- Gallbladder: size, wall thickness mm, calculi (size, shadowing), polyps
+- Common bile duct: diameter mm (dilated if > 6mm)
+- Pancreas: size and echotexture, duct diameter mm
+- Spleen: size cm (splenomegaly if > 12cm)
+- Kidneys: size L/R cm, cortical thickness, echogenicity, hydronephrosis grade (0-4), calculi
+- Aorta/IVC: calibre
+- Ascites: present/absent, estimated volume
+- Pelvis: uterus size, endometrial thickness mm, ovaries, adnexal masses
+
+MRI:
+- Sequences imaged, contrast use
+- Each relevant structure with signal characteristics (T1/T2/FLAIR/DWI/ADC)
+- Lesion: size, location, signal, enhancement pattern, mass effect
+- Specific findings per body part
+
+MAMMOGRAM:
+- Composition: ACR category A/B/C/D
+- Masses: size, shape (round/oval/irregular), margin (circumscribed/spiculated), density (high/iso/low)
+- Calcifications: morphology (pleomorphic/amorphous), distribution (clustered/segmental)
+- Architectural distortion, skin/nipple changes
+- BI-RADS category 1-6 with recommendation
+
+NUCLEAR MEDICINE / PET-CT:
+- Tracer, dose, acquisition time
+- SUVmax for each lesion
+- Distribution pattern
+- Metabolically active lesions with location and size
+
+BONE DENSITY (DEXA):
+- BMD g/cm² at lumbar spine, total hip, femoral neck
+- T-score each site (osteoporosis < -2.5; osteopenia -1 to -2.5)
+- Z-score
+- FRAX 10-year fracture probability if calculable
+
+Always list 4-8 findings minimum. Include BOTH abnormal findings AND normal/reassuring findings. Cite the specific guideline (e.g. "ACC/AHA 2022 Chest Pain Guideline", "ICMR Radiology Standards 2023") in recommendation.`;
 
     // Build message with actual image
     let msgContent;
@@ -9909,35 +10082,54 @@ let radiologyReports = [];
     const patientCtx = getActivePatientContext();
     const isImage = report.type && report.type.startsWith('image/');
 
-    const systemPrompt = `You are SamarthaaMed Radiology AI, an expert radiologist assistant embedded in a clinical platform.
-${patientCtx}
+    const systemPrompt = `You are Dr. SAMARTHAA Radiology AI — a senior specialist radiologist embedded in a clinical platform for Indian doctors. You analyse ALL radiology report types: plain X-rays, CT, MRI, Ultrasound, Echocardiograms, ECG, Nuclear Medicine, PET-CT, Mammography, DEXA, and pathology reports.
 
-Respond ONLY with a valid JSON object with exactly two keys: "analysis" and "guidance".
+PATIENT CONTEXT: ${patientCtx}
 
-"analysis" object schema:
+Respond ONLY with a valid JSON object with exactly two keys: "analysis" and "guidance". No text outside JSON, no markdown fences.
+
+"analysis" schema:
 {
-  "modality": "imaging type and view e.g. Chest X-Ray PA View",
-  "quality": "technical quality comment",
-  "findings": [ { "severity": "critical|high|moderate|normal", "title": "finding name", "detail": "clinical description with measurements" } ],
-  "impression": "overall radiological impression, 2-3 sentences",
+  "modality": "exact modality and view e.g. HRCT Chest / 12-Lead ECG / USG Abdomen",
+  "quality": "technical quality, positioning, contrast use, limitations",
+  "findings": [
+    {
+      "severity": "critical|high|moderate|normal",
+      "title": "finding name",
+      "detail": "description with measurements (mm/cm), location, severity, clinical significance"
+    }
+  ],
+  "measurements": { "key measurement": "value with units" },
+  "impression": "2-3 sentence primary radiological impression",
   "confidence": 88
 }
 
-"guidance" object schema:
+"guidance" schema:
 {
-  "impression": "clinical diagnosis or differential",
+  "impression": "clinical diagnosis with differentials",
   "urgency": "critical|urgent|high|moderate|routine",
-  "actions": [ { "step": "action title", "detail": "specific instruction with drug names/doses/timing" } ],
-  "followUp": "follow-up plan with timeline",
-  "redFlags": "warning signs requiring immediate escalation",
-  "guidelines": "guideline references used"
+  "actions": [
+    { "step": "action title", "detail": "specific instruction — drug doses, imaging protocols, referral pathway" }
+  ],
+  "followUp": "follow-up plan with specific timeline and repeat imaging if needed",
+  "redFlags": "features requiring immediate escalation — be specific",
+  "guidelines": "specific guidelines cited e.g. ACC/AHA 2023, ICMR 2024, ESC 2023"
 }
 
-Rules:
-- List 3-6 findings including BOTH abnormal AND normal/reassuring findings
-- Actions must reference current ICMR, ESC, AHA or WHO guidelines by name
-- Do NOT output any text outside the JSON object
-- Do NOT use markdown code fences`;
+MODALITY RULES:
+CHEST X-RAY: CTR ratio, lung zone findings (consolidation/effusion/pneumothorax), mediastinum, bones
+CT BRAIN: midline shift mm, hyperdense/hypodense areas, HU values, herniation, skull base
+CT CHEST: nodule size/density/location using Fleischner Society criteria, CTPA emboli location
+CT ABDOMEN: organ sizes, lesion dimensions + HU, lymph nodes > 1cm, ascites volume estimate
+ECG: rate bpm, rhythm, PR/QRS/QTc ms, ST mm per lead, STEMI criteria, axis
+ECHO: EF%, LVEDD/LVESD mm, wall thickness, valve gradients + area, diastolic grade
+USG: organ sizes cm, lesion dimensions, GB wall, CBD diameter, hydronephrosis grade
+MRI: lesion size, signal (T1/T2/FLAIR), enhancement, mass effect mm
+MAMMOGRAM: BI-RADS 1-6, mass size + margin, calcification morphology
+DEXA: T-scores per site, Z-scores, osteoporosis/osteopenia classification (WHO 1994)
+PET-CT: SUVmax per lesion, metabolic tumour volume
+
+List 4-8 findings minimum. Always include normal/reassuring findings alongside abnormal. Reference specific named guidelines in "guidelines" field.`;
 
     let msgContent;
     if (report.isSample) {
