@@ -13863,6 +13863,472 @@ window.sopFilterList = function(status, btn) {
 };
 
 // ── New Request Form ───────────────────────────────────────────────────
+
+// ══════════════════════════════════════════════════════════════
+//   SOP PATIENT LOOKUP & LAB ATTACHMENT HELPERS
+// ══════════════════════════════════════════════════════════════
+
+// Build list of all patients from patientProfiles + samarthaamed_patients
+function sopGetPatientList() {
+  const list = [];
+  // From in-memory patientProfiles (demo + registered this session)
+  if (typeof patientProfiles !== 'undefined') {
+    Object.entries(patientProfiles).forEach(([key, p]) => {
+      if (p && p.name) list.push({ key, name: p.name, meta: p.meta||'', source: 'profile' });
+    });
+  }
+  // From localStorage (persisted registrations)
+  try {
+    const stored = JSON.parse(localStorage.getItem('samarthaamed_patients')||'[]');
+    stored.forEach(p => {
+      if (!list.find(x => x.name === (p.name || (p.fname+' '+p.lname)))) {
+        list.push({
+          key: p.key || p.patientId || p.id,
+          name: p.name || (p.fname+' '+p.lname),
+          meta: p.meta || `${p.age||'?'}${p.genderCode||''} · ID: ${p.patientId||p.id||'—'}`,
+          source: 'registry'
+        });
+      }
+    });
+  } catch(e) {}
+  return list;
+}
+
+// Get full profile for a patient key
+function sopGetProfile(key) {
+  if (typeof patientProfiles !== 'undefined' && patientProfiles[key]) return patientProfiles[key];
+  try {
+    const stored = JSON.parse(localStorage.getItem('samarthaamed_patients')||'[]');
+    return stored.find(p => p.key === key || p.patientId === key || p.id === key) || null;
+  } catch(e) { return null; }
+}
+
+// Get lab results for a patient - from patientProfiles.labs, video consultations, prescriptions
+function sopGetPatientLabs(key) {
+  const labEntries = [];
+  const prof = typeof patientProfiles !== 'undefined' ? patientProfiles[key] : null;
+
+  // 1. From patientProfiles.labs (set by lab module)
+  if (prof && prof.labs && Array.isArray(prof.labs)) {
+    prof.labs.forEach(function(lab) { labEntries.push(lab); });
+  }
+
+  // 2. From profile vitals, complaints, scores — always available for all patients
+  if (prof) {
+    var vitalLines = [];
+    if (prof.vitals) {
+      var v = prof.vitals;
+      if (v.hr   && v.hr   !== '—') vitalLines.push('Heart Rate: ' + v.hr);
+      if (v.bp   && v.bp   !== '—') vitalLines.push('Blood Pressure: ' + v.bp);
+      if (v.spo2 && v.spo2 !== '—') vitalLines.push('SpO₂: ' + v.spo2);
+      if (v.temp && v.temp !== '—') vitalLines.push('Temperature: ' + v.temp);
+    }
+    if (vitalLines.length) {
+      labEntries.push({
+        type: 'Current Vitals',
+        date: 'This session',
+        summary: vitalLines.join(' · '),
+        full: vitalLines.join('\n')
+      });
+    }
+
+    // Clinical scores (HEART, TIMI, GRACE, etc.)
+    if (prof.scores && prof.scores.length) {
+      var scoreLines = prof.scores.map(function(s) { return s[0] + ': ' + s[1]; });
+      labEntries.push({
+        type: 'Clinical Scoring',
+        date: 'This session',
+        summary: scoreLines.join(' · '),
+        full: scoreLines.join('\n')
+      });
+    }
+
+    // Chief complaints
+    if (prof.complaints && prof.complaints.length) {
+      labEntries.push({
+        type: 'Chief Complaints',
+        date: 'Presenting',
+        summary: prof.complaints.join(', '),
+        full: 'Chief Complaints:\n' + prof.complaints.join('\n')
+      });
+    }
+
+    // Medical history
+    if (prof.history && prof.history.length) {
+      labEntries.push({
+        type: 'Medical History & Comorbidities',
+        date: 'On record',
+        summary: prof.history.join(', '),
+        full: 'Medical History:\n' + prof.history.join('\n')
+      });
+    }
+
+    // Current medications
+    if (prof.meds && prof.meds.trim() && prof.meds !== 'None — New presentation') {
+      labEntries.push({
+        type: 'Current Medications',
+        date: 'On record',
+        summary: prof.meds.replace(/\n/g, ' · ').substring(0, 200),
+        full: 'Current Medications:\n' + prof.meds
+      });
+    }
+  }
+
+  // 3. SOAP notes from localStorage
+  try {
+    var soaps = JSON.parse(localStorage.getItem('smmed_soap_notes') || '[]');
+    var profName = prof ? prof.name : '';
+    soaps.filter(function(s) {
+      return s.patientKey === key || (profName && s.patientName === profName);
+    }).forEach(function(soap) {
+      labEntries.push({
+        type: 'SOAP Note — ' + (soap.specialty || 'Clinical'),
+        date: soap.date || 'Unknown date',
+        summary: (soap.assessment || soap.subjective || '').substring(0, 200),
+        full: [
+          soap.subjective ? 'S: ' + soap.subjective : '',
+          soap.objective  ? 'O: ' + soap.objective  : '',
+          soap.assessment ? 'A: ' + soap.assessment : '',
+          soap.plan       ? 'P: ' + soap.plan       : ''
+        ].filter(Boolean).join('\n')
+      });
+    });
+  } catch(e) {}
+
+  // 4. From video consultations
+  try {
+    var vcs = JSON.parse(localStorage.getItem('samarthaamed_video_consultations') || '[]');
+    vcs.filter(function(vc) {
+      var vcName = ((vc.patient && vc.patient.fname) || '') + ' ' + ((vc.patient && vc.patient.lname) || '');
+      var profName2 = prof ? prof.name : '';
+      return vcName.trim().toLowerCase() === profName2.toLowerCase() ||
+             (vc.patientKey && vc.patientKey === key);
+    }).forEach(function(vc) {
+      if (vc.report || vc.vitals) {
+        labEntries.push({
+          type: 'Video Consultation Report',
+          date: vc.submittedAt || vc.createdAt || 'Unknown date',
+          summary: vc.report ? vc.report.substring(0, 300) + '…' : 'Vitals recorded',
+          vitals: vc.vitals || null,
+          full: vc.report || ''
+        });
+      }
+    });
+  } catch(e) {}
+
+  // 5. From prescription history
+  try {
+    var rxs = JSON.parse(localStorage.getItem('smed_prescriptions') || '[]');
+    var profNameRx = prof ? prof.name : key;
+    rxs.filter(function(rx) { return rx.patient === profNameRx; }).forEach(function(rx) {
+      if (rx.drugs && rx.drugs.length) {
+        labEntries.push({
+          type: 'Prescription / Clinical Record',
+          date: rx.date || 'Unknown date',
+          summary: 'Diagnosis: ' + (rx.diagnosis || '—') + ' · Drugs: ' +
+            rx.drugs.slice(0, 3).map(function(d) { return d.name || d; }).join(', '),
+          full: JSON.stringify(rx)
+        });
+      }
+    });
+  } catch(e) {}
+
+  return labEntries;
+}
+
+// Auto-fill form when patient is selected
+window.sopOnPatientSelect = function(key) {
+  if (!key) return;
+  const prof = sopGetProfile(key);
+  if (!prof) return;
+
+  // Fill patient reference fields
+  const setVal = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val; };
+  
+  // Build patient ref from key + name
+  const initials = prof.initials || key;
+  setVal('sop_pt_ref', `PT-${initials}-${new Date().getFullYear()}`);
+  
+  // Age/Sex from meta: "52F · ID: MM-2024-04521 · Cardiology"
+  const ageMatch = (prof.meta||'').match(/^(\d+[MF?OmfMP]*)/);
+  setVal('sop_pt_age_sex', ageMatch ? ageMatch[1].replace('M','/ Male').replace('F','/ Female').replace('O','/ Other') : '');
+  
+  // Conditions from history array
+  if (prof.history && prof.history.length) {
+    setVal('sop_conditions', prof.history.join(', '));
+  } else if (prof.conds) {
+    setVal('sop_conditions', prof.conds);
+  }
+  
+  // Medications
+  setVal('sop_meds', prof.meds || '');
+  
+  // Allergies
+  setVal('sop_allergies', prof.allergies || '');
+  
+  // Specialty from meta
+  const specMatch = (prof.meta||'').match(/·\s*(\w[\w\s]+)$/);
+  if (specMatch) {
+    const specSel = document.getElementById('sop_specialty');
+    if (specSel) {
+      const opt = Array.from(specSel.options).find(o => 
+        o.value.toLowerCase().includes(specMatch[1].toLowerCase().split(' ')[0])
+      );
+      if (opt) specSel.value = opt.value;
+    }
+  }
+
+  // Now load and display their lab reports
+  sopLoadPatientLabsForSOP(key, prof);
+};
+
+// Load and display patient's lab reports in the form
+
+// Called by the Auto-fill button — reads labs stored on the container element
+window.sopAutoFillFromContainer = function() {
+  var container = document.getElementById('sopLabReportsContainer');
+  if (!container || !container._sopLabs) {
+    if (typeof showToast === 'function') showToast('⚠️', 'No data', 'Select a patient first');
+    return;
+  }
+  window.sopAutoFillFindings(container._sopLabs);
+};
+
+window.sopLoadPatientLabsForSOP = function(key, prof) {
+  var container = document.getElementById('sopLabReportsContainer');
+  if (!container) return;
+
+  var labs = sopGetPatientLabs(key);
+
+  if (!labs.length) {
+    container.innerHTML = '<div style="font-size:0.78rem;color:var(--text3);padding:10px 12px;' +
+      'background:var(--navy3);border-radius:6px;text-align:center">' +
+      'No clinical records found for this patient in the current session.<br>' +
+      '<span style="font-size:0.72rem">You can still enter findings manually in the Key Findings field below.</span>' +
+      '</div>';
+    return;
+  }
+
+  // Store labs on the container for access by sopAutoFillFindings
+  container._sopLabs = labs;
+
+  var html = '<div style="font-size:0.72rem;color:var(--text3);margin-bottom:8px">' +
+    'Select records to include in the second opinion (all checked by default):</div>';
+
+  labs.forEach(function(lab, i) {
+    var vitalsHtml = '';
+    if (lab.vitals) {
+      var chips = Object.entries(lab.vitals)
+        .filter(function(kv) { return kv[1] && kv[1] !== '—'; })
+        .map(function(kv) {
+          return '<span style="font-size:0.68rem;background:var(--teal-dim);color:var(--teal);' +
+            'padding:1px 7px;border-radius:4px">' + kv[0] + ': ' + kv[1] + '</span>';
+        }).join('');
+      if (chips) vitalsHtml = '<div style="margin-top:4px;display:flex;flex-wrap:wrap;gap:4px">' + chips + '</div>';
+    }
+
+    html += '<label style="display:flex;align-items:flex-start;gap:10px;padding:10px 12px;' +
+      'background:var(--navy3);border:1.5px solid var(--border);border-radius:8px;cursor:pointer;' +
+      'margin-bottom:6px;transition:border-color .15s" ' +
+      'onmouseover="this.style.borderColor=\'var(--teal)\'" ' +
+      'onmouseout="this.style.borderColor=\'var(--border)\'">' +
+      '<input type="checkbox" class="sop-lab-check" data-idx="' + i + '" ' +
+        'style="width:16px;height:16px;flex-shrink:0;margin-top:2px;accent-color:var(--teal)" checked>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-weight:600;font-size:0.8rem;color:var(--text1)">' + (lab.type || 'Clinical Record') + '</div>' +
+        '<div style="font-size:0.72rem;color:var(--text3);margin-top:1px">' + (lab.date || '') + '</div>' +
+        '<div style="font-size:0.75rem;color:var(--text2);margin-top:3px;line-height:1.5">' +
+          (lab.summary || '').substring(0, 150) + (lab.summary && lab.summary.length > 150 ? '…' : '') +
+        '</div>' +
+        vitalsHtml +
+      '</div>' +
+    '</label>';
+  });
+
+  html += '<button onclick="sopAutoFillFromContainer()" ' +
+    'style="width:100%;padding:9px;background:var(--teal-dim);color:var(--teal);' +
+    'border:1px solid rgba(185,28,28,.2);border-radius:7px;font-size:0.82rem;font-weight:700;' +
+    'cursor:pointer;margin-top:4px;font-family:var(--dm);letter-spacing:.2px">' +
+    '✦ Auto-fill Key Findings from selected records</button>';
+
+  container.innerHTML = html;
+}
+
+// Auto-fill the findings textarea from selected lab reports
+window.sopAutoFillFindings = function(labs) {
+  var checks = document.querySelectorAll('.sop-lab-check:checked');
+  if (!checks.length) {
+    if (typeof showToast === 'function') showToast('⚠️', 'None selected', 'Check at least one report to include');
+    return;
+  }
+  var selected = Array.from(checks).map(function(ch) {
+    return labs[parseInt(ch.dataset.idx)];
+  }).filter(Boolean);
+
+  var findingsEl = document.getElementById('sop_findings');
+  if (!findingsEl) return;
+
+  // Build a structured clinical summary
+  var sections = {
+    vitals: [],
+    scores: [],
+    complaints: [],
+    history: [],
+    meds: [],
+    soap: [],
+    other: []
+  };
+
+  selected.forEach(function(lab) {
+    var t = (lab.type || '').toLowerCase();
+    if (t.includes('vital'))       sections.vitals.push(lab);
+    else if (t.includes('scor'))   sections.scores.push(lab);
+    else if (t.includes('complai')) sections.complaints.push(lab);
+    else if (t.includes('history') || t.includes('comorbid')) sections.history.push(lab);
+    else if (t.includes('medic'))  sections.meds.push(lab);
+    else if (t.includes('soap'))   sections.soap.push(lab);
+    else                           sections.other.push(lab);
+  });
+
+  var lines = [];
+
+  if (sections.vitals.length) {
+    lines.push('VITALS:');
+    sections.vitals.forEach(function(l) { lines.push(l.full || l.summary); });
+    lines.push('');
+  }
+  if (sections.scores.length) {
+    lines.push('CLINICAL SCORES:');
+    sections.scores.forEach(function(l) { lines.push(l.full || l.summary); });
+    lines.push('');
+  }
+  if (sections.complaints.length) {
+    lines.push('PRESENTING COMPLAINTS:');
+    sections.complaints.forEach(function(l) { lines.push(l.full || l.summary); });
+    lines.push('');
+  }
+  if (sections.history.length) {
+    lines.push('MEDICAL HISTORY & COMORBIDITIES:');
+    sections.history.forEach(function(l) { lines.push(l.full || l.summary); });
+    lines.push('');
+  }
+  if (sections.meds.length) {
+    lines.push('CURRENT MEDICATIONS:');
+    sections.meds.forEach(function(l) { lines.push(l.full || l.summary); });
+    lines.push('');
+  }
+  if (sections.soap.length) {
+    sections.soap.forEach(function(l) {
+      lines.push('[' + l.type + ' — ' + l.date + ']');
+      lines.push(l.full || l.summary);
+      lines.push('');
+    });
+  }
+  if (sections.other.length) {
+    sections.other.forEach(function(l) {
+      lines.push('[' + l.type + ' — ' + l.date + ']');
+      if (l.vitals) {
+        Object.entries(l.vitals).filter(function(kv) { return kv[1] && kv[1] !== '—'; })
+          .forEach(function(kv) { lines.push(kv[0] + ': ' + kv[1]); });
+      }
+      lines.push(l.full || l.summary);
+      lines.push('');
+    });
+  }
+
+  findingsEl.value = lines.join('\n').trim();
+  findingsEl.style.borderColor = 'var(--teal)';
+  findingsEl.rows = Math.min(12, Math.max(5, lines.length));
+  if (typeof showToast === 'function') {
+    showToast('✦', 'Findings filled', selected.length + ' clinical record(s) included in findings');
+  }
+}
+
+// ══════════════════════════════════════════════════════════════
+
+// Build Section B HTML as a plain JS function (avoids template literal escaping)
+function sopBuildSectionB(p) {
+  const e = typeof sopE === 'function' ? sopE : function(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+  const patients = (typeof sopGetPatientList === 'function') ? sopGetPatientList() : [];
+  const bgs = ['A+','A-','B+','B-','AB+','AB-','O+','O-'];
+
+  const inp = function(id, val, ph) {
+    return '<input id="' + id + '" type="text" value="' + e(val||'') + '" placeholder="' + ph + '" ' +
+      'style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;' +
+      'background:var(--navy);color:var(--text1);outline:none;box-sizing:border-box" ' +
+      'onfocus="this.style.borderColor=\'var(--teal)\'" onblur="this.style.borderColor=\'var(--border)\'">';
+  };
+
+  const patientOpts = '<option value="">— Select patient to auto-fill (or fill manually below) —</option>' +
+    patients.map(function(pt) {
+      return '<option value="' + e(pt.key) + '">' + e(pt.name) + (pt.meta ? ' · ' + e(pt.meta.split('·')[0].trim()) : '') + '</option>';
+    }).join('');
+
+  const bgOpts = '<option value="">Not recorded</option>' +
+    bgs.map(function(bg) {
+      return '<option value="' + bg + '"' + (p.blood === bg ? ' selected' : '') + '>' + bg + '</option>';
+    }).join('');
+
+  return [
+    '<!-- SECTION B: Patient & Lab Reports (Internal) -->',
+    '<div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px">',
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">',
+        '<div style="font-size:0.7rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal)">B — Patient &amp; Lab Reports (Internal Only — Not in Report)</div>',
+        '<span style="font-size:0.68rem;background:var(--gold-dim);color:var(--gold);padding:2px 8px;border-radius:4px;font-weight:700">🔒 PII — Never exported</span>',
+      '</div>',
+
+      '<!-- Patient selector -->',
+      '<div style="margin-bottom:14px;padding:12px 14px;background:var(--teal-dim);border:1.5px solid rgba(185,28,28,.15);border-radius:8px">',
+        '<label style="font-size:0.72rem;font-weight:700;color:var(--teal);display:block;margin-bottom:6px">🔗 Link to Registered Patient — auto-fills fields &amp; loads lab reports</label>',
+        '<select id="sop_patient_link" onchange="sopOnPatientSelect(this.value)" ' +
+          'style="width:100%;border:1.5px solid rgba(185,28,28,.25);border-radius:8px;padding:9px 10px;font-size:16px;' +
+          'background:var(--navy);color:var(--text1);outline:none;font-family:var(--dm)">',
+          patientOpts,
+        '</select>',
+      '</div>',
+
+      '<!-- Lab reports for selected patient -->',
+      '<div style="margin-bottom:14px">',
+        '<label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:6px">📋 Patient Lab Reports &amp; Clinical Records</label>',
+        '<div id="sopLabReportsContainer" style="min-height:44px">',
+          '<div style="font-size:0.78rem;color:var(--text3);padding:10px 12px;background:var(--navy3);border-radius:6px;text-align:center">',
+            'Select a patient above to load their reports — or enter findings manually below.',
+          '</div>',
+        '</div>',
+      '</div>',
+
+      '<div class="sop-form-grid-3">',
+        '<div class="lf">',
+          '<label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Patient Reference Code *</label>',
+          inp('sop_pt_ref', p.patientRef, 'e.g. PT-2024-0042 or Initials'),
+        '</div>',
+        '<div class="lf">',
+          '<label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Age / Sex</label>',
+          inp('sop_pt_age_sex', p.patientAgeSex, 'e.g. 45 / Female'),
+        '</div>',
+        '<div class="lf">',
+          '<label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Blood Group</label>',
+          '<select id="sop_blood" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;background:var(--navy);color:var(--text1);outline:none">',
+            bgOpts,
+          '</select>',
+        '</div>',
+        '<div class="lf" style="grid-column:span 3">',
+          '<label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Known Conditions / Comorbidities</label>',
+          inp('sop_conditions', p.conditions, 'e.g. Type 2 DM, Hypertension, Hypothyroidism'),
+        '</div>',
+        '<div class="lf" style="grid-column:span 2">',
+          '<label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Current Medications</label>',
+          inp('sop_meds', p.meds, 'e.g. Metformin 500mg BD, Amlodipine 5mg OD'),
+        '</div>',
+        '<div class="lf">',
+          '<label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Known Allergies</label>',
+          inp('sop_allergies', p.allergies, 'e.g. Penicillin, Sulfa drugs'),
+        '</div>',
+      '</div>',
+    '</div>'
+  ].join('\n');
+}
+
 window.sopShowNewForm = function(prefill) {
   const p = prefill||{};
   const area = document.getElementById('sopMainArea');
@@ -13899,37 +14365,967 @@ window.sopShowNewForm = function(prefill) {
         </div>
       </div>
 
-      <!-- SECTION B: Patient Reference (NOT in report) -->
+      ${sopBuildSectionB(p)}
+
+      <!-- SECTION C: Clinical Details -->
       <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-          <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal)">B — Patient Reference (Internal Only — Not in Report)</div>
-          <span style="font-size:0.68rem;background:var(--gold-dim);color:var(--gold);padding:2px 8px;border-radius:4px;font-weight:700">🔒 PII — Never exported</span>
-        </div>
-        <div class="sop-form-grid-3" style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">
-          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Patient Reference Code *</label>
-            <input id="sop_pt_ref" type="text" value="${sopE(p.patientRef||'')}" placeholder="e.g. PT-2024-0042 or Initials"
-              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;background:var(--navy);color:var(--text1);outline:none" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'"></div>
-          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Age / Sex</label>
-            <input id="sop_pt_age_sex" type="text" value="${sopE(p.patientAgeSex||'')}" placeholder="e.g. 45 / Female"
-              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;background:var(--navy);color:var(--text1);outline:none" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'"></div>
-          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Blood Group</label>
-            <select id="sop_blood" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--navy);color:var(--text1);outline:none">
-              <option value="">Not recorded</option>
-              ${['A+','A-','B+','B-','AB+','AB-','O+','O-'].map(bg=>`<option value="${bg}" ${p.blood===bg?'selected':''}>${bg}</option>`).join('')}
+        <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal);margin-bottom:14px">C — Clinical Details (Appears in Report)</div>
+        <div class="sop-form-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Specialty / Discipline *</label>
+            <select id="sop_specialty" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--navy);color:var(--text1);outline:none">
+              ${['General Medicine','General Surgery','Cardiology','Oncology','Neurology','Gastroenterology','Endocrinology','Nephrology','Pulmonology','Haematology','Rheumatology','Orthopaedics','Gynaecology','Urology','Dermatology','Ophthalmology','ENT','Psychiatry','Paediatrics','Radiology','Pathology','Other'].map(s=>`<option value="${s}" ${p.specialty===s?'selected':''}>${s}</option>`).join('')}
             </select></div>
-          <div class="lf" style="grid-column:span 3"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Known Conditions / Comorbidities</label>
-            <input id="sop_conditions" type="text" value="${sopE(p.conditions||'')}" placeholder="e.g. Type 2 DM, Hypertension, Hypothyroidism"
+          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Nature of Reports Submitted *</label>
+            <select id="sop_report_type" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--navy);color:var(--text1);outline:none">
+              ${['Histopathology / Biopsy','Blood & Lab Reports (CBC, LFT, RFT, etc.)','Imaging (MRI / CT / Ultrasound)','Cytology / FNAC','Radiology + Lab Combined','Cardiology (ECG / Echo / Stress Test)','Genomics / Molecular Reports','Endoscopy / Colonoscopy','Bone Marrow Biopsy','Serology / Immunology','Comprehensive Multi-Panel'].map(t=>`<option value="${t}" ${p.reportType===t?'selected':''}>${t}</option>`).join('')}
+            </select></div>
+          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Primary / Working Diagnosis</label>
+            <input id="sop_primary_dx" type="text" value="${sopE(p.primaryDiagnosis||'')}" placeholder="e.g. Invasive ductal carcinoma breast, Grade 2"
               style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;background:var(--navy);color:var(--text1);outline:none" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'"></div>
-          <div class="lf" style="grid-column:span 2"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Current Medications</label>
-            <input id="sop_meds" type="text" value="${sopE(p.meds||'')}" placeholder="e.g. Metformin 500mg BD, Amlodipine 5mg OD, Thyronorm 50mcg"
+          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Proposed Treatment Plan</label>
+            <input id="sop_proposed_tx" type="text" value="${sopE(p.proposedTx||'')}" placeholder="e.g. Modified radical mastectomy + adjuvant chemotherapy"
               style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;background:var(--navy);color:var(--text1);outline:none" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'"></div>
-          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Known Allergies</label>
-            <input id="sop_allergies" type="text" value="${sopE(p.allergies||'')}" placeholder="e.g. Penicillin, Sulfa drugs"
+          <div class="lf" style="grid-column:span 2"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Key Findings Summary *</label>
+            <textarea id="sop_findings" rows="3" placeholder="Summarise the key laboratory, imaging or pathology findings from the submitted reports…"
+              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--navy);color:var(--text1);outline:none;resize:vertical" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'">${sopE(p.findings||'')}</textarea></div>
+          <div class="lf" style="grid-column:span 2"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Specific Clinical Questions for Review *</label>
+            <textarea id="sop_question" rows="3" placeholder="e.g. 1. Is the histopathological diagnosis confirmed? 2. Is the proposed treatment the most appropriate? 3. Are there alternative treatment options?"
+              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--navy);color:var(--text1);outline:none;resize:vertical" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'">${sopE(p.question||'')}</textarea></div>
+          <div class="lf" style="grid-column:span 2"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Chronological Timeline</label>
+            <textarea id="sop_timeline" rows="3" placeholder="One event per line:&#10;Jan 2024 — Noticed lump in left breast&#10;Mar 2024 — Mammogram: BI-RADS 5&#10;Apr 2024 — Core biopsy: IDC Grade 2"
+              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--navy);color:var(--text1);outline:none;resize:vertical" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'">${sopE(p.timeline||'')}</textarea></div>
+        </div>
+      </div>
+
+      <!-- SECTION D: Consulting Doctor & Billing -->
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:18px">
+        <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal);margin-bottom:14px">D — Reviewing Doctor & Billing (Appears in Report)</div>
+        <div class="sop-form-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Reviewing Doctor Name *</label>
+            <input id="sop_dr_name" type="text" value="${sopE(p.drName||'')}" placeholder="Dr. Full Name"
+              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;background:var(--navy);color:var(--text1);outline:none" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'"></div>
+          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Qualifications</label>
+            <input id="sop_dr_qual" type="text" value="${sopE(p.drQual||'')}" placeholder="e.g. MBBS, MD (Medicine), DM (Oncology)"
+              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;background:var(--navy);color:var(--text1);outline:none" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'"></div>
+          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">IMC Registration Number *</label>
+            <input id="sop_dr_imc" type="text" value="${sopE(p.drIMC||'')}" placeholder="e.g. IMC-2024-DL-048291"
+              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;background:var(--navy);color:var(--text1);outline:none" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'"></div>
+          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Speciality / Department</label>
+            <input id="sop_dr_spec" type="text" value="${sopE(p.drSpec||'')}" placeholder="e.g. Medical Oncology, Surgical Oncology"
+              style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;background:var(--navy);color:var(--text1);outline:none" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'"></div>
+          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Consultation Type</label>
+            <select id="sop_consult_type" style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:14px;background:var(--navy);color:var(--text1);outline:none">
+              ${['Teleconsultation (Remote Review)','In-Person Specialist Review','MDT (Multidisciplinary Team) Review','Written Records Review Only'].map(t=>`<option value="${t}" ${p.consultType===t?'selected':''}>${t}</option>`).join('')}
+            </select></div>
+          <div class="lf"><label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Consultation Fee (₹)</label>
+            <input id="sop_fee" type="number" value="${sopE(p.fee||'')}" min="0" step="50" placeholder="e.g. 1500"
               style="width:100%;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;font-size:16px;background:var(--navy);color:var(--text1);outline:none" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'"></div>
         </div>
       </div>
 
-      <!-- SECTION C: Clinical Details -->
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button onclick="sopSubmitNew()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px 24px;font-size:0.88rem;font-weight:700;cursor:pointer">
+          🔬 Generate Opinion & Submit
+        </button>
+        <button onclick="sopSaveAsDraft()" style="background:var(--navy3);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:11px 18px;font-size:0.88rem;cursor:pointer">
+          💾 Save as Draft
+        </button>
+        <button onclick="sopShowList()" style="background:transparent;color:var(--text3);border:none;padding:11px 14px;font-size:0.88rem;cursor:pointer">
+          Cancel
+        </button>
+      </div>
+    </div>`;
+};
+
+// ── Collect form data ──────────────────────────────────────────────────
+function sopCollectForm() {
+  const g = id => (document.getElementById(id)||{}).value||'';
+  return {
+    diagnosticsCentre: g('sop_centre'),
+    centreReg:         g('sop_centre_reg'),
+    referrer:          g('sop_referrer'),
+    urgency:           g('sop_urgency'),
+    patientRef:        g('sop_pt_ref'),
+    patientAgeSex:     g('sop_pt_age_sex'),
+    blood:             g('sop_blood'),
+    conditions:        g('sop_conditions'),
+    meds:              g('sop_meds'),
+    allergies:         g('sop_allergies'),
+    specialty:         g('sop_specialty'),
+    reportType:        g('sop_report_type'),
+    primaryDiagnosis:  g('sop_primary_dx'),
+    proposedTx:        g('sop_proposed_tx'),
+    findings:          g('sop_findings'),
+    question:          g('sop_question'),
+    timeline:          g('sop_timeline'),
+    drName:            g('sop_dr_name'),
+    drQual:            g('sop_dr_qual'),
+    drIMC:             g('sop_dr_imc'),
+    drSpec:            g('sop_dr_spec'),
+    consultType:       g('sop_consult_type'),
+    fee:               g('sop_fee'),
+  };
+}
+
+window.sopSaveAsDraft = function() {
+  const data = sopCollectForm();
+  if(!data.diagnosticsCentre) { alert('Please enter the Diagnostics Centre name.'); return; }
+  const req = { id:sopMakeId(), status:'draft', createdAt:new Date().toISOString(), opinion:'', drComment:'', ...data };
+  sopUpdate(req); sopRefreshStats();
+  typeof showToast==='function' && showToast('💾','Draft saved','Request saved as draft');
+  sopShowList();
+};
+
+window.sopSubmitNew = async function() {
+  const data = sopCollectForm();
+  if(!data.diagnosticsCentre) { alert('Please enter the Diagnostics Centre name.'); return; }
+  if(!data.patientRef)         { alert('Please enter a Patient Reference Code (internal use only).'); return; }
+  if(!data.findings)           { alert('Please summarise the key findings.'); return; }
+  if(!data.question)           { alert('Please enter the specific clinical questions for review.'); return; }
+  if(!data.drName)             { alert('Please enter the reviewing doctor name.'); return; }
+  if(!data.drIMC)              { alert('Please enter the IMC Registration Number.'); return; }
+
+  const req = { id:sopMakeId(), status:'pending', createdAt:new Date().toISOString(), opinion:'', drComment:'', ...data };
+  sopUpdate(req);
+
+  // Show review panel — opinion generation happens there
+  sopOpenRequest(req.id, true);
+};
+
+// ── Open / Review a request ────────────────────────────────────────────
+window.sopOpenRequest = async function(id, justCreated) {
+  const req = sopById(id);
+  if(!req) return;
+  sopRefreshStats();
+
+  const area = document.getElementById('sopMainArea');
+  const statusColor={pending:'var(--gold)',approved:'var(--green)',revision:'var(--red)',draft:'var(--text3)'};
+  const statusLabel={pending:'Awaiting Review',approved:'Approved',revision:'Needs Revision',draft:'Draft'};
+
+  area.innerHTML = `
+    <div style="max-width:900px">
+      <!-- Header -->
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:18px;flex-wrap:wrap">
+        <button onclick="sopShowList()" style="background:var(--navy3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:0.8rem;color:var(--text2)">← Back</button>
+        <div style="flex:1">
+          <div style="font-family:var(--syne);font-weight:700;font-size:0.98rem">${sopE(req.diagnosticsCentre)} · ${sopE(req.specialty)}</div>
+          <div style="font-size:0.72rem;color:var(--text3);font-family:var(--mono)">${req.id} · Received ${sopFmt(req.createdAt)} · ${sopE(req.urgency).toUpperCase()}</div>
+        </div>
+        <span style="font-size:0.8rem;font-weight:700;padding:5px 14px;border-radius:20px;background:${statusColor[req.status]||'var(--text3)'}20;color:${statusColor[req.status]||'var(--text3)'}">${statusLabel[req.status]||req.status}</span>
+        <button onclick="sopShowNewForm(sopById('${req.id}'))" style="background:var(--navy3);border:1px solid var(--border);border-radius:8px;padding:6px 12px;cursor:pointer;font-size:0.78rem;color:var(--text2)">✏ Edit</button>
+      </div>
+
+      <div class="sop-case-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+        <!-- Case summary -->
+        <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal);margin-bottom:10px">Case Summary</div>
+          ${[
+            ['Diagnostics Centre', req.diagnosticsCentre],
+            ['Centre Reg / NABL', req.centreReg||'—'],
+            ['Referred By', req.referrer||'—'],
+            ['Specialty', req.specialty],
+            ['Report Type', req.reportType],
+            ['Primary Diagnosis', req.primaryDiagnosis||'Not stated'],
+            ['Proposed Treatment', req.proposedTx||'Not stated'],
+            ['Consultation Type', req.consultType],
+          ].map(([k,v])=>`<div style="display:flex;gap:8px;margin-bottom:5px;font-size:0.78rem">
+            <span style="color:var(--text3);min-width:140px;flex-shrink:0">${k}:</span>
+            <span style="color:var(--text1);font-weight:500">${sopE(v)}</span>
+          </div>`).join('')}
+        </div>
+        <!-- Doctor credentials -->
+        <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal);margin-bottom:10px">Reviewing Doctor</div>
+          ${[
+            ['Name', req.drName],
+            ['Qualifications', req.drQual||'—'],
+            ['IMC Reg. No.', req.drIMC],
+            ['Speciality', req.drSpec||'—'],
+            ['Fee', req.fee?'₹'+req.fee:'Not set'],
+          ].map(([k,v])=>`<div style="display:flex;gap:8px;margin-bottom:5px;font-size:0.78rem">
+            <span style="color:var(--text3);min-width:140px;flex-shrink:0">${k}:</span>
+            <span style="color:var(--text1);font-weight:500">${sopE(v)}</span>
+          </div>`).join('')}
+        </div>
+      </div>
+
+      <!-- Key findings & questions -->
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal);margin-bottom:10px">Key Findings & Clinical Questions Submitted</div>
+        <div style="font-size:0.82rem;color:var(--text2);line-height:1.7;margin-bottom:10px"><strong>Findings:</strong> ${sopE(req.findings)}</div>
+        <div style="background:var(--teal-dim);border-left:3px solid var(--teal);padding:10px 14px;border-radius:0 8px 8px 0;font-size:0.82rem;color:var(--text1);font-style:italic">"${sopE(req.question)}"</div>
+        ${req.timeline?`<div style="margin-top:10px;font-size:0.78rem;color:var(--text2)"><strong>Timeline:</strong><ul style="margin:6px 0 0 16px">${req.timeline.split('\n').filter(l=>l.trim()).map(l=>`<li style="margin-bottom:3px">${sopE(l)}</li>`).join('')}</ul></div>`:''}
+      </div>
+
+      <!-- Opinion area -->
+      <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px" id="sopOpinionSection">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+          <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal)">Specialist Expert Opinion</div>
+          ${req.status!=='approved'?`<button onclick="sopRegenerateOpinion('${req.id}')" style="font-size:0.72rem;background:var(--teal-dim);color:var(--teal);border:1px solid rgba(185,28,28,.2);border-radius:6px;padding:4px 10px;cursor:pointer">↻ Regenerate</button>`:''}
+        </div>
+        <div id="sopOpinionContent" style="font-size:0.82rem;color:var(--text1);line-height:1.8;white-space:pre-wrap;word-break:break-word;overflow-wrap:break-word;background:var(--navy3);border-radius:8px;padding:14px;min-height:60px">${req.opinion?sopE(req.opinion):'<span style="color:var(--text3)">Generating opinion…</span>'}</div>
+        <div style="font-size:0.68rem;color:var(--text3);margin-top:6px">✦ SAMARTHAA MED · ICMR / WHO / NHM Guidelines 2023–24 · For specialist review only</div>
+      </div>
+
+      <!-- Doctor Review Panel -->
+      <div style="background:var(--panel);border:1.5px solid var(--teal);border-radius:10px;padding:16px;margin-bottom:14px">
+        <div style="font-size:0.68rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal);margin-bottom:12px">✏ Doctor Review — Action Required</div>
+        <div style="margin-bottom:12px">
+          <label style="font-size:0.72rem;font-weight:600;color:var(--text3);display:block;margin-bottom:4px">Doctor's Comment / Addendum <span style="font-weight:400">(visible in final report)</span></label>
+          <textarea id="sop_dr_comment" rows="4" placeholder="Add your specialist commentary, clinical observations, concurrence or disagreement with the opinion, any additional recommendations…"
+            style="width:100%;box-sizing:border-box;border:1.5px solid var(--border);border-radius:8px;padding:10px;font-size:16px;background:var(--navy);color:var(--text1);outline:none;resize:vertical" onfocus="this.style.borderColor='var(--teal)'" onblur="this.style.borderColor='var(--border)'">${sopE(req.drComment||'')}</textarea>
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button onclick="sopApprove('${req.id}')" style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:10px 22px;font-size:0.88rem;font-weight:700;cursor:pointer">
+            ✅ Approve & Sign Report
+          </button>
+          <button onclick="sopRequestRevision('${req.id}')" style="background:var(--gold-dim);color:var(--gold);border:1px solid rgba(245,158,11,.3);border-radius:8px;padding:10px 18px;font-size:0.88rem;font-weight:600;cursor:pointer">
+            ↩ Send for Revision
+          </button>
+        </div>
+      </div>
+
+      <!-- Export buttons (only for approved) -->
+      ${req.status==='approved'?`
+      <div class="sop-action-row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+        <button onclick="sopExportPDF('${req.id}')" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:0.85rem;font-weight:600;cursor:pointer">🖨 Export PDF Report</button>
+        <button onclick="sopExportWord('${req.id}')" style="background:var(--navy3);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:0.85rem;cursor:pointer">📄 Download Word (.doc)</button>
+      </div>`:''}
+    </div>`;
+
+  // Generate opinion if not yet done or just created
+  if(!req.opinion || justCreated) {
+    await sopGenerateOpinion(req.id);
+  }
+};
+
+// ── Opinion Generation ──────────────────────────────────────────────────
+async function sopGenerateOpinion(id) {
+  const req = sopById(id);
+  if(!req) return;
+  const el = document.getElementById('sopOpinionContent');
+
+  // ── Animated loading indicator ────────────────────────────────────
+  if(el) el.innerHTML = `
+    <div style="display:flex;flex-direction:column;gap:10px;padding:4px">
+      <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--teal-dim);border-radius:8px;border:1px solid rgba(185,28,28,.2)">
+        <div style="width:32px;height:32px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;animation:spin 2s linear infinite">🧬</div>
+        <div>
+          <div style="font-weight:700;font-size:0.85rem;color:var(--teal)">Generating comprehensive specialist opinion…</div>
+          <div style="font-size:0.73rem;color:var(--text3);margin-top:2px">Reviewing clinical findings and preparing the specialist report</div>
+        </div>
+      </div>
+      <div style="height:9px;background:var(--navy3);border-radius:5px;width:92%;opacity:.6;animation:pulse 1.5s ease-in-out infinite"></div>
+      <div style="height:9px;background:var(--navy3);border-radius:5px;width:75%;opacity:.5;animation:pulse 1.5s ease-in-out infinite .2s"></div>
+      <div style="height:9px;background:var(--navy3);border-radius:5px;width:84%;opacity:.4;animation:pulse 1.5s ease-in-out infinite .4s"></div>
+      <div style="height:9px;background:var(--navy3);border-radius:5px;width:60%;opacity:.3;animation:pulse 1.5s ease-in-out infinite .6s"></div>
+    </div>`;
+
+  // ── Deep system prompt ────────────────────────────────────────────
+  const systemPrompt = `You are Dr. SAMARTHAA, a senior specialist physician at SAMARTHAA MED Clinical Intelligence Platform. You are generating a formal, comprehensive, legally defensible Second Medical Opinion for a patient referred by a diagnostics partner centre in India.
+
+ABOUT YOUR ROLE:
+- You are a board-certified specialist with 20+ years of clinical and academic experience in Indian tertiary care
+- Your opinion will be reviewed, amended if necessary, and signed by the treating specialist before release to the patient
+- You write for an audience of senior physicians — use precise clinical terminology, ICD-11 codes where relevant, and cite specific guidelines by name
+- You follow ICMR National Guidelines, NHM protocols, WHO clinical standards, and international evidence-based guidelines (NCCN, ESMO, ACC/AHA, ESC, KDIGO, etc.) as appropriate to the specialty
+
+REPORT STANDARDS:
+- Each section must be substantive and clinically detailed — NOT generic or templated
+- Draw specific clinical inferences from the data provided
+- Flag any red flags, inconsistencies, or gaps in the submitted information
+- Where data is insufficient, state what additional information is required and why
+- Never include patient names, addresses, contact numbers, or national identity numbers in your output
+- Age, sex, clinical reference code are acceptable as they do not identify the patient
+- Write in formal British English medical style (used in Indian medical practice)
+
+OUTPUT FORMAT: Plain text only. Use numbered sections with ALL-CAPS section headings followed by a colon. Use sub-points with letters (a), b), c)). Do not use markdown, asterisks, or hash symbols.`;
+
+  // ── Richly structured user prompt ────────────────────────────────
+  const userPrompt = `SECOND MEDICAL OPINION REQUEST — ${req.id}
+Date: ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}
+Urgency: ${(req.urgency||'routine').toUpperCase()}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+REFERRAL INFORMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Diagnostics Partner Centre: ${req.diagnosticsCentre}
+Centre Registration / NABL Number: ${req.centreReg||'Not provided'}
+Referring Clinician: ${req.referrer||'Not provided'}
+Specialty Requested: ${req.specialty}
+Type of Reports Submitted for Review: ${req.reportType}
+Consultation Mode: ${req.consultType}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+DE-IDENTIFIED PATIENT PROFILE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Reference Code: ${req.patientRef}
+Age / Sex: ${req.patientAgeSex||'Not provided'}
+Known Comorbidities: ${req.conditions||'None reported'}
+Current Medications: ${req.meds||'None reported'}
+Known Drug Allergies: ${req.allergies||'None reported — verify before prescribing'}
+Blood Group: ${req.blood||'Not recorded'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+PRIMARY CLINICAL INFORMATION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Working / Primary Diagnosis: ${req.primaryDiagnosis||'Not stated by referring team'}
+Proposed Treatment Plan: ${req.proposedTx||'Not specified by referring team'}
+
+KEY FINDINGS FROM SUBMITTED REPORTS:
+${req.findings}
+
+CHRONOLOGICAL CLINICAL TIMELINE:
+${req.timeline||'No timeline provided — this limits the ability to assess disease progression.'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+SPECIFIC CLINICAL QUESTIONS FOR SECOND OPINION
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+${req.question}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INSTRUCTIONS FOR THIS REPORT
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Generate a comprehensive, professional Second Medical Opinion Report with ALL of the following sections. Each section must be thorough, clinically substantive, and evidence-based. Do not write generic or placeholder text — derive your analysis specifically from the case information provided above.
+
+1. EXECUTIVE SUMMARY:
+Write 3-5 sentences. State the case in brief, the nature of the referral, and the primary question(s) being addressed. Conclude with a one-line summary of your overall position.
+
+2. REVIEW OF SUBMITTED REPORTS AND CLINICAL DATA:
+Provide a detailed, critical analysis of every piece of information provided. For each finding: state the value or result, its clinical significance, whether it is within normal range (cite the reference range and guideline), and any red flags. If findings are contradictory or incomplete, state this explicitly. Reference the specific type of report (e.g., histopathology, MRI, CBC) in your analysis.
+
+3. ASSESSMENT OF WORKING DIAGNOSIS:
+State clearly whether you CONCUR, PARTIALLY CONCUR, or DISAGREE with the working diagnosis — and give the specific clinical reasoning. Reference the diagnostic criteria used (WHO classification, ICD-11, ICMR guidelines, TNM staging for oncology, KDIGO for nephrology, etc. as appropriate). Identify any diagnostic gaps or additional information required to confirm the diagnosis.
+
+4. DIFFERENTIAL DIAGNOSES:
+List 3-5 differential diagnoses in order of probability. For each:
+a) State the diagnosis name
+b) Supporting clinical evidence from this case
+c) Arguments against it
+d) What investigation would confirm or exclude it
+
+5. CRITICAL APPRAISAL OF PROPOSED TREATMENT PLAN:
+Evaluate the proposed management in detail. For each element of the proposed plan:
+a) Is it appropriate per current evidence-based guidelines? Name the specific guideline.
+b) Are there contraindications given this patient's profile?
+c) Are there superior alternatives based on current evidence?
+d) Are there important drug interactions with current medications?
+State your overall position: ENDORSE / MODIFY / ALTERNATIVE RECOMMENDED
+
+6. EVIDENCE-BASED EXPERT RECOMMENDATIONS:
+Provide numbered, specific, actionable recommendations:
+a) Immediate clinical actions (if urgency warrants)
+b) Additional investigations required — with clinical justification for each
+c) Recommended treatment modifications or alternatives — with dosing, duration, and monitoring plan where applicable
+d) Specialist referrals required — state the specialty and reason
+e) Monitoring parameters and follow-up schedule — specific intervals and target values
+f) Patient and family counselling points
+g) Lifestyle, diet, and supportive care recommendations specific to this condition and the Indian context
+
+7. DIRECT ANSWERS TO SUBMITTED CLINICAL QUESTIONS:
+Answer each clinical question submitted by the referring team individually and directly. Label them Q1, Q2, Q3 etc. Each answer must be specific, definitive (or state clearly why a definitive answer is not possible), and supported by reasoning.
+
+8. PROGNOSIS AND EXPECTED OUTCOMES:
+Provide:
+a) Prognosis with the currently proposed treatment (use validated prognostic tools / scoring systems relevant to the specialty where applicable)
+b) Prognosis with the recommended modifications
+c) Risk factors that may worsen outcome
+d) Favourable prognostic indicators, if any
+e) Key milestones the patient and care team should monitor
+
+9. GAPS IN INFORMATION AND OUTSTANDING QUERIES:
+List any clinical information that was not provided but would materially affect this opinion. State what additional reports, investigations, or history would be needed for a complete assessment.
+
+10. LIMITATIONS AND SCOPE OF THIS OPINION:
+State that this opinion is based on the de-identified information provided and does not constitute a doctor-patient relationship. This opinion is to be reviewed, validated, and signed by the treating specialist before issue. It does not replace in-person clinical examination.
+
+Write this in formal Indian medical report style. Be comprehensive — each section should be substantive. This is a paid specialist service and the patient deserves a thorough, professional report.`;
+
+  // ── Direct API call with high token budget ────────────────────────
+  try {
+    await _loadConfig();
+    const apiKey = getApiKey ? getApiKey() : (_anthropicApiKey || '');
+    if(!apiKey) throw new Error('API key not configured. Please set up your API key in Settings.');
+
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-6',
+        max_tokens: 8000,
+        temperature: 0.15,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+
+    if(!response.ok) {
+      const errData = await response.json().catch(()=>({}));
+      throw new Error(errData?.error?.message || `API error ${response.status}`);
+    }
+
+    const data = await response.json();
+    const opinion = (data.content[0].text || '').trim();
+
+    if(!opinion || opinion.length < 100) throw new Error('Empty or truncated response from API');
+
+    req.opinion = opinion;
+    req.opinionGeneratedAt = new Date().toISOString();
+    req.opinionGeneratedBy = 'SAMARTHAA MED Specialist Review';
+    sopUpdate(req);
+
+    // Render with rich formatting
+    sopRenderOpinion(el, opinion);
+
+    typeof showToast==='function' && showToast('🧬','Opinion Generated','Specialist opinion ready for doctor review');
+
+  } catch(err) {
+    console.error('SOP opinion error:', err);
+    if(el) el.innerHTML = `
+      <div style="background:var(--red-dim);border:1.5px solid var(--red);border-radius:8px;padding:14px;color:var(--red)">
+        <div style="font-weight:700;margin-bottom:6px">⚠ Opinion Generation Failed</div>
+        <div style="font-size:0.82rem;color:var(--text2)">${err.message}</div>
+        <div style="font-size:0.78rem;color:var(--text3);margin-top:8px">
+          Check that your API key is configured in Settings. 
+          Once configured, click <strong>↻ Regenerate</strong> to try again.
+        </div>
+      </div>`;
+    typeof showToast==='function' && showToast('❌','Generation Failed',err.message);
+  }
+}
+
+// ── Rich opinion renderer ─────────────────────────────────────────────
+function sopRenderOpinion(el, text) {
+  if(!el || !text) return;
+
+  // Section header detection: lines like "1. SECTION NAME:" or "1. SECTION NAME"
+  const lines = text.split('\n');
+  let html = '';
+  const sectionColors = [
+    'var(--teal)','var(--teal)','var(--teal)','var(--gold)',
+    'var(--gold)','var(--teal)','var(--teal)','var(--green)',
+    'var(--green)','var(--red)','var(--text3)'
+  ];
+  let sectionIdx = -1;
+
+  for(let i=0; i<lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if(!trimmed) { html += '<div style="height:8px"></div>'; continue; }
+
+    // Section header: starts with digit, dot, space, ALL-CAPS word
+    const secMatch = trimmed.match(/^(\d+)\.\s+([A-Z][A-Z\s\/&,\-]{3,})[:.]?\s*$/);
+    if(secMatch) {
+      sectionIdx++;
+      const col = sectionColors[sectionIdx % sectionColors.length];
+      html += `<div style="margin:16px 0 8px;padding:8px 12px;background:${col}15;border-left:3px solid ${col};border-radius:0 6px 6px 0">
+        <span style="font-family:var(--syne);font-weight:700;font-size:0.88rem;color:${col};letter-spacing:.5px">${sopE(trimmed)}</span>
+      </div>`;
+      continue;
+    }
+
+    // Sub-label lines like "a)" or "Q1:" or "a) Additional..."
+    if(/^[a-z]\)|^[a-z]\.\s|^Q\d+[:\.]/.test(trimmed)) {
+      html += `<div style="padding:4px 0 4px 16px;border-left:2px solid var(--border2);margin:3px 0 3px 8px;font-size:0.82rem;color:var(--text2);line-height:1.65">${sopE(trimmed)}</div>`;
+      continue;
+    }
+
+    // CONCUR / DISAGREE / ENDORSE highlighted keywords
+    const highlighted = trimmed
+      .replace(/\b(CONCUR|ENDORSE)\b/g, '<strong style="color:var(--green)">$1</strong>')
+      .replace(/\b(PARTIALLY CONCUR|MODIFY)\b/g, '<strong style="color:var(--gold)">$1</strong>')
+      .replace(/\b(DISAGREE|ALTERNATIVE RECOMMENDED)\b/g, '<strong style="color:var(--red)">$1</strong>')
+      .replace(/\b(RED FLAG|URGENT|CRITICAL|IMMEDIATE)\b/gi, '<strong style="color:var(--red)">$1</strong>');
+
+    html += `<div style="font-size:0.83rem;color:var(--text1);line-height:1.75;margin-bottom:4px">${highlighted}</div>`;
+  }
+
+  el.innerHTML = `<div style="padding:2px 0;word-break:break-word;overflow-wrap:break-word">${html}</div>`;
+}
+
+window.sopRegenerateOpinion = async function(id) {
+  const req = sopById(id);
+  if(!req) return;
+  req.opinion = '';
+  sopUpdate(req);
+  await sopGenerateOpinion(id);
+};
+
+// ── Fallback rule-based opinion ────────────────────────────────────────
+function sopFallbackOpinion(req) {
+  const now = new Date().toLocaleDateString('en-IN',{dateStyle:'long'});
+  return `SAMARTHAA MED — SECOND MEDICAL OPINION
+Specialty: ${req.specialty} | Report Type: ${req.reportType}
+Date: ${now} | Reference: ${req.id}
+${'─'.repeat(60)}
+
+1. EXECUTIVE SUMMARY
+This second opinion has been requested regarding ${req.primaryDiagnosis||'the submitted case'} from ${req.diagnosticsCentre}. The following review is based on the clinical information and report summaries provided.
+
+2. REVIEW OF SUBMITTED REPORTS
+The submitted ${req.reportType} reports have been reviewed. Key findings as described: ${req.findings}
+
+${req.timeline?`Chronological timeline reviewed:\n${req.timeline.split('\n').filter(l=>l.trim()).map(l=>'• '+l.trim()).join('\n')}\n`:''}
+
+3. ASSESSMENT OF PRIMARY DIAGNOSIS
+Working diagnosis: ${req.primaryDiagnosis||'Not stated'}. A full assessment requires review of the original report documents. The clinical summary provided is noted.
+
+4. ASSESSMENT OF PROPOSED TREATMENT
+Proposed plan: ${req.proposedTx||'Not stated'}. Appropriateness should be assessed against current evidence-based guidelines for ${req.specialty}.
+
+5. EXPERT RECOMMENDATIONS
+1. Review original reports in full detail.
+2. Ensure all relevant specialties have been consulted.
+3. Discuss case at an MDT (multidisciplinary team) meeting.
+4. Follow-up with treating physician within 2 weeks.
+
+6. DIRECT ANSWERS TO CLINICAL QUESTIONS
+${req.question}
+[Doctor to complete this section after reviewing the full case.]
+
+7. LIMITATIONS
+This opinion is based solely on the clinical summary provided and has not involved direct patient examination or review of original report documents. It must be reviewed and validated by the signing specialist before issue.
+
+${'─'.repeat(60)}
+[Opinion service unavailable — this is a preliminary template. The reviewing doctor must complete Sections 3–7 before approving.]`;
+}
+
+// ── Approve ────────────────────────────────────────────────────────────
+window.sopApprove = function(id) {
+  const req = sopById(id);
+  if(!req) return;
+  const comment = (document.getElementById('sop_dr_comment')||{}).value||'';
+  if(!req.opinion || req.opinion.length<30) { alert('Please wait for the opinion to generate (or regenerate) before approving.'); return; }
+  req.status = 'approved';
+  req.drComment = comment;
+  req.approvedAt = new Date().toISOString();
+  sopUpdate(req);
+  sopRefreshStats();
+  typeof showToast==='function' && showToast('✅','Report Approved','Second opinion report has been signed. Ready for export.');
+  sopOpenRequest(id);
+};
+
+// ── Request revision ───────────────────────────────────────────────────
+window.sopRequestRevision = function(id) {
+  const req = sopById(id);
+  if(!req) return;
+  const comment = (document.getElementById('sop_dr_comment')||{}).value||'';
+  if(!comment.trim()) { alert('Please add a comment explaining what revision is needed.'); return; }
+  req.status = 'revision';
+  req.drComment = comment;
+  sopUpdate(req);
+  sopRefreshStats();
+  typeof showToast==='function' && showToast('↩','Sent for Revision','Request returned with doctor comments.');
+  sopShowList();
+};
+
+// ── PDF Export ─────────────────────────────────────────────────────────
+window.sopExportPDF = function(id) {
+  const req = sopById(id);
+  if(!req || req.status!=='approved') { alert('Only approved reports can be exported.'); return; }
+  const today = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
+  const E = sopE;
+
+  const timelineHtml = req.timeline
+    ? req.timeline.split('\n').filter(l=>l.trim()).map(l=>`<li>${E(l.trim())}</li>`).join('')
+    : '<li>No timeline provided</li>';
+
+  // Rich PDF opinion renderer — 10-section professional format
+  function renderOpinionForPDF(text) {
+    if(!text) return '<p style="color:#9ca3af">No opinion generated.</p>';
+    const lines = text.split('\n');
+    let out = '';
+    const sectionBg = ['#fff7f7','#fff7f7','#fff7f7','#fffbeb','#fffbeb','#f0f9ff','#f0fdf4','#f0fdf4','#fafafa','#fef2f2','#fafafa'];
+    const sectionBorder = ['#b91c1c','#b91c1c','#b91c1c','#f59e0b','#f59e0b','#0ea5e9','#059669','#059669','#6b7280','#dc2626','#6b7280'];
+    let secIdx = -1;
+
+    for(const line of lines) {
+      const t = line.trim();
+      if(!t) { out += '<br>'; continue; }
+
+      // Section header
+      const sm = t.match(/^(\d+)\.\s+([A-Z][A-Z\s\/&,\-]{3,})[:.]?\s*$/);
+      if(sm) {
+        secIdx++;
+        const bg = sectionBg[secIdx%sectionBg.length];
+        const bc = sectionBorder[secIdx%sectionBorder.length];
+        out += `<div style="margin:16px 0 8px;padding:7px 12px;background:${bg};border-left:3.5px solid ${bc};border-radius:0 5px 5px 0;page-break-after:avoid">
+          <span style="font-family:Arial,sans-serif;font-weight:700;font-size:9.5pt;color:${bc};letter-spacing:.5px">${E(t)}</span>
+        </div>`;
+        continue;
+      }
+      // Sub-items
+      if(/^[a-z]\)|^Q\d+[:\.]/i.test(t)) {
+        out += `<div style="padding:3px 0 3px 14px;border-left:1.5px solid #fca5a5;margin:2px 0 2px 8px;font-size:9.5pt;line-height:1.65;color:#374151">${E(t)}</div>`;
+        continue;
+      }
+      // Keywords
+      const hl = E(t)
+        .replace(/\b(CONCUR|ENDORSE)\b/g, '<span style="color:#059669;font-weight:700">$1</span>')
+        .replace(/\b(PARTIALLY CONCUR|MODIFY)\b/g, '<span style="color:#d97706;font-weight:700">$1</span>')
+        .replace(/\b(DISAGREE|ALTERNATIVE RECOMMENDED)\b/g, '<span style="color:#dc2626;font-weight:700">$1</span>')
+        .replace(/\b(red flag|urgent|critical|immediate)\b/gi, '<span style="color:#dc2626;font-weight:700">$1</span>');
+      out += `<p style="margin-bottom:5px;font-size:10pt;line-height:1.75;color:#111">${hl}</p>`;
+    }
+    return out;
+  }
+  const opinionHtml = renderOpinionForPDF(req.opinion||'');
+
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Second Medical Opinion — ${E(req.id)}</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:Georgia,serif;font-size:10.5pt;color:#111;background:#fff;line-height:1.65;padding:36px 48px}
+/* LETTERHEAD */
+.lh{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #b91c1c;padding-bottom:14px;margin-bottom:16px}
+.brand-name{font-family:Arial,sans-serif;font-size:18pt;font-weight:900;color:#b91c1c;letter-spacing:-0.5px}
+.brand-sub{font-size:8pt;color:#6b7280;margin-top:2px;font-family:Arial}
+.badge{background:#b91c1c;color:#fff;padding:6px 14px;border-radius:5px;font-size:9pt;font-weight:700;font-family:Arial}
+.badge-sub{font-size:7.5pt;color:#9ca3af;margin-top:3px;text-align:right;font-family:Arial}
+/* TITLE */
+.report-title{text-align:center;margin:16px 0;padding-bottom:14px;border-bottom:1px solid #e5e7eb}
+.report-title h1{font-size:14pt;font-weight:bold;color:#111}
+.ref{font-size:8pt;color:#6b7280;font-family:Arial;margin-top:4px}
+.approved-stamp{display:inline-block;background:#f0fdf4;border:2px solid #86efac;color:#15803d;padding:6px 18px;border-radius:6px;font-family:Arial;font-size:9pt;font-weight:700;margin:10px 0}
+/* SECTIONS */
+.sec{margin-bottom:18px;page-break-inside:avoid}
+.sec-title{font-family:Arial,sans-serif;font-size:8.5pt;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#b91c1c;border-bottom:1.5px solid #fecaca;padding-bottom:5px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sec-num{background:#b91c1c;color:#fff;width:20px;height:20px;border-radius:50%;font-size:8pt;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-family:Arial;flex-shrink:0}
+/* INFO TABLE */
+.info-grid{display:grid;grid-template-columns:160px 1fr;gap:5px 10px;font-size:9.5pt}
+.info-label{color:#6b7280;font-family:Arial;font-size:8.5pt}
+.info-val{color:#111;font-weight:600;font-family:Arial}
+/* OPINION */
+.opinion-block{background:#fafafa;border:1px solid #e5e7eb;border-radius:6px;padding:14px;font-size:10pt;line-height:1.8}
+.section-head{font-weight:700;color:#111;margin:12px 0 4px;font-size:10.5pt}
+p{margin-bottom:5px}
+/* TIMELINE */
+.timeline{list-style:none;padding-left:0}
+.timeline li{padding:4px 0 4px 16px;border-left:2px solid #fca5a5;margin-left:8px;font-size:9.5pt;margin-bottom:4px}
+/* DOCTOR BLOCK */
+.dr-block{background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:14px 16px;margin-top:20px}
+.dr-title{font-family:Arial;font-size:8pt;text-transform:uppercase;letter-spacing:1px;color:#15803d;font-weight:700;margin-bottom:8px}
+.dr-name{font-size:13pt;font-weight:800;font-family:Arial;color:#111}
+.dr-detail{font-size:9pt;color:#374151;font-family:Arial;margin-top:2px;line-height:1.6}
+.sig-line{border-top:1.5px solid #15803d;margin-top:36px;padding-top:5px;font-size:8pt;color:#6b7280;font-family:Arial}
+/* DISCLAIMER */
+.disclaimer{background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:10px 14px;font-size:8pt;color:#92400e;font-family:Arial;line-height:1.5;margin-top:20px}
+/* INVOICE */
+.invoice{background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:14px}
+.invoice-label{font-family:Arial;font-size:8pt;color:#6b7280;text-transform:uppercase;letter-spacing:.5px}
+.invoice-amount{font-family:Arial;font-size:20pt;font-weight:900;color:#15803d}
+/* FOOTER */
+.footer{text-align:center;margin-top:24px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:7.5pt;color:#9ca3af;font-family:Arial}
+/* WATERMARK */
+.wm{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:72pt;font-weight:900;color:rgba(185,28,28,.05);pointer-events:none;z-index:-1;font-family:Arial;white-space:nowrap}
+@media print{body{padding:0}@page{margin:20mm 16mm;size:A4}.no-print{display:none}}
+</style>
+</head>
+<body>
+<div class="wm">APPROVED</div>
+
+<!-- LETTERHEAD -->
+<div class="lh">
+  <div>
+    <div class="brand-name">SAMARTHAA MED</div>
+    <div class="brand-sub">Clinical Intelligence Platform · Specialist Second Opinion Service</div>
+    <div class="brand-sub">ICMR / NHM / WHO Guidelines 2023–24 · samarthaamed.netlify.app</div>
+  </div>
+  <div style="text-align:right">
+    <div class="badge">⚕ VERIFIED &amp; APPROVED</div>
+    <div class="badge-sub">Report ID: ${E(req.id)}</div>
+    <div class="badge-sub">Date: ${today}</div>
+    <div class="badge-sub">Urgency: ${E(req.urgency).toUpperCase()}</div>
+  </div>
+</div>
+
+<!-- TITLE -->
+<div class="report-title">
+  <h1>STANDARD SECOND MEDICAL OPINION REPORT</h1>
+  <div class="ref">${E(req.specialty)} · ${E(req.reportType)} · Ref: ${E(req.id)} · ${today}</div>
+  <div class="approved-stamp">✅ DOCTOR VALIDATED &amp; APPROVED — ${E(req.drName)} · IMC ${E(req.drIMC)}</div>
+</div>
+
+<!-- SECTION 1: REFERRAL SOURCE -->
+<div class="sec">
+  <div class="sec-title"><span class="sec-num">1</span>Referral Source</div>
+  <div class="info-grid">
+    <span class="info-label">Diagnostics Centre:</span><span class="info-val">${E(req.diagnosticsCentre)}</span>
+    <span class="info-label">Centre Reg / NABL:</span><span class="info-val">${E(req.centreReg||'—')}</span>
+    <span class="info-label">Referred By:</span><span class="info-val">${E(req.referrer||'—')}</span>
+    <span class="info-label">Report Received:</span><span class="info-val">${sopFmt(req.createdAt)}</span>
+    <span class="info-label">Consultation Type:</span><span class="info-val">${E(req.consultType)}</span>
+  </div>
+</div>
+
+<!-- SECTION 2: CASE PROFILE (No PII) -->
+<div class="sec">
+  <div class="sec-title"><span class="sec-num">2</span>Case Profile</div>
+  <div class="info-grid">
+    <span class="info-label">Reference Code:</span><span class="info-val">${E(req.patientRef)}</span>
+    <span class="info-label">Age / Sex:</span><span class="info-val">${E(req.patientAgeSex||'—')}</span>
+    <span class="info-label">Specialty:</span><span class="info-val">${E(req.specialty)}</span>
+    <span class="info-label">Reports Reviewed:</span><span class="info-val">${E(req.reportType)}</span>
+    <span class="info-label">Working Diagnosis:</span><span class="info-val">${E(req.primaryDiagnosis||'Not stated')}</span>
+    <span class="info-label">Proposed Treatment:</span><span class="info-val">${E(req.proposedTx||'Not stated')}</span>
+  </div>
+</div>
+
+<!-- SECTION 3: KEY FINDINGS -->
+<div class="sec">
+  <div class="sec-title"><span class="sec-num">3</span>Key Findings Submitted</div>
+  <div style="font-size:10pt;line-height:1.75;padding:10px 14px;background:#fafafa;border:1px solid #e5e7eb;border-radius:6px">${E(req.findings)}</div>
+</div>
+
+<!-- SECTION 4: TIMELINE -->
+${req.timeline?`<div class="sec">
+  <div class="sec-title"><span class="sec-num">4</span>Chronological Timeline</div>
+  <ul class="timeline">${timelineHtml}</ul>
+</div>`:''}
+
+<!-- SECTION 5: CLINICAL QUESTION -->
+<div class="sec">
+  <div class="sec-title"><span class="${req.timeline?'sec-num':''}" style="${req.timeline?'':'background:#b91c1c;color:#fff;width:20px;height:20px;border-radius:50%;font-size:8pt;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-family:Arial;flex-shrink:0;'}">
+    ${req.timeline?'5':'4'}</span>Specific Clinical Questions for Review</div>
+  <div style="background:#fef2f2;border-left:3px solid #b91c1c;padding:10px 14px;border-radius:0 6px 6px 0;font-size:10pt;font-style:italic;color:#111">"${E(req.question)}"</div>
+</div>
+
+<!-- SECTION 6: EXPERT OPINION -->
+<div class="sec">
+  <div class="sec-title"><span class="sec-num">${req.timeline?6:5}</span>Specialist Expert Opinion &amp; Recommendations</div>
+  <div class="opinion-block">${opinionHtml}</div>
+  <div style="font-size:7.5pt;color:#9ca3af;font-family:Arial;margin-top:6px">
+    ✦ ${req.opinionGeneratedAt?'Opinion prepared '+sopFmt(req.opinionGeneratedAt)+' · ':''}Reviewed and approved by ${E(req.drName)} · IMC ${E(req.drIMC)} · ICMR/WHO/NHM Guidelines 2023–24
+  </div>
+</div>
+
+<!-- SECTION 7: DOCTOR COMMENTARY -->
+${req.drComment?`<div class="sec">
+  <div class="sec-title"><span class="sec-num">${req.timeline?7:6}</span>Specialist Commentary &amp; Addendum</div>
+  <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:6px;padding:12px 14px;font-size:10pt;line-height:1.75">${E(req.drComment)}</div>
+</div>`:''}
+
+<!-- SECTION 8: DISCLAIMER -->
+<div class="sec">
+  <div class="sec-title"><span class="sec-num">${req.timeline?(req.drComment?8:7):(req.drComment?7:6)}</span>Limitations &amp; Disclaimer</div>
+  <div class="disclaimer">
+    1. This second medical opinion is based solely on the clinical information, report summaries, and data provided to the reviewing specialist. It does not involve direct clinical examination of the patient.<br>
+    2. This report is intended to assist the patient and treating physician in clinical decision-making. It is <strong>NOT intended for medico-legal purposes</strong> unless explicitly requested in writing.<br>
+    3. The treating physician retains full clinical responsibility for all management decisions.<br>
+    4. Patient identifying information has been deliberately excluded from this report in compliance with DPDP Act 2023 and ICMR Ethical Guidelines for Biomedical Research.<br>
+    5. This report was prepared using SAMARTHAA MED Clinical Intelligence Platform and reviewed and approved by a licensed specialist. The reviewing physician's assessment and signature constitute the clinical validation of this report.
+  </div>
+</div>
+
+<!-- DOCTOR CREDENTIALS -->
+<div class="dr-block">
+  <div class="dr-title">Reviewing Specialist — Section 9</div>
+  <div class="dr-name">${E(req.drName)}</div>
+  <div class="dr-detail">${E(req.drQual||'')}${req.drSpec?(' · '+E(req.drSpec)):''}</div>
+  <div class="dr-detail" style="font-family:var(--mono,monospace);font-size:8.5pt;margin-top:3px">IMC Registration: ${E(req.drIMC)}</div>
+  <div class="dr-detail" style="margin-top:4px">Date of Approval: ${sopFmt(req.approvedAt)} · Report ID: ${E(req.id)}</div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px">
+    <div><div class="sig-line">Signature &amp; Stamp of Reviewing Specialist</div></div>
+    <div><div class="sig-line">Countersignature (if MDT review)</div></div>
+  </div>
+</div>
+
+<!-- INVOICE (if fee set) -->
+${req.fee?`<div class="invoice">
+  <div>
+    <div class="invoice-label">Consultation Service</div>
+    <div style="font-family:Arial;font-size:11pt;font-weight:700;color:#111;margin-top:2px">Second Medical Opinion — ${E(req.consultType)}</div>
+    <div style="font-family:Arial;font-size:8.5pt;color:#6b7280;margin-top:1px">${today} · ${E(req.id)} · ${E(req.diagnosticsCentre)}</div>
+  </div>
+  <div style="text-align:right">
+    <div class="invoice-label">Total Amount</div>
+    <div class="invoice-amount">₹${E(req.fee)}</div>
+    <div style="font-size:7.5pt;color:#9ca3af;font-family:Arial">GST / tax as applicable</div>
+  </div>
+</div>`:''}
+
+<div class="footer">
+  SAMARTHAA MED · Clinical Intelligence Platform · samarthaamed.netlify.app<br>
+  This report was prepared by SAMARTHAA MED and reviewed and signed by a licensed specialist. It is not a substitute for in-person clinical examination.<br>
+  Patient PII deliberately excluded per DPDP Act 2023 · ICMR/NHM/WHO Guidelines 2023–24
+</div>
+
+<div class="no-print" style="text-align:center;padding:20px">
+  <button onclick="window.print()" style="background:#b91c1c;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;margin-right:8px">🖨 Print / Save as PDF</button>
+  <button onclick="window.close()" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer">Close</button>
+</div>
+<script>document.fonts.ready.then(()=>setTimeout(()=>window.print(),600));<\/script>
+</body></html>`;
+
+  const blob = new Blob([html],{type:'text/html'});
+  const url  = URL.createObjectURL(blob);
+  const tab  = window.open(url,'_blank');
+  if(!tab){const a=document.createElement('a');a.href=url;a.download='samarthaa-sop-'+req.id+'.html';a.click();}
+  setTimeout(()=>URL.revokeObjectURL(url),15000);
+};
+
+// ── Word Export ────────────────────────────────────────────────────────
+window.sopExportWord = function(id) {
+  const req = sopById(id);
+  if(!req || req.status!=='approved') { alert('Only approved reports can be exported.'); return; }
+  const today = new Date().toLocaleDateString('en-IN',{dateStyle:'long'});
+  const E = sopE;
+
+  const wordHtml = `<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word'>
+<head><meta charset="UTF-8">
+<title>Second Medical Opinion — ${E(req.id)}</title>
+<style>
+  body{font-family:Calibri,sans-serif;font-size:11pt;color:#111;margin:2cm}
+  h1{font-size:16pt;color:#b91c1c;text-align:center;margin-bottom:4pt}
+  h2{font-size:11pt;color:#b91c1c;border-bottom:1pt solid #fecaca;padding-bottom:3pt;margin:14pt 0 6pt}
+  p{margin:0 0 6pt;line-height:1.5}
+  table{width:100%;border-collapse:collapse;margin-bottom:10pt}
+  td{padding:4pt 6pt;border-bottom:1pt solid #f3f4f6;font-size:10pt}
+  .label{color:#6b7280;font-size:9pt;width:40%}
+  .approved{background:#f0fdf4;border:1pt solid #86efac;padding:6pt 10pt;color:#15803d;font-weight:bold;text-align:center;margin:10pt 0}
+  .opinion{background:#fafafa;border:1pt solid #e5e7eb;padding:10pt;line-height:1.6}
+  .disclaimer{background:#fffbeb;border:1pt solid #fde68a;padding:8pt 10pt;font-size:9pt;color:#92400e}
+  .dr-box{background:#f0fdf4;border:1.5pt solid #86efac;padding:10pt;margin-top:14pt}
+</style>
+</head><body>
+<h1>SAMARTHAA MED — SECOND MEDICAL OPINION</h1>
+<p style="text-align:center;color:#6b7280;font-size:9pt">Clinical Intelligence Platform · samarthaamed.netlify.app · ICMR/NHM/WHO 2023–24</p>
+<div class="approved">✅ DOCTOR VALIDATED & APPROVED — ${E(req.drName)} · IMC: ${E(req.drIMC)} — ${today}</div>
+
+<h2>1. Referral Source</h2>
+<table>
+  <tr><td class="label">Diagnostics Centre</td><td>${E(req.diagnosticsCentre)}</td></tr>
+  <tr><td class="label">Centre Reg / NABL</td><td>${E(req.centreReg||'—')}</td></tr>
+  <tr><td class="label">Referred By</td><td>${E(req.referrer||'—')}</td></tr>
+  <tr><td class="label">Report Received</td><td>${sopFmt(req.createdAt)}</td></tr>
+  <tr><td class="label">Consultation Type</td><td>${E(req.consultType)}</td></tr>
+  <tr><td class="label">Urgency</td><td>${E(req.urgency).toUpperCase()}</td></tr>
+</table>
+
+<h2>2. Case Profile (Patient PII Excluded)</h2>
+<table>
+  <tr><td class="label">Reference Code</td><td>${E(req.patientRef)}</td></tr>
+  <tr><td class="label">Age / Sex</td><td>${E(req.patientAgeSex||'—')}</td></tr>
+  <tr><td class="label">Specialty</td><td>${E(req.specialty)}</td></tr>
+  <tr><td class="label">Reports Reviewed</td><td>${E(req.reportType)}</td></tr>
+  <tr><td class="label">Working Diagnosis</td><td>${E(req.primaryDiagnosis||'Not stated')}</td></tr>
+  <tr><td class="label">Proposed Treatment</td><td>${E(req.proposedTx||'Not stated')}</td></tr>
+</table>
+
+<h2>3. Key Findings</h2>
+<div class="opinion"><p>${E(req.findings).replace(/\n/g,'</p><p>')}</p></div>
+
+${req.timeline?`<h2>4. Chronological Timeline</h2>
+${req.timeline.split('\n').filter(l=>l.trim()).map(l=>`<p>• ${E(l.trim())}</p>`).join('')}`:''}
+
+<h2>${req.timeline?5:4}. Clinical Questions for Review</h2>
+<p style="font-style:italic">"${E(req.question)}"</p>
+
+<h2>${req.timeline?6:5}. Specialist Expert Opinion</h2>
+<div class="opinion"><p>${(req.opinion||'').replace(/\n/g,'</p><p>')}</p></div>
+
+${req.drComment?`<h2>${req.timeline?7:6}. Specialist Commentary</h2>
+<p>${E(req.drComment).replace(/\n/g,'</p><p>')}</p>`:''}
+
+<h2>Disclaimer</h2>
+<div class="disclaimer">
+<p>This second medical opinion is based solely on the information provided and does not involve direct clinical examination. Patient PII excluded per DPDP Act 2023. Not for medico-legal purposes. The treating physician retains full clinical responsibility.</p>
+</div>
+
+<div class="dr-box">
+<p><strong>Reviewing Specialist</strong></p>
+<p><strong style="font-size:14pt">${E(req.drName)}</strong></p>
+<p>${E(req.drQual||'')}${req.drSpec?' · '+E(req.drSpec):''}</p>
+<p>IMC Registration: ${E(req.drIMC)}</p>
+<p>Date of Approval: ${sopFmt(req.approvedAt)} · Report ID: ${E(req.id)}</p>
+${req.fee?`<p style="margin-top:10pt;color:#15803d;font-weight:bold">Consultation Fee: ₹${E(req.fee)}</p>`:''}
+</div>
+
+</body></html>`;
+
+  const blob = new Blob(['\ufeff'+wordHtml],{type:'application/msword'});
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href=url; a.download='samarthaa-sop-'+req.id+'.doc'; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url),5000);
+};
+
+// ── showView hook for secondopinion ─────────────────────────────────
+
+// ── Init ───────────────────────────────────────────────────────────────
+// Robust init: render list whenever view-secondopinion becomes visible
+(function() {
+  function tryRender() {
+    var view = document.getElementById('view-secondopinion');
+    if (!view) return;
+    if (view.classList.contains('active') || view.style.display !== 'none') {
+      if (window.sopShowList) window.sopShowList();
+    }
+  }
+
+  // 1. On DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() { setTimeout(tryRender, 100); });
+  } else {
+    setTimeout(tryRender, 100);
+  }
+
+  // 2. MutationObserver — fires whenever any class/style changes on the view
+  setTimeout(function() {
+    var view = document.getElementById('view-secondopinion');
+    if (!view) return;
+    var obs = new MutationObserver(function(muts) {
+      for (var i = 0; i < muts.length; i++) {
+        if (muts[i].attributeName === 'class' || muts[i].attributeName === 'style') {
+          if (view.classList.contains('active')) {
+            if (window.sopShowList) window.sopShowList();
+          }
+          break;
+        }
+      }
+    });
+    obs.observe(view, { attributes: true });
+  }, 500);
+
+  // 3. Periodic check for first 5 seconds
+  var checks = 0;
+  var interval = setInterval(function() {
+    checks++;
+    var view = document.getElementById('view-secondopinion');
+    var area = document.getElementById('sopMainArea');
+    if (view && view.classList.contains('active') && area && !area.innerHTML.trim()) {
+      if (window.sopShowList) window.sopShowList();
+    }
+    if (checks >= 10) clearInterval(interval);
+  }, 500);
+
+})();
+
+})(); // end IIFE
+
+
+</script>
+
+
+
+
+      <nav class="mobile-bottom-nav" id="mobileBottomNav">
+  <button class="mobile-nav-item active" onclick="showView('dashboard')"><span class="mobile-nav-icon">🏠</span><span class="mobile-nav-label">Dashboard</span></button>
+  <button class="mobile-nav-item" onclick="showView('consult')"><span class="mobile-nav-icon">🩺</span><span class="mobile-nav-label">Consult</span></button>
+  <button class="mobile-nav-item emergency-nav-btn" onclick="showView('emergency')" style="color:var(--red)"><span class="mobile-nav-icon">🚨</span><span class="mobile-nav-label">Emergency</span></button>
+  <button class="mobile-nav-item" onclick="showView('patients')"><span class="mobile-nav-icon">👥</span><span class="mobile-nav-label">Patients</span></button>
+  <button class="mobile-nav-item" onclick="toggleMobileSidebar()"><span class="mobile-nav-icon">☰</span><span class="mobile-nav-label">More</span></button>
+</nav>
+</body>
+</html><!-- SECTION C: Clinical Details -->
       <div style="background:var(--panel);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px">
         <div style="font-size:0.7rem;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--teal);margin-bottom:14px">C — Clinical Details (Appears in Report)</div>
         <div class="sop-form-grid-2" style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
