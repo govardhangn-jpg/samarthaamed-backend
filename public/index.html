@@ -14616,7 +14616,11 @@ window.sopShowNewForm = function(prefill) {
       </div>
 
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button onclick="sopSubmitNew()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px 24px;font-size:0.88rem;font-weight:700;cursor:pointer">
+        <!-- Data completeness chip — updated live as fields are filled -->
+        <div id="sopDataCheck" style="width:100%;margin-bottom:8px;padding:8px 12px;background:var(--navy3);border:1px solid var(--border);border-radius:8px;font-size:0.75rem;color:var(--text3);line-height:1.5">
+          ● Fill in Key Findings (Section C) for the most accurate opinion. Missing fields will be automatically flagged as limitations in the report.
+        </div>
+        <button onclick="sopCheckAndSubmit()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px 24px;font-size:0.88rem;font-weight:700;cursor:pointer">
           🔬 Generate Opinion & Submit
         </button>
         <button onclick="sopSaveAsDraft()" style="background:var(--navy3);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:11px 18px;font-size:0.88rem;cursor:pointer">
@@ -14658,6 +14662,70 @@ function sopCollectForm() {
     fee:               g('sop_fee'),
   };
 }
+
+// ── Smart submit with missing-data preview ──────────────────────────
+window.sopCheckAndSubmit = function() {
+  const g = id => (document.getElementById(id)||{}).value||'';
+
+  // Check which fields are filled
+  const findings    = g('sop_findings').trim();
+  const diagnosis   = g('sop_primary_dx').trim();
+  const treatment   = g('sop_proposed_tx').trim();
+  const question    = g('sop_question').trim();
+  const timeline    = g('sop_timeline').trim();
+  const conditions  = g('sop_conditions').trim();
+  const meds        = g('sop_meds').trim();
+  const centre      = g('sop_centre').trim();
+
+  const missing = [];
+  if (!findings)   missing.push('Key Findings (lab values, imaging findings)');
+  if (!diagnosis)  missing.push('Working / Primary Diagnosis');
+  if (!treatment)  missing.push('Proposed Treatment Plan');
+  if (!question)   missing.push('Specific Clinical Questions');
+  if (!timeline)   missing.push('Chronological Timeline');
+  if (!conditions) missing.push('Comorbidities / Medical History');
+  if (!meds)       missing.push('Current Medications');
+
+  // If key findings are present, proceed with a brief note (not a blocker)
+  if (findings) {
+    if (missing.length > 0) {
+      // Show a non-blocking toast about missing fields
+      if (typeof showToast === 'function') {
+        showToast('ℹ️', 'Proceeding with available data',
+          missing.length + ' field(s) missing — will be flagged as limitations in the report');
+      }
+    }
+    sopSubmitNew();
+    return;
+  }
+
+  // If nothing at all is filled, block submission
+  if (!findings && !diagnosis && !treatment) {
+    if (typeof showToast === 'function') {
+      showToast('⚠️', 'Insufficient data',
+        'Please enter at least the Key Findings from the lab/imaging reports before generating an opinion.');
+    }
+    const findingsEl = document.getElementById('sop_findings');
+    if (findingsEl) {
+      findingsEl.style.borderColor = 'var(--red)';
+      findingsEl.focus();
+      setTimeout(() => { findingsEl.style.borderColor = 'var(--border)'; }, 3000);
+    }
+    return;
+  }
+
+  // Show a brief warning and proceed
+  if (missing.length > 0) {
+    const missingList = missing.slice(0, 4).map(m => `• ${m}`).join('\n');
+    const more = missing.length > 4 ? `\n• …and ${missing.length - 4} more` : '';
+    const msg = `The following fields are empty:\n\n${missingList}${more}\n\nThe opinion will be generated based on available data, with missing items flagged as limitations in Section 9.\n\nProceed?`;
+    if (confirm(msg)) {
+      sopSubmitNew();
+    }
+  } else {
+    sopSubmitNew();
+  }
+};
 
 window.sopSaveAsDraft = function() {
   const data = sopCollectForm();
@@ -14803,8 +14871,8 @@ async function sopGenerateOpinion(id) {
       <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--teal-dim);border-radius:8px;border:1px solid rgba(185,28,28,.2)">
         <div style="width:32px;height:32px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;animation:spin 2s linear infinite">🧬</div>
         <div>
-          <div style="font-weight:700;font-size:0.85rem;color:var(--teal)">Generating comprehensive specialist opinion…</div>
-          <div style="font-size:0.73rem;color:var(--text3);margin-top:2px">Reviewing clinical findings and preparing the specialist report</div>
+          <div style="font-weight:700;font-size:0.85rem;color:var(--teal)">Preparing comprehensive specialist opinion…</div>
+          <div style="font-size:0.73rem;color:var(--text3);margin-top:2px">Reviewing clinical findings, guidelines, and composing the full specialist report</div>
         </div>
       </div>
       <div style="height:9px;background:var(--navy3);border-radius:5px;width:92%;opacity:.6;animation:pulse 1.5s ease-in-out infinite"></div>
@@ -14813,7 +14881,38 @@ async function sopGenerateOpinion(id) {
       <div style="height:9px;background:var(--navy3);border-radius:5px;width:60%;opacity:.3;animation:pulse 1.5s ease-in-out infinite .6s"></div>
     </div>`;
 
-  // ── Deep system prompt ────────────────────────────────────────────
+  // ── Analyse what data is present vs missing ───────────────────────
+  const hasFindings       = !!(req.findings    && req.findings.trim().length > 20);
+  const hasDiagnosis      = !!(req.primaryDiagnosis && req.primaryDiagnosis.trim());
+  const hasTreatment      = !!(req.proposedTx  && req.proposedTx.trim());
+  const hasQuestion       = !!(req.question    && req.question.trim());
+  const hasTimeline       = !!(req.timeline    && req.timeline.trim());
+  const hasConditions     = !!(req.conditions  && req.conditions.trim());
+  const hasMeds           = !!(req.meds        && req.meds.trim());
+  const hasPatientAgeSex  = !!(req.patientAgeSex && req.patientAgeSex.trim());
+  const hasAllergies      = !!(req.allergies   && req.allergies.trim());
+  const hasCentre         = !!(req.diagnosticsCentre && req.diagnosticsCentre.trim());
+  const hasReferrer       = !!(req.referrer    && req.referrer.trim());
+
+  // Build structured list of what's missing
+  const missingItems = [];
+  if (!hasFindings)       missingItems.push('Key clinical findings / lab report values (critical — opinion will be based on partial data)');
+  if (!hasDiagnosis)      missingItems.push('Working / primary diagnosis from referring team');
+  if (!hasTreatment)      missingItems.push('Proposed treatment plan from referring team');
+  if (!hasQuestion)       missingItems.push('Specific clinical questions for second opinion');
+  if (!hasTimeline)       missingItems.push('Chronological clinical timeline');
+  if (!hasConditions)     missingItems.push('Known comorbidities / medical history');
+  if (!hasMeds)           missingItems.push('Current medications list');
+  if (!hasAllergies)      missingItems.push('Drug allergies / adverse reactions');
+  if (!hasPatientAgeSex)  missingItems.push('Patient age and sex');
+  if (!hasCentre)         missingItems.push('Diagnostics centre name');
+  if (!hasReferrer)       missingItems.push('Referring clinician name');
+
+  const missingBlock = missingItems.length
+    ? `\nDATA AVAILABILITY NOTE:\nThe following information was NOT provided by the referring team and is missing from this request. You must:\n1. Generate the opinion based SOLELY on the data that IS provided\n2. Explicitly note each missing item in Section 9 (Gaps in Information)\n3. State clearly how each missing item affects the completeness and confidence of your opinion\n4. Do NOT invent or assume any missing clinical data\n\nMISSING DATA:\n${missingItems.map((item, i) => `${i+1}. ${item}`).join('\n')}\n`
+    : '\nDATA AVAILABILITY NOTE: All standard fields have been provided for this request.\n';
+
+  // ── System prompt ─────────────────────────────────────────────────
   const systemPrompt = `You are Dr. SAMARTHAA, a senior specialist physician at SAMARTHAA MED Clinical Intelligence Platform. You are generating a formal, comprehensive, legally defensible Second Medical Opinion for a patient referred by a diagnostics partner centre in India.
 
 ABOUT YOUR ROLE:
@@ -14822,118 +14921,113 @@ ABOUT YOUR ROLE:
 - You write for an audience of senior physicians — use precise clinical terminology, ICD-11 codes where relevant, and cite specific guidelines by name
 - You follow ICMR National Guidelines, NHM protocols, WHO clinical standards, and international evidence-based guidelines (NCCN, ESMO, ACC/AHA, ESC, KDIGO, etc.) as appropriate to the specialty
 
+CRITICAL INSTRUCTION — WORKING WITH INCOMPLETE DATA:
+- If clinical findings are provided (lab values, imaging reports, ECG, etc.) but the working diagnosis or treatment plan is absent, derive your assessment entirely from the objective findings
+- If a field is marked "Not stated" or "Not specified", treat it as genuinely unknown — do not guess or fabricate
+- For every piece of missing information, explicitly state in Section 9 what is missing and why it matters
+- The opinion should still be thorough and clinically useful even when based only on lab/imaging data
+- Confidence levels should be explicitly stated and reduced when key data is absent
+
 REPORT STANDARDS:
 - Each section must be substantive and clinically detailed — NOT generic or templated
-- Draw specific clinical inferences from the data provided
-- Flag any red flags, inconsistencies, or gaps in the submitted information
-- Where data is insufficient, state what additional information is required and why
-- Never include patient names, addresses, contact numbers, or national identity numbers in your output
-- Age, sex, clinical reference code are acceptable as they do not identify the patient
-- Write in formal British English medical style (used in Indian medical practice)
+- Draw specific clinical inferences from the data actually provided
+- Never include patient names, addresses, contact numbers, or national identity numbers
+- Write in formal British English medical style`;
 
-OUTPUT FORMAT: Plain text only. Use numbered sections with ALL-CAPS section headings followed by a colon. Use sub-points with letters (a), b), c)). Do not use markdown, asterisks, or hash symbols.`;
-
-  // ── Richly structured user prompt ────────────────────────────────
+  // ── User prompt ───────────────────────────────────────────────────
   const userPrompt = `SECOND MEDICAL OPINION REQUEST — ${req.id}
 Date: ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}
 Urgency: ${(req.urgency||'routine').toUpperCase()}
-
+${missingBlock}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REFERRAL INFORMATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Diagnostics Partner Centre: ${req.diagnosticsCentre}
-Centre Registration / NABL Number: ${req.centreReg||'Not provided'}
-Referring Clinician: ${req.referrer||'Not provided'}
-Specialty Requested: ${req.specialty}
-Type of Reports Submitted for Review: ${req.reportType}
-Consultation Mode: ${req.consultType}
+Diagnostics Partner Centre: ${req.diagnosticsCentre || '[NOT PROVIDED]'}
+Centre Registration / NABL Number: ${req.centreReg || '[NOT PROVIDED]'}
+Referring Clinician: ${req.referrer || '[NOT PROVIDED]'}
+Specialty Requested: ${req.specialty || '[NOT PROVIDED]'}
+Type of Reports Submitted: ${req.reportType || '[NOT PROVIDED]'}
+Consultation Mode: ${req.consultType || 'Not specified'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DE-IDENTIFIED PATIENT PROFILE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Reference Code: ${req.patientRef}
-Age / Sex: ${req.patientAgeSex||'Not provided'}
-Known Comorbidities: ${req.conditions||'None reported'}
-Current Medications: ${req.meds||'None reported'}
-Known Drug Allergies: ${req.allergies||'None reported — verify before prescribing'}
-Blood Group: ${req.blood||'Not recorded'}
+Reference Code: ${req.patientRef || 'Not assigned'}
+Age / Sex: ${req.patientAgeSex || '[NOT PROVIDED — affects dose calculations and reference ranges]'}
+Known Comorbidities: ${req.conditions || '[NOT PROVIDED — affects risk assessment and drug interactions]'}
+Current Medications: ${req.meds || '[NOT PROVIDED — drug interaction check not possible]'}
+Drug Allergies: ${req.allergies || '[NOT PROVIDED — verify before prescribing any new agent]'}
+Blood Group: ${req.blood || 'Not recorded'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PRIMARY CLINICAL INFORMATION
+CLINICAL INFORMATION PROVIDED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Working / Primary Diagnosis: ${req.primaryDiagnosis||'Not stated by referring team'}
-Proposed Treatment Plan: ${req.proposedTx||'Not specified by referring team'}
+Working / Primary Diagnosis: ${req.primaryDiagnosis || '[NOT STATED BY REFERRING TEAM — assess from findings only]'}
+Proposed Treatment Plan: ${req.proposedTx || '[NOT SPECIFIED BY REFERRING TEAM — generate de-novo recommendations]'}
 
 KEY FINDINGS FROM SUBMITTED REPORTS:
-${req.findings}
+${req.findings && req.findings.trim() ? req.findings : '[NO FINDINGS ENTERED — opinion will be severely limited. Recommend resubmitting with lab/imaging values.]'}
 
-CHRONOLOGICAL CLINICAL TIMELINE:
-${req.timeline||'No timeline provided — this limits the ability to assess disease progression.'}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SPECIFIC CLINICAL QUESTIONS FOR SECOND OPINION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${req.question}
+Chronological Timeline:
+${req.timeline || '[NOT PROVIDED — disease progression cannot be assessed]'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-INSTRUCTIONS FOR THIS REPORT
+CLINICAL QUESTIONS FOR SECOND OPINION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Generate a comprehensive, professional Second Medical Opinion Report with ALL of the following sections. Each section must be thorough, clinically substantive, and evidence-based. Do not write generic or placeholder text — derive your analysis specifically from the case information provided above.
+${req.question || '[NO SPECIFIC QUESTIONS SUBMITTED — provide a comprehensive general second opinion based on all available findings]'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INSTRUCTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Generate a comprehensive Second Medical Opinion Report. Base your analysis ONLY on the data provided above. Where data is marked [NOT PROVIDED] or [NOT STATED], explicitly acknowledge the gap and state its clinical impact — do NOT invent or assume missing values.
+
+${!hasFindings ? `IMPORTANT: No clinical findings have been provided. Your opinion must:\n- Acknowledge this fundamental limitation prominently in the Executive Summary\n- State clearly that no clinical assessment can be made without objective data\n- List all investigations that should be submitted for a meaningful second opinion\n- Advise the referring team to resubmit with complete lab/imaging reports\n` : ''}
 
 1. EXECUTIVE SUMMARY:
-Write 3-5 sentences. State the case in brief, the nature of the referral, and the primary question(s) being addressed. Conclude with a one-line summary of your overall position.
+3-5 sentences. Summarise what data was provided, what is missing, and your overall position or the key limitation. ${!hasFindings ? 'State prominently that opinion is preliminary due to absent clinical data.' : ''}
 
 2. REVIEW OF SUBMITTED REPORTS AND CLINICAL DATA:
-Provide a detailed, critical analysis of every piece of information provided. For each finding: state the value or result, its clinical significance, whether it is within normal range (cite the reference range and guideline), and any red flags. If findings are contradictory or incomplete, state this explicitly. Reference the specific type of report (e.g., histopathology, MRI, CBC) in your analysis.
+Analyse every value and finding provided in detail. For each: state the value, reference range, clinical significance, and flag abnormals. Explicitly note any fields that were absent.${hasFindings ? ' Reference the specific report types submitted.' : ' State that no objective findings were submitted.'}
 
 3. ASSESSMENT OF WORKING DIAGNOSIS:
-State clearly whether you CONCUR, PARTIALLY CONCUR, or DISAGREE with the working diagnosis — and give the specific clinical reasoning. Reference the diagnostic criteria used (WHO classification, ICD-11, ICMR guidelines, TNM staging for oncology, KDIGO for nephrology, etc. as appropriate). Identify any diagnostic gaps or additional information required to confirm the diagnosis.
+${hasDiagnosis ? 'State CONCUR / PARTIALLY CONCUR / DISAGREE with reasoning and diagnostic criteria.' : 'No working diagnosis was provided. Based on the available data, suggest the most likely diagnosis with reasoning, or state that insufficient data prevents a diagnostic assessment.'}
 
 4. DIFFERENTIAL DIAGNOSES:
-List 3-5 differential diagnoses in order of probability. For each:
-a) State the diagnosis name
-b) Supporting clinical evidence from this case
-c) Arguments against it
-d) What investigation would confirm or exclude it
+List 3-5 differentials with supporting/excluding evidence from the provided data. Note which differentials cannot be assessed due to missing information.
 
-5. CRITICAL APPRAISAL OF PROPOSED TREATMENT PLAN:
-Evaluate the proposed management in detail. For each element of the proposed plan:
-a) Is it appropriate per current evidence-based guidelines? Name the specific guideline.
-b) Are there contraindications given this patient's profile?
-c) Are there superior alternatives based on current evidence?
-d) Are there important drug interactions with current medications?
-State your overall position: ENDORSE / MODIFY / ALTERNATIVE RECOMMENDED
+5. CRITICAL APPRAISAL OF PROPOSED TREATMENT:
+${hasTreatment ? 'Evaluate the proposed plan: ENDORSE / MODIFY / ALTERNATIVE RECOMMENDED with guideline citations.' : 'No treatment plan was provided. Generate de-novo evidence-based management recommendations for the most likely diagnosis based on available findings.'}
 
 6. EVIDENCE-BASED EXPERT RECOMMENDATIONS:
-Provide numbered, specific, actionable recommendations:
-a) Immediate clinical actions (if urgency warrants)
-b) Additional investigations required — with clinical justification for each
-c) Recommended treatment modifications or alternatives — with dosing, duration, and monitoring plan where applicable
-d) Specialist referrals required — state the specialty and reason
-e) Monitoring parameters and follow-up schedule — specific intervals and target values
-f) Patient and family counselling points
-g) Lifestyle, diet, and supportive care recommendations specific to this condition and the Indian context
+Numbered recommendations:
+a) Immediate actions (if urgency warrants)
+b) Additional investigations required — especially those missing from this submission
+c) Treatment recommendations with dosing, duration, monitoring
+d) Specialist referrals
+e) Follow-up schedule and monitoring targets
+f) Patient counselling points
+g) Lifestyle and supportive care
 
-7. DIRECT ANSWERS TO SUBMITTED CLINICAL QUESTIONS:
-Answer each clinical question submitted by the referring team individually and directly. Label them Q1, Q2, Q3 etc. Each answer must be specific, definitive (or state clearly why a definitive answer is not possible), and supported by reasoning.
+7. DIRECT ANSWERS TO CLINICAL QUESTIONS:
+${hasQuestion ? 'Answer each submitted question directly, labelled Q1, Q2 etc.' : 'No specific questions were submitted. Provide answers to the three most clinically important questions for this case.'}
 
 8. PROGNOSIS AND EXPECTED OUTCOMES:
-Provide:
-a) Prognosis with the currently proposed treatment (use validated prognostic tools / scoring systems relevant to the specialty where applicable)
-b) Prognosis with the recommended modifications
-c) Risk factors that may worsen outcome
-d) Favourable prognostic indicators, if any
-e) Key milestones the patient and care team should monitor
+Prognosis with and without treatment, risk factors, favourable indicators, key monitoring milestones. State reduced confidence if key data is absent.
 
 9. GAPS IN INFORMATION AND OUTSTANDING QUERIES:
-List any clinical information that was not provided but would materially affect this opinion. State what additional reports, investigations, or history would be needed for a complete assessment.
+List every piece of missing data from this submission. For EACH gap state:
+- What is missing
+- Why it matters clinically
+- What specific test or document should be provided
+- How its absence affects the confidence of this opinion
+${missingItems.length > 0 ? `\nConfirmed missing items for this request:\n${missingItems.map((item,i) => `${i+1}. ${item}`).join('\n')}` : ''}
 
 10. LIMITATIONS AND SCOPE OF THIS OPINION:
-State that this opinion is based on the de-identified information provided and does not constitute a doctor-patient relationship. This opinion is to be reviewed, validated, and signed by the treating specialist before issue. It does not replace in-person clinical examination.
+This opinion is based solely on the de-identified information provided. It does not constitute a doctor-patient relationship and must be reviewed, validated, and signed by a licensed specialist before issue. It does not replace direct clinical examination.${missingItems.length > 0 ? ` This opinion is further limited by ${missingItems.length} missing data item(s) listed in Section 9.` : ''}
 
-Write this in formal Indian medical report style. Be comprehensive — each section should be substantive. This is a paid specialist service and the patient deserves a thorough, professional report.`;
+Write in formal Indian medical report style. Be substantive in every section. Generate useful clinical guidance even from partial data, while being explicit about limitations.`;
 
-  // ── Direct API call with high token budget ────────────────────────
+  // ── Direct API call ────────────────────────────────────────────────
   try {
     await _loadConfig();
     const apiKey = getApiKey ? getApiKey() : (_anthropicApiKey || '');
@@ -14963,18 +15057,18 @@ Write this in formal Indian medical report style. Be comprehensive — each sect
 
     const data = await response.json();
     const opinion = (data.content[0].text || '').trim();
-
     if(!opinion || opinion.length < 100) throw new Error('Empty or truncated response from API');
 
     req.opinion = opinion;
     req.opinionGeneratedAt = new Date().toISOString();
     req.opinionGeneratedBy = 'SAMARTHAA MED Specialist Review';
+    req.missingDataCount = missingItems.length;
     sopUpdate(req);
 
-    // Render with rich formatting
     sopRenderOpinion(el, opinion);
 
-    typeof showToast==='function' && showToast('🧬','Opinion Generated','Specialist opinion ready for doctor review');
+    const badge = missingItems.length > 0 ? ` · ${missingItems.length} data gap(s) flagged` : '';
+    if(typeof showToast==='function') showToast('🧬','Opinion Generated',`Specialist opinion ready for doctor review${badge}`);
 
   } catch(err) {
     console.error('SOP opinion error:', err);
@@ -14983,19 +15077,17 @@ Write this in formal Indian medical report style. Be comprehensive — each sect
         <div style="font-weight:700;margin-bottom:6px">⚠ Opinion Generation Failed</div>
         <div style="font-size:0.82rem;color:var(--text2)">${err.message}</div>
         <div style="font-size:0.78rem;color:var(--text3);margin-top:8px">
-          Check that your API key is configured in Settings. 
+          Check that your API key is configured in Settings.
           Once configured, click <strong>↻ Regenerate</strong> to try again.
         </div>
       </div>`;
-    typeof showToast==='function' && showToast('❌','Generation Failed',err.message);
+    if(typeof showToast==='function') showToast('❌','Generation Failed',err.message);
   }
 }
 
 // ── Rich opinion renderer ─────────────────────────────────────────────
 function sopRenderOpinion(el, text) {
   if(!el || !text) return;
-
-  // Section header detection: lines like "1. SECTION NAME:" or "1. SECTION NAME"
   const lines = text.split('\n');
   let html = '';
   const sectionColors = [
@@ -15004,13 +15096,10 @@ function sopRenderOpinion(el, text) {
     'var(--green)','var(--red)','var(--text3)'
   ];
   let sectionIdx = -1;
-
   for(let i=0; i<lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
     if(!trimmed) { html += '<div style="height:8px"></div>'; continue; }
-
-    // Section header: starts with digit, dot, space, ALL-CAPS word
     const secMatch = trimmed.match(/^(\d+)\.\s+([A-Z][A-Z\s\/&,\-]{3,})[:.]?\s*$/);
     if(secMatch) {
       sectionIdx++;
@@ -15020,25 +15109,23 @@ function sopRenderOpinion(el, text) {
       </div>`;
       continue;
     }
-
-    // Sub-label lines like "a)" or "Q1:" or "a) Additional..."
     if(/^[a-z]\)|^[a-z]\.\s|^Q\d+[:\.]/.test(trimmed)) {
       html += `<div style="padding:4px 0 4px 16px;border-left:2px solid var(--border2);margin:3px 0 3px 8px;font-size:0.82rem;color:var(--text2);line-height:1.65">${sopE(trimmed)}</div>`;
       continue;
     }
-
-    // CONCUR / DISAGREE / ENDORSE highlighted keywords
+    // Flag [NOT PROVIDED] and [NOT STATED] in red
     const highlighted = trimmed
       .replace(/\b(CONCUR|ENDORSE)\b/g, '<strong style="color:var(--green)">$1</strong>')
       .replace(/\b(PARTIALLY CONCUR|MODIFY)\b/g, '<strong style="color:var(--gold)">$1</strong>')
       .replace(/\b(DISAGREE|ALTERNATIVE RECOMMENDED)\b/g, '<strong style="color:var(--red)">$1</strong>')
-      .replace(/\b(RED FLAG|URGENT|CRITICAL|IMMEDIATE)\b/gi, '<strong style="color:var(--red)">$1</strong>');
-
+      .replace(/\b(RED FLAG|URGENT|CRITICAL|IMMEDIATE)\b/gi, '<strong style="color:var(--red)">$1</strong>')
+      .replace(/\[NOT PROVIDED[^\]]*\]|\[NOT STATED[^\]]*\]|\[NOT SPECIFIED[^\]]*\]/g,
+               '<span style="background:var(--red-dim);color:var(--red);padding:1px 6px;border-radius:4px;font-size:0.78rem;font-weight:600">$&</span>');
     html += `<div style="font-size:0.83rem;color:var(--text1);line-height:1.75;margin-bottom:4px">${highlighted}</div>`;
   }
-
   el.innerHTML = `<div style="padding:2px 0;word-break:break-word;overflow-wrap:break-word">${html}</div>`;
 }
+
 
 window.sopRegenerateOpinion = async function(id) {
   const req = sopById(id);
@@ -15574,7 +15661,11 @@ ${req.fee?`<p style="margin-top:10pt;color:#15803d;font-weight:bold">Consultatio
       </div>
 
       <div style="display:flex;gap:10px;flex-wrap:wrap">
-        <button onclick="sopSubmitNew()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px 24px;font-size:0.88rem;font-weight:700;cursor:pointer">
+        <!-- Data completeness chip — updated live as fields are filled -->
+        <div id="sopDataCheck" style="width:100%;margin-bottom:8px;padding:8px 12px;background:var(--navy3);border:1px solid var(--border);border-radius:8px;font-size:0.75rem;color:var(--text3);line-height:1.5">
+          ● Fill in Key Findings (Section C) for the most accurate opinion. Missing fields will be automatically flagged as limitations in the report.
+        </div>
+        <button onclick="sopCheckAndSubmit()" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:11px 24px;font-size:0.88rem;font-weight:700;cursor:pointer">
           🔬 Generate Opinion & Submit
         </button>
         <button onclick="sopSaveAsDraft()" style="background:var(--navy3);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:11px 18px;font-size:0.88rem;cursor:pointer">
@@ -15761,8 +15852,8 @@ async function sopGenerateOpinion(id) {
       <div style="display:flex;align-items:center;gap:12px;padding:12px;background:var(--teal-dim);border-radius:8px;border:1px solid rgba(185,28,28,.2)">
         <div style="width:32px;height:32px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;animation:spin 2s linear infinite">🧬</div>
         <div>
-          <div style="font-weight:700;font-size:0.85rem;color:var(--teal)">Generating comprehensive specialist opinion…</div>
-          <div style="font-size:0.73rem;color:var(--text3);margin-top:2px">Reviewing clinical findings and preparing the specialist report</div>
+          <div style="font-weight:700;font-size:0.85rem;color:var(--teal)">Preparing comprehensive specialist opinion…</div>
+          <div style="font-size:0.73rem;color:var(--text3);margin-top:2px">Reviewing clinical findings, guidelines, and composing the full specialist report</div>
         </div>
       </div>
       <div style="height:9px;background:var(--navy3);border-radius:5px;width:92%;opacity:.6;animation:pulse 1.5s ease-in-out infinite"></div>
@@ -15771,7 +15862,38 @@ async function sopGenerateOpinion(id) {
       <div style="height:9px;background:var(--navy3);border-radius:5px;width:60%;opacity:.3;animation:pulse 1.5s ease-in-out infinite .6s"></div>
     </div>`;
 
-  // ── Deep system prompt ────────────────────────────────────────────
+  // ── Analyse what data is present vs missing ───────────────────────
+  const hasFindings       = !!(req.findings    && req.findings.trim().length > 20);
+  const hasDiagnosis      = !!(req.primaryDiagnosis && req.primaryDiagnosis.trim());
+  const hasTreatment      = !!(req.proposedTx  && req.proposedTx.trim());
+  const hasQuestion       = !!(req.question    && req.question.trim());
+  const hasTimeline       = !!(req.timeline    && req.timeline.trim());
+  const hasConditions     = !!(req.conditions  && req.conditions.trim());
+  const hasMeds           = !!(req.meds        && req.meds.trim());
+  const hasPatientAgeSex  = !!(req.patientAgeSex && req.patientAgeSex.trim());
+  const hasAllergies      = !!(req.allergies   && req.allergies.trim());
+  const hasCentre         = !!(req.diagnosticsCentre && req.diagnosticsCentre.trim());
+  const hasReferrer       = !!(req.referrer    && req.referrer.trim());
+
+  // Build structured list of what's missing
+  const missingItems = [];
+  if (!hasFindings)       missingItems.push('Key clinical findings / lab report values (critical — opinion will be based on partial data)');
+  if (!hasDiagnosis)      missingItems.push('Working / primary diagnosis from referring team');
+  if (!hasTreatment)      missingItems.push('Proposed treatment plan from referring team');
+  if (!hasQuestion)       missingItems.push('Specific clinical questions for second opinion');
+  if (!hasTimeline)       missingItems.push('Chronological clinical timeline');
+  if (!hasConditions)     missingItems.push('Known comorbidities / medical history');
+  if (!hasMeds)           missingItems.push('Current medications list');
+  if (!hasAllergies)      missingItems.push('Drug allergies / adverse reactions');
+  if (!hasPatientAgeSex)  missingItems.push('Patient age and sex');
+  if (!hasCentre)         missingItems.push('Diagnostics centre name');
+  if (!hasReferrer)       missingItems.push('Referring clinician name');
+
+  const missingBlock = missingItems.length
+    ? `\nDATA AVAILABILITY NOTE:\nThe following information was NOT provided by the referring team and is missing from this request. You must:\n1. Generate the opinion based SOLELY on the data that IS provided\n2. Explicitly note each missing item in Section 9 (Gaps in Information)\n3. State clearly how each missing item affects the completeness and confidence of your opinion\n4. Do NOT invent or assume any missing clinical data\n\nMISSING DATA:\n${missingItems.map((item, i) => `${i+1}. ${item}`).join('\n')}\n`
+    : '\nDATA AVAILABILITY NOTE: All standard fields have been provided for this request.\n';
+
+  // ── System prompt ─────────────────────────────────────────────────
   const systemPrompt = `You are Dr. SAMARTHAA, a senior specialist physician at SAMARTHAA MED Clinical Intelligence Platform. You are generating a formal, comprehensive, legally defensible Second Medical Opinion for a patient referred by a diagnostics partner centre in India.
 
 ABOUT YOUR ROLE:
@@ -15780,118 +15902,113 @@ ABOUT YOUR ROLE:
 - You write for an audience of senior physicians — use precise clinical terminology, ICD-11 codes where relevant, and cite specific guidelines by name
 - You follow ICMR National Guidelines, NHM protocols, WHO clinical standards, and international evidence-based guidelines (NCCN, ESMO, ACC/AHA, ESC, KDIGO, etc.) as appropriate to the specialty
 
+CRITICAL INSTRUCTION — WORKING WITH INCOMPLETE DATA:
+- If clinical findings are provided (lab values, imaging reports, ECG, etc.) but the working diagnosis or treatment plan is absent, derive your assessment entirely from the objective findings
+- If a field is marked "Not stated" or "Not specified", treat it as genuinely unknown — do not guess or fabricate
+- For every piece of missing information, explicitly state in Section 9 what is missing and why it matters
+- The opinion should still be thorough and clinically useful even when based only on lab/imaging data
+- Confidence levels should be explicitly stated and reduced when key data is absent
+
 REPORT STANDARDS:
 - Each section must be substantive and clinically detailed — NOT generic or templated
-- Draw specific clinical inferences from the data provided
-- Flag any red flags, inconsistencies, or gaps in the submitted information
-- Where data is insufficient, state what additional information is required and why
-- Never include patient names, addresses, contact numbers, or national identity numbers in your output
-- Age, sex, clinical reference code are acceptable as they do not identify the patient
-- Write in formal British English medical style (used in Indian medical practice)
+- Draw specific clinical inferences from the data actually provided
+- Never include patient names, addresses, contact numbers, or national identity numbers
+- Write in formal British English medical style`;
 
-OUTPUT FORMAT: Plain text only. Use numbered sections with ALL-CAPS section headings followed by a colon. Use sub-points with letters (a), b), c)). Do not use markdown, asterisks, or hash symbols.`;
-
-  // ── Richly structured user prompt ────────────────────────────────
+  // ── User prompt ───────────────────────────────────────────────────
   const userPrompt = `SECOND MEDICAL OPINION REQUEST — ${req.id}
 Date: ${new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'})}
 Urgency: ${(req.urgency||'routine').toUpperCase()}
-
+${missingBlock}
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 REFERRAL INFORMATION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Diagnostics Partner Centre: ${req.diagnosticsCentre}
-Centre Registration / NABL Number: ${req.centreReg||'Not provided'}
-Referring Clinician: ${req.referrer||'Not provided'}
-Specialty Requested: ${req.specialty}
-Type of Reports Submitted for Review: ${req.reportType}
-Consultation Mode: ${req.consultType}
+Diagnostics Partner Centre: ${req.diagnosticsCentre || '[NOT PROVIDED]'}
+Centre Registration / NABL Number: ${req.centreReg || '[NOT PROVIDED]'}
+Referring Clinician: ${req.referrer || '[NOT PROVIDED]'}
+Specialty Requested: ${req.specialty || '[NOT PROVIDED]'}
+Type of Reports Submitted: ${req.reportType || '[NOT PROVIDED]'}
+Consultation Mode: ${req.consultType || 'Not specified'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 DE-IDENTIFIED PATIENT PROFILE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Reference Code: ${req.patientRef}
-Age / Sex: ${req.patientAgeSex||'Not provided'}
-Known Comorbidities: ${req.conditions||'None reported'}
-Current Medications: ${req.meds||'None reported'}
-Known Drug Allergies: ${req.allergies||'None reported — verify before prescribing'}
-Blood Group: ${req.blood||'Not recorded'}
+Reference Code: ${req.patientRef || 'Not assigned'}
+Age / Sex: ${req.patientAgeSex || '[NOT PROVIDED — affects dose calculations and reference ranges]'}
+Known Comorbidities: ${req.conditions || '[NOT PROVIDED — affects risk assessment and drug interactions]'}
+Current Medications: ${req.meds || '[NOT PROVIDED — drug interaction check not possible]'}
+Drug Allergies: ${req.allergies || '[NOT PROVIDED — verify before prescribing any new agent]'}
+Blood Group: ${req.blood || 'Not recorded'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PRIMARY CLINICAL INFORMATION
+CLINICAL INFORMATION PROVIDED
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Working / Primary Diagnosis: ${req.primaryDiagnosis||'Not stated by referring team'}
-Proposed Treatment Plan: ${req.proposedTx||'Not specified by referring team'}
+Working / Primary Diagnosis: ${req.primaryDiagnosis || '[NOT STATED BY REFERRING TEAM — assess from findings only]'}
+Proposed Treatment Plan: ${req.proposedTx || '[NOT SPECIFIED BY REFERRING TEAM — generate de-novo recommendations]'}
 
 KEY FINDINGS FROM SUBMITTED REPORTS:
-${req.findings}
+${req.findings && req.findings.trim() ? req.findings : '[NO FINDINGS ENTERED — opinion will be severely limited. Recommend resubmitting with lab/imaging values.]'}
 
-CHRONOLOGICAL CLINICAL TIMELINE:
-${req.timeline||'No timeline provided — this limits the ability to assess disease progression.'}
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-SPECIFIC CLINICAL QUESTIONS FOR SECOND OPINION
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-${req.question}
+Chronological Timeline:
+${req.timeline || '[NOT PROVIDED — disease progression cannot be assessed]'}
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-INSTRUCTIONS FOR THIS REPORT
+CLINICAL QUESTIONS FOR SECOND OPINION
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Generate a comprehensive, professional Second Medical Opinion Report with ALL of the following sections. Each section must be thorough, clinically substantive, and evidence-based. Do not write generic or placeholder text — derive your analysis specifically from the case information provided above.
+${req.question || '[NO SPECIFIC QUESTIONS SUBMITTED — provide a comprehensive general second opinion based on all available findings]'}
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+INSTRUCTIONS
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Generate a comprehensive Second Medical Opinion Report. Base your analysis ONLY on the data provided above. Where data is marked [NOT PROVIDED] or [NOT STATED], explicitly acknowledge the gap and state its clinical impact — do NOT invent or assume missing values.
+
+${!hasFindings ? `IMPORTANT: No clinical findings have been provided. Your opinion must:\n- Acknowledge this fundamental limitation prominently in the Executive Summary\n- State clearly that no clinical assessment can be made without objective data\n- List all investigations that should be submitted for a meaningful second opinion\n- Advise the referring team to resubmit with complete lab/imaging reports\n` : ''}
 
 1. EXECUTIVE SUMMARY:
-Write 3-5 sentences. State the case in brief, the nature of the referral, and the primary question(s) being addressed. Conclude with a one-line summary of your overall position.
+3-5 sentences. Summarise what data was provided, what is missing, and your overall position or the key limitation. ${!hasFindings ? 'State prominently that opinion is preliminary due to absent clinical data.' : ''}
 
 2. REVIEW OF SUBMITTED REPORTS AND CLINICAL DATA:
-Provide a detailed, critical analysis of every piece of information provided. For each finding: state the value or result, its clinical significance, whether it is within normal range (cite the reference range and guideline), and any red flags. If findings are contradictory or incomplete, state this explicitly. Reference the specific type of report (e.g., histopathology, MRI, CBC) in your analysis.
+Analyse every value and finding provided in detail. For each: state the value, reference range, clinical significance, and flag abnormals. Explicitly note any fields that were absent.${hasFindings ? ' Reference the specific report types submitted.' : ' State that no objective findings were submitted.'}
 
 3. ASSESSMENT OF WORKING DIAGNOSIS:
-State clearly whether you CONCUR, PARTIALLY CONCUR, or DISAGREE with the working diagnosis — and give the specific clinical reasoning. Reference the diagnostic criteria used (WHO classification, ICD-11, ICMR guidelines, TNM staging for oncology, KDIGO for nephrology, etc. as appropriate). Identify any diagnostic gaps or additional information required to confirm the diagnosis.
+${hasDiagnosis ? 'State CONCUR / PARTIALLY CONCUR / DISAGREE with reasoning and diagnostic criteria.' : 'No working diagnosis was provided. Based on the available data, suggest the most likely diagnosis with reasoning, or state that insufficient data prevents a diagnostic assessment.'}
 
 4. DIFFERENTIAL DIAGNOSES:
-List 3-5 differential diagnoses in order of probability. For each:
-a) State the diagnosis name
-b) Supporting clinical evidence from this case
-c) Arguments against it
-d) What investigation would confirm or exclude it
+List 3-5 differentials with supporting/excluding evidence from the provided data. Note which differentials cannot be assessed due to missing information.
 
-5. CRITICAL APPRAISAL OF PROPOSED TREATMENT PLAN:
-Evaluate the proposed management in detail. For each element of the proposed plan:
-a) Is it appropriate per current evidence-based guidelines? Name the specific guideline.
-b) Are there contraindications given this patient's profile?
-c) Are there superior alternatives based on current evidence?
-d) Are there important drug interactions with current medications?
-State your overall position: ENDORSE / MODIFY / ALTERNATIVE RECOMMENDED
+5. CRITICAL APPRAISAL OF PROPOSED TREATMENT:
+${hasTreatment ? 'Evaluate the proposed plan: ENDORSE / MODIFY / ALTERNATIVE RECOMMENDED with guideline citations.' : 'No treatment plan was provided. Generate de-novo evidence-based management recommendations for the most likely diagnosis based on available findings.'}
 
 6. EVIDENCE-BASED EXPERT RECOMMENDATIONS:
-Provide numbered, specific, actionable recommendations:
-a) Immediate clinical actions (if urgency warrants)
-b) Additional investigations required — with clinical justification for each
-c) Recommended treatment modifications or alternatives — with dosing, duration, and monitoring plan where applicable
-d) Specialist referrals required — state the specialty and reason
-e) Monitoring parameters and follow-up schedule — specific intervals and target values
-f) Patient and family counselling points
-g) Lifestyle, diet, and supportive care recommendations specific to this condition and the Indian context
+Numbered recommendations:
+a) Immediate actions (if urgency warrants)
+b) Additional investigations required — especially those missing from this submission
+c) Treatment recommendations with dosing, duration, monitoring
+d) Specialist referrals
+e) Follow-up schedule and monitoring targets
+f) Patient counselling points
+g) Lifestyle and supportive care
 
-7. DIRECT ANSWERS TO SUBMITTED CLINICAL QUESTIONS:
-Answer each clinical question submitted by the referring team individually and directly. Label them Q1, Q2, Q3 etc. Each answer must be specific, definitive (or state clearly why a definitive answer is not possible), and supported by reasoning.
+7. DIRECT ANSWERS TO CLINICAL QUESTIONS:
+${hasQuestion ? 'Answer each submitted question directly, labelled Q1, Q2 etc.' : 'No specific questions were submitted. Provide answers to the three most clinically important questions for this case.'}
 
 8. PROGNOSIS AND EXPECTED OUTCOMES:
-Provide:
-a) Prognosis with the currently proposed treatment (use validated prognostic tools / scoring systems relevant to the specialty where applicable)
-b) Prognosis with the recommended modifications
-c) Risk factors that may worsen outcome
-d) Favourable prognostic indicators, if any
-e) Key milestones the patient and care team should monitor
+Prognosis with and without treatment, risk factors, favourable indicators, key monitoring milestones. State reduced confidence if key data is absent.
 
 9. GAPS IN INFORMATION AND OUTSTANDING QUERIES:
-List any clinical information that was not provided but would materially affect this opinion. State what additional reports, investigations, or history would be needed for a complete assessment.
+List every piece of missing data from this submission. For EACH gap state:
+- What is missing
+- Why it matters clinically
+- What specific test or document should be provided
+- How its absence affects the confidence of this opinion
+${missingItems.length > 0 ? `\nConfirmed missing items for this request:\n${missingItems.map((item,i) => `${i+1}. ${item}`).join('\n')}` : ''}
 
 10. LIMITATIONS AND SCOPE OF THIS OPINION:
-State that this opinion is based on the de-identified information provided and does not constitute a doctor-patient relationship. This opinion is to be reviewed, validated, and signed by the treating specialist before issue. It does not replace in-person clinical examination.
+This opinion is based solely on the de-identified information provided. It does not constitute a doctor-patient relationship and must be reviewed, validated, and signed by a licensed specialist before issue. It does not replace direct clinical examination.${missingItems.length > 0 ? ` This opinion is further limited by ${missingItems.length} missing data item(s) listed in Section 9.` : ''}
 
-Write this in formal Indian medical report style. Be comprehensive — each section should be substantive. This is a paid specialist service and the patient deserves a thorough, professional report.`;
+Write in formal Indian medical report style. Be substantive in every section. Generate useful clinical guidance even from partial data, while being explicit about limitations.`;
 
-  // ── Direct API call with high token budget ────────────────────────
+  // ── Direct API call ────────────────────────────────────────────────
   try {
     await _loadConfig();
     const apiKey = getApiKey ? getApiKey() : (_anthropicApiKey || '');
@@ -15921,18 +16038,18 @@ Write this in formal Indian medical report style. Be comprehensive — each sect
 
     const data = await response.json();
     const opinion = (data.content[0].text || '').trim();
-
     if(!opinion || opinion.length < 100) throw new Error('Empty or truncated response from API');
 
     req.opinion = opinion;
     req.opinionGeneratedAt = new Date().toISOString();
     req.opinionGeneratedBy = 'SAMARTHAA MED Specialist Review';
+    req.missingDataCount = missingItems.length;
     sopUpdate(req);
 
-    // Render with rich formatting
     sopRenderOpinion(el, opinion);
 
-    typeof showToast==='function' && showToast('🧬','Opinion Generated','Specialist opinion ready for doctor review');
+    const badge = missingItems.length > 0 ? ` · ${missingItems.length} data gap(s) flagged` : '';
+    if(typeof showToast==='function') showToast('🧬','Opinion Generated',`Specialist opinion ready for doctor review${badge}`);
 
   } catch(err) {
     console.error('SOP opinion error:', err);
@@ -15941,19 +16058,17 @@ Write this in formal Indian medical report style. Be comprehensive — each sect
         <div style="font-weight:700;margin-bottom:6px">⚠ Opinion Generation Failed</div>
         <div style="font-size:0.82rem;color:var(--text2)">${err.message}</div>
         <div style="font-size:0.78rem;color:var(--text3);margin-top:8px">
-          Check that your API key is configured in Settings. 
+          Check that your API key is configured in Settings.
           Once configured, click <strong>↻ Regenerate</strong> to try again.
         </div>
       </div>`;
-    typeof showToast==='function' && showToast('❌','Generation Failed',err.message);
+    if(typeof showToast==='function') showToast('❌','Generation Failed',err.message);
   }
 }
 
 // ── Rich opinion renderer ─────────────────────────────────────────────
 function sopRenderOpinion(el, text) {
   if(!el || !text) return;
-
-  // Section header detection: lines like "1. SECTION NAME:" or "1. SECTION NAME"
   const lines = text.split('\n');
   let html = '';
   const sectionColors = [
@@ -15962,13 +16077,10 @@ function sopRenderOpinion(el, text) {
     'var(--green)','var(--red)','var(--text3)'
   ];
   let sectionIdx = -1;
-
   for(let i=0; i<lines.length; i++) {
     const line = lines[i];
     const trimmed = line.trim();
     if(!trimmed) { html += '<div style="height:8px"></div>'; continue; }
-
-    // Section header: starts with digit, dot, space, ALL-CAPS word
     const secMatch = trimmed.match(/^(\d+)\.\s+([A-Z][A-Z\s\/&,\-]{3,})[:.]?\s*$/);
     if(secMatch) {
       sectionIdx++;
@@ -15978,25 +16090,23 @@ function sopRenderOpinion(el, text) {
       </div>`;
       continue;
     }
-
-    // Sub-label lines like "a)" or "Q1:" or "a) Additional..."
     if(/^[a-z]\)|^[a-z]\.\s|^Q\d+[:\.]/.test(trimmed)) {
       html += `<div style="padding:4px 0 4px 16px;border-left:2px solid var(--border2);margin:3px 0 3px 8px;font-size:0.82rem;color:var(--text2);line-height:1.65">${sopE(trimmed)}</div>`;
       continue;
     }
-
-    // CONCUR / DISAGREE / ENDORSE highlighted keywords
+    // Flag [NOT PROVIDED] and [NOT STATED] in red
     const highlighted = trimmed
       .replace(/\b(CONCUR|ENDORSE)\b/g, '<strong style="color:var(--green)">$1</strong>')
       .replace(/\b(PARTIALLY CONCUR|MODIFY)\b/g, '<strong style="color:var(--gold)">$1</strong>')
       .replace(/\b(DISAGREE|ALTERNATIVE RECOMMENDED)\b/g, '<strong style="color:var(--red)">$1</strong>')
-      .replace(/\b(RED FLAG|URGENT|CRITICAL|IMMEDIATE)\b/gi, '<strong style="color:var(--red)">$1</strong>');
-
+      .replace(/\b(RED FLAG|URGENT|CRITICAL|IMMEDIATE)\b/gi, '<strong style="color:var(--red)">$1</strong>')
+      .replace(/\[NOT PROVIDED[^\]]*\]|\[NOT STATED[^\]]*\]|\[NOT SPECIFIED[^\]]*\]/g,
+               '<span style="background:var(--red-dim);color:var(--red);padding:1px 6px;border-radius:4px;font-size:0.78rem;font-weight:600">$&</span>');
     html += `<div style="font-size:0.83rem;color:var(--text1);line-height:1.75;margin-bottom:4px">${highlighted}</div>`;
   }
-
   el.innerHTML = `<div style="padding:2px 0;word-break:break-word;overflow-wrap:break-word">${html}</div>`;
 }
+
 
 window.sopRegenerateOpinion = async function(id) {
   const req = sopById(id);
