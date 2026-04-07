@@ -15072,9 +15072,9 @@ window.sopOpenRequest = async function(id, justCreated) {
       </div>
 
       <!-- Export buttons (only for approved) -->
-      ${req.status==='approved'?`
+      ${(req.status==='approved'||req.status==='awaiting_review'||req.status==='revision')?`
       <div class="sop-action-row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-        <button onclick="sopExportPDF('${req.id}')" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:0.85rem;font-weight:600;cursor:pointer">🖨 Export PDF Report</button>
+        <button onclick="sopExportPDF('${req.id}')" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:0.85rem;font-weight:600;cursor:pointer">🖨 Export${req.status!=='approved'?' (Draft)':''} PDF</button>
         <button onclick="sopExportWord('${req.id}')" style="background:var(--navy3);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:0.85rem;cursor:pointer">📄 Download Word (.doc)</button>
       </div>`:''}
     </div>`;
@@ -15432,7 +15432,11 @@ window.sopRequestRevision = function(id) {
 // ── PDF Export ─────────────────────────────────────────────────────────
 window.sopExportPDF = function(id) {
   const req = sopById(id);
-  if(!req || req.status!=='approved') { alert('Only approved reports can be exported.'); return; }
+  const isDraft = req.status !== 'approved';
+  if(!req || (!['approved','awaiting_review','revision'].includes(req.status))) {
+    alert('Please generate and review a second opinion before exporting.');
+    return;
+  }
   const today = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
   const E = sopE;
 
@@ -15672,15 +15676,34 @@ ${req.fee?`<div class="invoice">
 
   const blob = new Blob([html],{type:'text/html'});
   const url  = URL.createObjectURL(blob);
-  const tab  = window.open(url,'_blank');
-  if(!tab){const a=document.createElement('a');a.href=url;a.download='samarthaa-sop-'+req.id+'.html';a.click();}
-  setTimeout(()=>URL.revokeObjectURL(url),15000);
+
+  // Primary: trigger download directly (works without popup permission)
+  const dlLink = document.createElement('a');
+  dlLink.href = url;
+  dlLink.download = 'SOP-' + req.id + '-' + new Date().toISOString().slice(0,10) + '.html';
+  document.body.appendChild(dlLink);
+  dlLink.click();
+  document.body.removeChild(dlLink);
+
+  // Secondary: also open in new tab so doctor can print to PDF
+  const tab = window.open(url, '_blank');
+
+  setTimeout(() => URL.revokeObjectURL(url), 30000);
+
+  if(typeof showToast === 'function') {
+    showToast('✅', 'Report exported',
+      'File downloaded. Open it in browser and press Ctrl+P → Save as PDF.');
+  }
 };
 
 // ── Word Export ────────────────────────────────────────────────────────
 window.sopExportWord = function(id) {
   const req = sopById(id);
-  if(!req || req.status!=='approved') { alert('Only approved reports can be exported.'); return; }
+  const isDraftW = req.status !== 'approved';
+  if(!req || (!['approved','awaiting_review','revision'].includes(req.status))) {
+    alert('Please generate and review a second opinion before exporting.');
+    return;
+  }
   const today = new Date().toLocaleDateString('en-IN',{dateStyle:'long'});
   const E = sopE;
 
@@ -15759,8 +15782,13 @@ ${req.fee?`<p style="margin-top:10pt;color:#15803d;font-weight:bold">Consultatio
   const blob = new Blob(['\ufeff'+wordHtml],{type:'application/msword'});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href=url; a.download='samarthaa-sop-'+req.id+'.doc'; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  a.href=url;
+  a.download = 'SOP-' + req.id + '-' + new Date().toISOString().slice(0,10) + '.doc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),10000);
+  if(typeof showToast==='function') showToast('✅','Word report downloaded','SOP-'+req.id+'.doc saved');
 };
 
 // ── showView hook for secondopinion ─────────────────────────────────
@@ -16053,9 +16081,9 @@ window.sopOpenRequest = async function(id, justCreated) {
       </div>
 
       <!-- Export buttons (only for approved) -->
-      ${req.status==='approved'?`
+      ${(req.status==='approved'||req.status==='awaiting_review'||req.status==='revision')?`
       <div class="sop-action-row" style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px">
-        <button onclick="sopExportPDF('${req.id}')" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:0.85rem;font-weight:600;cursor:pointer">🖨 Export PDF Report</button>
+        <button onclick="sopExportPDF('${req.id}')" style="background:var(--teal);color:#fff;border:none;border-radius:8px;padding:10px 20px;font-size:0.85rem;font-weight:600;cursor:pointer">🖨 Export${req.status!=='approved'?' (Draft)':''} PDF</button>
         <button onclick="sopExportWord('${req.id}')" style="background:var(--navy3);color:var(--text2);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:0.85rem;cursor:pointer">📄 Download Word (.doc)</button>
       </div>`:''}
     </div>`;
@@ -16411,257 +16439,14 @@ window.sopRequestRevision = function(id) {
 };
 
 // ── PDF Export ─────────────────────────────────────────────────────────
-window.sopExportPDF = function(id) {
-  const req = sopById(id);
-  if(!req || req.status!=='approved') { alert('Only approved reports can be exported.'); return; }
-  const today = new Date().toLocaleDateString('en-IN',{day:'numeric',month:'long',year:'numeric'});
-  const E = sopE;
 
-  const timelineHtml = req.timeline
-    ? req.timeline.split('\n').filter(l=>l.trim()).map(l=>`<li>${E(l.trim())}</li>`).join('')
-    : '<li>No timeline provided</li>';
-
-  // Rich PDF opinion renderer — 10-section professional format
-  function renderOpinionForPDF(text) {
-    if(!text) return '<p style="color:#9ca3af">No opinion generated.</p>';
-    const lines = text.split('\n');
-    let out = '';
-    const sectionBg = ['#fff7f7','#fff7f7','#fff7f7','#fffbeb','#fffbeb','#f0f9ff','#f0fdf4','#f0fdf4','#fafafa','#fef2f2','#fafafa'];
-    const sectionBorder = ['#b91c1c','#b91c1c','#b91c1c','#f59e0b','#f59e0b','#0ea5e9','#059669','#059669','#6b7280','#dc2626','#6b7280'];
-    let secIdx = -1;
-
-    for(const line of lines) {
-      const t = line.trim();
-      if(!t) { out += '<br>'; continue; }
-
-      // Section header
-      const sm = t.match(/^(\d+)\.\s+([A-Z][A-Z\s\/&,\-]{3,})[:.]?\s*$/);
-      if(sm) {
-        secIdx++;
-        const bg = sectionBg[secIdx%sectionBg.length];
-        const bc = sectionBorder[secIdx%sectionBorder.length];
-        out += `<div style="margin:16px 0 8px;padding:7px 12px;background:${bg};border-left:3.5px solid ${bc};border-radius:0 5px 5px 0;page-break-after:avoid">
-          <span style="font-family:Arial,sans-serif;font-weight:700;font-size:9.5pt;color:${bc};letter-spacing:.5px">${E(t)}</span>
-        </div>`;
-        continue;
-      }
-      // Sub-items
-      if(/^[a-z]\)|^Q\d+[:\.]/i.test(t)) {
-        out += `<div style="padding:3px 0 3px 14px;border-left:1.5px solid #fca5a5;margin:2px 0 2px 8px;font-size:9.5pt;line-height:1.65;color:#374151">${E(t)}</div>`;
-        continue;
-      }
-      // Keywords
-      const hl = E(t)
-        .replace(/\b(CONCUR|ENDORSE)\b/g, '<span style="color:#059669;font-weight:700">$1</span>')
-        .replace(/\b(PARTIALLY CONCUR|MODIFY)\b/g, '<span style="color:#d97706;font-weight:700">$1</span>')
-        .replace(/\b(DISAGREE|ALTERNATIVE RECOMMENDED)\b/g, '<span style="color:#dc2626;font-weight:700">$1</span>')
-        .replace(/\b(red flag|urgent|critical|immediate)\b/gi, '<span style="color:#dc2626;font-weight:700">$1</span>');
-      out += `<p style="margin-bottom:5px;font-size:10pt;line-height:1.75;color:#111">${hl}</p>`;
-    }
-    return out;
-  }
-  const opinionHtml = renderOpinionForPDF(req.opinion||'');
-
-  const html = `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="UTF-8">
-<title>Second Medical Opinion — ${E(req.id)}</title>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:Georgia,serif;font-size:10.5pt;color:#111;background:#fff;line-height:1.65;padding:36px 48px}
-/* LETTERHEAD */
-.lh{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #b91c1c;padding-bottom:14px;margin-bottom:16px}
-.brand-name{font-family:Arial,sans-serif;font-size:18pt;font-weight:900;color:#b91c1c;letter-spacing:-0.5px}
-.brand-sub{font-size:8pt;color:#6b7280;margin-top:2px;font-family:Arial}
-.badge{background:#b91c1c;color:#fff;padding:6px 14px;border-radius:5px;font-size:9pt;font-weight:700;font-family:Arial}
-.badge-sub{font-size:7.5pt;color:#9ca3af;margin-top:3px;text-align:right;font-family:Arial}
-/* TITLE */
-.report-title{text-align:center;margin:16px 0;padding-bottom:14px;border-bottom:1px solid #e5e7eb}
-.report-title h1{font-size:14pt;font-weight:bold;color:#111}
-.ref{font-size:8pt;color:#6b7280;font-family:Arial;margin-top:4px}
-.approved-stamp{display:inline-block;background:#f0fdf4;border:2px solid #86efac;color:#15803d;padding:6px 18px;border-radius:6px;font-family:Arial;font-size:9pt;font-weight:700;margin:10px 0}
-/* SECTIONS */
-.sec{margin-bottom:18px;page-break-inside:avoid}
-.sec-title{font-family:Arial,sans-serif;font-size:8.5pt;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:#b91c1c;border-bottom:1.5px solid #fecaca;padding-bottom:5px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.sec-num{background:#b91c1c;color:#fff;width:20px;height:20px;border-radius:50%;font-size:8pt;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-family:Arial;flex-shrink:0}
-/* INFO TABLE */
-.info-grid{display:grid;grid-template-columns:160px 1fr;gap:5px 10px;font-size:9.5pt}
-.info-label{color:#6b7280;font-family:Arial;font-size:8.5pt}
-.info-val{color:#111;font-weight:600;font-family:Arial}
-/* OPINION */
-.opinion-block{background:#fafafa;border:1px solid #e5e7eb;border-radius:6px;padding:14px;font-size:10pt;line-height:1.8}
-.section-head{font-weight:700;color:#111;margin:12px 0 4px;font-size:10.5pt}
-p{margin-bottom:5px}
-/* TIMELINE */
-.timeline{list-style:none;padding-left:0}
-.timeline li{padding:4px 0 4px 16px;border-left:2px solid #fca5a5;margin-left:8px;font-size:9.5pt;margin-bottom:4px}
-/* DOCTOR BLOCK */
-.dr-block{background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:14px 16px;margin-top:20px}
-.dr-title{font-family:Arial;font-size:8pt;text-transform:uppercase;letter-spacing:1px;color:#15803d;font-weight:700;margin-bottom:8px}
-.dr-name{font-size:13pt;font-weight:800;font-family:Arial;color:#111}
-.dr-detail{font-size:9pt;color:#374151;font-family:Arial;margin-top:2px;line-height:1.6}
-.sig-line{border-top:1.5px solid #15803d;margin-top:36px;padding-top:5px;font-size:8pt;color:#6b7280;font-family:Arial}
-/* DISCLAIMER */
-.disclaimer{background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:10px 14px;font-size:8pt;color:#92400e;font-family:Arial;line-height:1.5;margin-top:20px}
-/* INVOICE */
-.invoice{background:#f0fdf4;border:1.5px solid #86efac;border-radius:8px;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;margin-top:14px}
-.invoice-label{font-family:Arial;font-size:8pt;color:#6b7280;text-transform:uppercase;letter-spacing:.5px}
-.invoice-amount{font-family:Arial;font-size:20pt;font-weight:900;color:#15803d}
-/* FOOTER */
-.footer{text-align:center;margin-top:24px;padding-top:10px;border-top:1px solid #e5e7eb;font-size:7.5pt;color:#9ca3af;font-family:Arial}
-/* WATERMARK */
-.wm{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-35deg);font-size:72pt;font-weight:900;color:rgba(185,28,28,.05);pointer-events:none;z-index:-1;font-family:Arial;white-space:nowrap}
-@media print{body{padding:0}@page{margin:20mm 16mm;size:A4}.no-print{display:none}}
-</style>
-</head>
-<body>
-<div class="wm">APPROVED</div>
-
-<!-- LETTERHEAD -->
-<div class="lh">
-  <div>
-    <div class="brand-name">SAMARTHAA MED</div>
-    <div class="brand-sub">Clinical Intelligence Platform · Specialist Second Opinion Service</div>
-    <div class="brand-sub">ICMR / NHM / WHO Guidelines 2023–24 · samarthaamed.netlify.app</div>
-  </div>
-  <div style="text-align:right">
-    <div class="badge">⚕ VERIFIED &amp; APPROVED</div>
-    <div class="badge-sub">Report ID: ${E(req.id)}</div>
-    <div class="badge-sub">Date: ${today}</div>
-    <div class="badge-sub">Urgency: ${E(req.urgency).toUpperCase()}</div>
-  </div>
-</div>
-
-<!-- TITLE -->
-<div class="report-title">
-  <h1>STANDARD SECOND MEDICAL OPINION REPORT</h1>
-  <div class="ref">${E(req.specialty)} · ${E(req.reportType)} · Ref: ${E(req.id)} · ${today}</div>
-  <div class="approved-stamp">✅ DOCTOR VALIDATED &amp; APPROVED — ${E(req.drName)} · IMC ${E(req.drIMC)}</div>
-</div>
-
-<!-- SECTION 1: REFERRAL SOURCE -->
-<div class="sec">
-  <div class="sec-title"><span class="sec-num">1</span>Referral Source</div>
-  <div class="info-grid">
-    <span class="info-label">Diagnostics Centre:</span><span class="info-val">${E(req.diagnosticsCentre)}</span>
-    <span class="info-label">Centre Reg / NABL:</span><span class="info-val">${E(req.centreReg||'—')}</span>
-    <span class="info-label">Referred By:</span><span class="info-val">${E(req.referrer||'—')}</span>
-    <span class="info-label">Report Received:</span><span class="info-val">${sopFmt(req.createdAt)}</span>
-    <span class="info-label">Consultation Type:</span><span class="info-val">${E(req.consultType)}</span>
-  </div>
-</div>
-
-<!-- SECTION 2: CASE PROFILE (No PII) -->
-<div class="sec">
-  <div class="sec-title"><span class="sec-num">2</span>Case Profile</div>
-  <div class="info-grid">
-    <span class="info-label">Reference Code:</span><span class="info-val">${E(req.patientRef)}</span>
-    <span class="info-label">Age / Sex:</span><span class="info-val">${E(req.patientAgeSex||'—')}</span>
-    <span class="info-label">Specialty:</span><span class="info-val">${E(req.specialty)}</span>
-    <span class="info-label">Reports Reviewed:</span><span class="info-val">${E(req.reportType)}</span>
-    <span class="info-label">Working Diagnosis:</span><span class="info-val">${E(req.primaryDiagnosis||'Not stated')}</span>
-    <span class="info-label">Proposed Treatment:</span><span class="info-val">${E(req.proposedTx||'Not stated')}</span>
-  </div>
-</div>
-
-<!-- SECTION 3: KEY FINDINGS -->
-<div class="sec">
-  <div class="sec-title"><span class="sec-num">3</span>Key Findings Submitted</div>
-  <div style="font-size:10pt;line-height:1.75;padding:10px 14px;background:#fafafa;border:1px solid #e5e7eb;border-radius:6px">${E(req.findings)}</div>
-</div>
-
-<!-- SECTION 4: TIMELINE -->
-${req.timeline?`<div class="sec">
-  <div class="sec-title"><span class="sec-num">4</span>Chronological Timeline</div>
-  <ul class="timeline">${timelineHtml}</ul>
-</div>`:''}
-
-<!-- SECTION 5: CLINICAL QUESTION -->
-<div class="sec">
-  <div class="sec-title"><span class="${req.timeline?'sec-num':''}" style="${req.timeline?'':'background:#b91c1c;color:#fff;width:20px;height:20px;border-radius:50%;font-size:8pt;font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-family:Arial;flex-shrink:0;'}">
-    ${req.timeline?'5':'4'}</span>Specific Clinical Questions for Review</div>
-  <div style="background:#fef2f2;border-left:3px solid #b91c1c;padding:10px 14px;border-radius:0 6px 6px 0;font-size:10pt;font-style:italic;color:#111">"${E(req.question)}"</div>
-</div>
-
-<!-- SECTION 6: EXPERT OPINION -->
-<div class="sec">
-  <div class="sec-title"><span class="sec-num">${req.timeline?6:5}</span>Specialist Expert Opinion &amp; Recommendations</div>
-  <div class="opinion-block">${opinionHtml}</div>
-  <div style="font-size:7.5pt;color:#9ca3af;font-family:Arial;margin-top:6px">
-    ✦ ${req.opinionGeneratedAt?'Opinion prepared '+sopFmt(req.opinionGeneratedAt)+' · ':''}Reviewed and approved by ${E(req.drName)} · IMC ${E(req.drIMC)} · ICMR/WHO/NHM Guidelines 2023–24
-  </div>
-</div>
-
-<!-- SECTION 7: DOCTOR COMMENTARY -->
-${req.drComment?`<div class="sec">
-  <div class="sec-title"><span class="sec-num">${req.timeline?7:6}</span>Specialist Commentary &amp; Addendum</div>
-  <div style="background:#eff6ff;border:1.5px solid #bfdbfe;border-radius:6px;padding:12px 14px;font-size:10pt;line-height:1.75">${E(req.drComment)}</div>
-</div>`:''}
-
-<!-- SECTION 8: DISCLAIMER -->
-<div class="sec">
-  <div class="sec-title"><span class="sec-num">${req.timeline?(req.drComment?8:7):(req.drComment?7:6)}</span>Limitations &amp; Disclaimer</div>
-  <div class="disclaimer">
-    1. This second medical opinion is based solely on the clinical information, report summaries, and data provided to the reviewing specialist. It does not involve direct clinical examination of the patient.<br>
-    2. This report is intended to assist the patient and treating physician in clinical decision-making. It is <strong>NOT intended for medico-legal purposes</strong> unless explicitly requested in writing.<br>
-    3. The treating physician retains full clinical responsibility for all management decisions.<br>
-    4. Patient identifying information has been deliberately excluded from this report in compliance with DPDP Act 2023 and ICMR Ethical Guidelines for Biomedical Research.<br>
-    5. This report was prepared using SAMARTHAA MED Clinical Intelligence Platform and reviewed and approved by a licensed specialist. The reviewing physician's assessment and signature constitute the clinical validation of this report.
-  </div>
-</div>
-
-<!-- DOCTOR CREDENTIALS -->
-<div class="dr-block">
-  <div class="dr-title">Reviewing Specialist — Section 9</div>
-  <div class="dr-name">${E(req.drName)}</div>
-  <div class="dr-detail">${E(req.drQual||'')}${req.drSpec?(' · '+E(req.drSpec)):''}</div>
-  <div class="dr-detail" style="font-family:var(--mono,monospace);font-size:8.5pt;margin-top:3px">IMC Registration: ${E(req.drIMC)}</div>
-  <div class="dr-detail" style="margin-top:4px">Date of Approval: ${sopFmt(req.approvedAt)} · Report ID: ${E(req.id)}</div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-top:20px">
-    <div><div class="sig-line">Signature &amp; Stamp of Reviewing Specialist</div></div>
-    <div><div class="sig-line">Countersignature (if MDT review)</div></div>
-  </div>
-</div>
-
-<!-- INVOICE (if fee set) -->
-${req.fee?`<div class="invoice">
-  <div>
-    <div class="invoice-label">Consultation Service</div>
-    <div style="font-family:Arial;font-size:11pt;font-weight:700;color:#111;margin-top:2px">Second Medical Opinion — ${E(req.consultType)}</div>
-    <div style="font-family:Arial;font-size:8.5pt;color:#6b7280;margin-top:1px">${today} · ${E(req.id)} · ${E(req.diagnosticsCentre)}</div>
-  </div>
-  <div style="text-align:right">
-    <div class="invoice-label">Total Amount</div>
-    <div class="invoice-amount">₹${E(req.fee)}</div>
-    <div style="font-size:7.5pt;color:#9ca3af;font-family:Arial">GST / tax as applicable</div>
-  </div>
-</div>`:''}
-
-<div class="footer">
-  SAMARTHAA MED · Clinical Intelligence Platform · samarthaamed.netlify.app<br>
-  This report was prepared by SAMARTHAA MED and reviewed and signed by a licensed specialist. It is not a substitute for in-person clinical examination.<br>
-  Patient PII deliberately excluded per DPDP Act 2023 · ICMR/NHM/WHO Guidelines 2023–24
-</div>
-
-<div class="no-print" style="text-align:center;padding:20px">
-  <button onclick="window.print()" style="background:#b91c1c;color:#fff;border:none;padding:10px 24px;border-radius:8px;font-size:14px;cursor:pointer;margin-right:8px">🖨 Print / Save as PDF</button>
-  <button onclick="window.close()" style="background:#f3f4f6;color:#374151;border:1px solid #d1d5db;padding:10px 18px;border-radius:8px;font-size:14px;cursor:pointer">Close</button>
-</div>
-<script>document.fonts.ready.then(()=>setTimeout(()=>window.print(),600));<\/script>
-</body></html>`;
-
-  const blob = new Blob([html],{type:'text/html'});
-  const url  = URL.createObjectURL(blob);
-  const tab  = window.open(url,'_blank');
-  if(!tab){const a=document.createElement('a');a.href=url;a.download='samarthaa-sop-'+req.id+'.html';a.click();}
-  setTimeout(()=>URL.revokeObjectURL(url),15000);
-};
-
-// ── Word Export ────────────────────────────────────────────────────────
 window.sopExportWord = function(id) {
   const req = sopById(id);
-  if(!req || req.status!=='approved') { alert('Only approved reports can be exported.'); return; }
+  const isDraftW = req.status !== 'approved';
+  if(!req || (!['approved','awaiting_review','revision'].includes(req.status))) {
+    alert('Please generate and review a second opinion before exporting.');
+    return;
+  }
   const today = new Date().toLocaleDateString('en-IN',{dateStyle:'long'});
   const E = sopE;
 
@@ -16740,8 +16525,13 @@ ${req.fee?`<p style="margin-top:10pt;color:#15803d;font-weight:bold">Consultatio
   const blob = new Blob(['\ufeff'+wordHtml],{type:'application/msword'});
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
-  a.href=url; a.download='samarthaa-sop-'+req.id+'.doc'; a.click();
-  setTimeout(()=>URL.revokeObjectURL(url),5000);
+  a.href=url;
+  a.download = 'SOP-' + req.id + '-' + new Date().toISOString().slice(0,10) + '.doc';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(()=>URL.revokeObjectURL(url),10000);
+  if(typeof showToast==='function') showToast('✅','Word report downloaded','SOP-'+req.id+'.doc saved');
 };
 
 // ── showView hook for secondopinion ─────────────────────────────────
