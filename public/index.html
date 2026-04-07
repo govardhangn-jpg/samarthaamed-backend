@@ -6457,18 +6457,99 @@ SHORT-TERM:
   function saveLabResults() {
     const manualVisible = document.getElementById('labPanelManual').style.display !== 'none';
     let filled = 0;
+
+    // ── Collect all lab values ─────────────────────────────────────
+    const collectedRows = [];
+
     if (manualVisible) {
-      document.querySelectorAll('#labEntryRows .lab-val-input').forEach(i => { if (i.value) filled++; });
+      document.querySelectorAll('#labEntryRows .lab-input-row').forEach(row => {
+        const nameEl = row.querySelector('.lab-name-col');
+        const refEl  = row.querySelector('.lab-ref-col');
+        const input  = row.querySelector('.lab-val-input');
+        if (!input || !input.value.trim()) return;
+        filled++;
+        collectedRows.push({
+          name:   nameEl ? nameEl.textContent.trim() : 'Unknown',
+          unit:   refEl  ? refEl.textContent.trim()  : '',
+          value:  input.value.trim(),
+          status: input.classList.contains('abnormal-h') ? 'H'
+                : input.classList.contains('abnormal-l') ? 'L' : 'N'
+        });
+      });
       if (!filled) { showToast('⚠️', 'No values entered', 'Enter at least one lab value'); return; }
     } else {
       const doneCount = labReportQueue.filter(r => r.status === 'done').length;
-      if (doneCount === 0) { showToast('⚠️', 'No reports ready', 'Upload a report and wait for extraction to complete'); return; }
-      document.querySelectorAll('#labExtractedRows .lab-val-input').forEach(i => { if (i.value) filled++; });
+      if (!doneCount) { showToast('⚠️', 'No reports ready', 'Upload a report and wait for extraction'); return; }
+      document.querySelectorAll('#labExtractedRows .lab-input-row').forEach(row => {
+        const nameEl = row.querySelector('.lab-name-col');
+        const refEl  = row.querySelector('.lab-ref-col');
+        const input  = row.querySelector('.lab-val-input');
+        if (!input || !input.value.trim()) return;
+        filled++;
+        collectedRows.push({
+          name:   nameEl ? nameEl.textContent.trim() : 'Unknown',
+          unit:   refEl  ? refEl.textContent.trim()  : '',
+          value:  input.value.trim(),
+          status: input.classList.contains('abnormal-h') ? 'H'
+                : input.classList.contains('abnormal-l') ? 'L' : 'N'
+        });
+      });
       if (!filled) { showToast('⚠️', 'Nothing to save', 'No values extracted yet'); return; }
     }
+
+    // ── Get patient + metadata ─────────────────────────────────────
+    const patientKey  = document.getElementById('labModalPatientSelect')?.value || '';
+    const reportDate  = document.getElementById('labDate')?.value
+                        || new Date().toISOString().split('T')[0];
+    const labSource   = document.getElementById('labSource')?.value?.trim() || 'Lab Results';
+    const reportType  = manualVisible ? 'Manual Entry' : 'Uploaded Report';
+
+    const entry = {
+      id:         Date.now(),
+      date:       reportDate,
+      source:     labSource,
+      reportType: reportType,
+      patientKey: patientKey,
+      values:     collectedRows,
+      savedAt:    new Date().toISOString(),
+      summary:    collectedRows.map(r =>
+        r.name + ': ' + r.value + (r.unit ? ' ' + r.unit : '') +
+        (r.status === 'H' ? ' ↑' : r.status === 'L' ? ' ↓' : '')
+      ).join(' | ')
+    };
+
+    // ── Persist to patientProfiles (in-memory, current session) ───
+    if (patientKey && typeof patientProfiles !== 'undefined' && patientProfiles[patientKey]) {
+      if (!patientProfiles[patientKey].labs) patientProfiles[patientKey].labs = [];
+      patientProfiles[patientKey].labs.push({
+        type:    labSource + (reportType !== 'Manual Entry' ? ' (uploaded)' : ''),
+        date:    reportDate,
+        summary: entry.summary.substring(0, 300),
+        full:    collectedRows.map(r =>
+          r.name + ': ' + r.value + (r.unit ? ' ' + r.unit : '') +
+          (r.status !== 'N' ? ' [' + r.status + ']' : '')
+        ).join('\n'),
+        values:  collectedRows
+      });
+    }
+
+    // ── Persist to localStorage (survives refresh) ─────────────────
+    try {
+      const STORE_KEY = 'smmed_lab_results';
+      const existing = JSON.parse(localStorage.getItem(STORE_KEY) || '[]');
+      existing.push(entry);
+      // Keep last 200 results
+      if (existing.length > 200) existing.splice(0, existing.length - 200);
+      localStorage.setItem(STORE_KEY, JSON.stringify(existing));
+    } catch(e) { console.warn('Lab save error:', e); }
+
+    // ── Close modal and notify ─────────────────────────────────────
     closeLabModal();
-    const source = manualVisible ? 'manual entry' : `${labReportQueue.filter(r=>r.status==='done').length} report${labReportQueue.filter(r=>r.status==='done').length>1?'s':''}`;
-    showToast('✅', 'Lab results saved', `${filled} values from ${source} · AI interpretation generated`);
+    const source = manualVisible ? 'manual entry'
+      : labReportQueue.filter(r => r.status === 'done').length + ' report(s)';
+    showToast('✅', 'Lab results saved',
+      filled + ' values from ' + source + ' · Linked to ' +
+      (patientKey || 'no patient selected'));
     const badge = document.querySelector('.nav-badge');
     if (badge) badge.textContent = String(parseInt(badge.textContent || '5') + 1);
   }
@@ -14098,6 +14179,35 @@ function sopGetProfile(key) {
 // Get lab results for a patient - from patientProfiles.labs, video consultations, prescriptions
 function sopGetPatientLabs(key) {
   const labEntries = [];
+
+  // 0. From smmed_lab_results localStorage (persisted lab saves — most reliable)
+  try {
+    var stored = JSON.parse(localStorage.getItem('smmed_lab_results') || '[]');
+    var profName0 = prof ? prof.name : '';
+    stored.filter(function(entry) {
+      return entry.patientKey === key ||
+             (profName0 && entry.patientName === profName0);
+    }).forEach(function(entry) {
+      if (!entry.values || !entry.values.length) return;
+      var abnormals = entry.values.filter(function(v) { return v.status === 'H' || v.status === 'L'; });
+      var summaryText = entry.summary || entry.values.slice(0,5).map(function(v) {
+        return v.name + ': ' + v.value + (v.unit ? ' ' + v.unit : '');
+      }).join(' | ');
+      labEntries.push({
+        type: entry.source || 'Lab Report',
+        date: entry.date || entry.savedAt || 'Unknown date',
+        summary: summaryText.substring(0, 250),
+        full: entry.values.map(function(v) {
+          return v.name + ': ' + v.value + (v.unit ? ' ' + v.unit : '') +
+                 (v.status !== 'N' ? ' [' + (v.status === 'H' ? '↑HIGH' : '↓LOW') + ']' : '');
+        }).join('\n'),
+        values: entry.values,
+        abnormalCount: abnormals.length,
+        reportType: entry.reportType || 'Lab Result'
+      });
+    });
+  } catch(e) {}
+
   const prof = typeof patientProfiles !== 'undefined' ? patientProfiles[key] : null;
 
   // 1. From patientProfiles.labs (set by lab module)
